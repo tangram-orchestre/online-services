@@ -1,4 +1,3 @@
-import TheNavBar from './TheNavBar.vue'
 <template>
   <Head>
     <Title>Tangram Orchestre</Title>
