@@ -1,0 +1,76 @@
+name: Build Showcase Website
+
+on:
+  workflow_call:
+
+env:
+  REGISTRY: ghcr.io
+  IMAGE_NAME: ${{ github.repository_owner }}/showcase-website
+
+jobs:
+  build-showcase-website:
+    name: Build Showcase Website
+    runs-on: ubuntu-latest
+
+    permissions:
+      contents: read
+      packages: write
+      attestations: write
+      id-token: write
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          lfs: true
+
+      - uses: dorny/paths-filter@v3
+        id: changes
+        with:
+          base: production
+          filters: |
+            showcase-website:
+              - 'showcase-website/**'
+              - '.github/workflows/build-showcase-website.yml'
+
+      - name: Set up Docker Buildx
+        if: steps.changes.outputs.showcase-website == 'true'
+        uses: docker/setup-buildx-action@v3
+
+      - name: Log in to the Container registry
+        if: steps.changes.outputs.showcase-website == 'true'
+        uses: docker/login-action@65b78e6e13532edd9afa3aa52ac7964289d1a9c1
+        with:
+          registry: ${{ env.REGISTRY }}
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Docker meta
+        id: meta
+        uses: docker/metadata-action@v5
+        with:
+          tags: |
+            type=raw,value=latest,enable={{ is_default_branch }}
+            type=sha,format=long
+          images: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}
+
+      - name: Build and push
+        if: steps.changes.outputs.showcase-website == 'true'
+        id: push
+        uses: docker/build-push-action@v6
+        with:
+          context: showcase-website
+          push: true
+          tags: ${{ steps.meta.outputs.tags }}
+          labels: ${{ steps.meta.outputs.labels }}
+          # Caching takes more time than to rebuild image from scratch
+          # cache-from: type=gha
+          # cache-to: type=gha,mode=max
+
+      - name: Generate artifact attestation
+        if: steps.changes.outputs.showcase-website == 'true'
+        uses: actions/attest-build-provenance@v1
+        with:
+          subject-name: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME}}
+          subject-digest: ${{ steps.push.outputs.digest }}
+          push-to-registry: true
