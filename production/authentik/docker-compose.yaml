@@ -1,7 +1,6 @@
 services:
   authentik-postgresql:
     image: docker.io/library/postgres:16-alpine
-    container_name: authentik-postgresql
     restart: unless-stopped
     user: 1000:1000
     healthcheck:
@@ -11,7 +10,7 @@ services:
       retries: 5
       timeout: 5s
     volumes:
-      - ./docker-data/db:/var/lib/postgresql/data
+      - /opt/docker-volumes/authentik/db:/var/lib/postgresql/data
     environment:
       POSTGRES_PASSWORD: ${PG_PASS}
       POSTGRES_USER: authentik
@@ -20,7 +19,6 @@ services:
       - .env
   authentik-redis:
     image: docker.io/library/redis:alpine
-    container_name: authentik-redis
     command: --save 60 1 --loglevel warning
     restart: unless-stopped
     user: 1000:1000
@@ -31,13 +29,12 @@ services:
       retries: 5
       timeout: 3s
     volumes:
-      - ./docker-data/redis:/data
+      - /opt/docker-volumes/authentik/redis:/data
 
   authentik-server:
     image: ghcr.io/goauthentik/server:2024.10
     restart: unless-stopped
     command: server
-    container_name: authentik-server
     user: 1000:1000
     environment:
       AUTHENTIK_REDIS__HOST: authentik-redis
@@ -53,9 +50,9 @@ services:
       - traefik.http.routers.authentik.tls=true
       - traefik.http.routers.authentik.tls.certresolver=resolver
     volumes:
-      - ./docker-data/icons:/icons
-      - ./docker-data/media:/media
-      - ./docker-data/custom-templates:/templates
+      - /opt/docker-volumes/authentik/icons:/icons
+      - /opt/docker-volumes/authentik/media:/media
+      - /opt/docker-volumes/authentik/custom-templates:/templates
     env_file:
       - .env
     depends_on:
@@ -66,7 +63,6 @@ services:
     image: ghcr.io/goauthentik/server:2024.10
     restart: unless-stopped
     command: worker
-    container_name: authentik-worker
     user: 1000:1000
     environment:
       AUTHENTIK_REDIS__HOST: authentik-redis
@@ -77,9 +73,9 @@ services:
 
     volumes:
       - /var/run/docker.sock:/var/run/docker.sock
-      - ./docker-data/media:/media
-      - ./docker-data/certs:/certs
-      - ./docker-data/custom-templates:/templates
+      - /opt/docker-volumes/authentik/media:/media
+      - /opt/docker-volumes/authentik/certs:/certs
+      - /opt/docker-volumes/authentik/custom-templates:/templates
     env_file:
       - .env
     depends_on:

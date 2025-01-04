@@ -1,20 +1,20 @@
-name: Test and deploy
+name: CI/CD
 on:
   push:
     branches:
-      - master
+      - develop
 
 env:
   REGISTRY: ghcr.io
-  IMAGE_NAME: ${{ github.repository_owner }}/showcase-website
+  SHOWCASE_WEBSITE_IMAGE_NAME: ${{ github.repository_owner }}/showcase-website
 
 jobs:
-  build-and-push-image:
-    name: Build & Deploy website
+  build-showcase-website:
+    name: Build Showcase Website
     runs-on: ubuntu-latest
 
     permissions:
-      contents: read
+      contents: write
       packages: write
       attestations: write
       id-token: write
@@ -24,6 +24,14 @@ jobs:
         uses: actions/checkout@v4
         with:
           lfs: true
+
+      - uses: dorny/paths-filter@v3
+        id: changes
+        with:
+          filters: |
+            showcase-website:
+              - 'showcase-website/**'
+              - '.github/workflows/ci.yml'
 
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
@@ -42,9 +50,10 @@ jobs:
           tags: |
             type=raw,value=latest,enable={{ is_default_branch }}
             type=sha,format=long
-          images: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}
+          images: ${{ env.REGISTRY }}/${{ env.SHOWCASE_WEBSITE_IMAGE_NAME }}
 
       - name: Build and push
+        if: steps.changes.outputs.showcase-website == 'true'
         id: push
         uses: docker/build-push-action@v6
         with:
@@ -57,11 +66,31 @@ jobs:
           # cache-to: type=gha,mode=max
 
       - name: Generate artifact attestation
+        if: steps.changes.outputs.showcase-website == 'true'
         uses: actions/attest-build-provenance@v1
         with:
-          subject-name: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME}}
+          subject-name: ${{ env.REGISTRY }}/${{ env.SHOWCASE_WEBSITE_IMAGE_NAME}}
           subject-digest: ${{ steps.push.outputs.digest }}
           push-to-registry: true
+
+  deploy:
+    name: Deploy
+    runs-on: ubuntu-latest
+    needs: build-showcase-website
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Sync production dir to production
+        uses: burnett01/rsync-deployments@7.0.1
+        with:
+          switches: -avzr --delete --exclude='.env'
+          path: production/
+          remote_path: /opt/services/
+          remote_host: tangram-orchestre.fr
+          remote_user: ${{ secrets.PRODUCTION_USERNAME }}
+          remote_key: ${{ secrets.PRODUCTION_KEY }}
 
       - name: Deploy to production
         uses: appleboy/ssh-action@v1.0.3
@@ -69,4 +98,4 @@ jobs:
           host: tangram-orchestre.fr
           username: ${{ secrets.PRODUCTION_USERNAME }}
           key: ${{ secrets.PRODUCTION_KEY }}
-          script: services/update-showcase-website.sh
+          script: /opt/services/update.sh

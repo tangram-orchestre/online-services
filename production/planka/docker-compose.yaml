@@ -1,7 +1,6 @@
 services:
   planka:
     image: ghcr.io/plankanban/planka:1.23.5
-    container_name: planka
     restart: unless-stopped
     depends_on:
       planka-postgres:
@@ -15,9 +14,9 @@ services:
         restart: true
     user: 1000:1000
     volumes:
-      - ./docker-data/user-avatars:/app/public/user-avatars
-      - ./docker-data/project-background-images:/app/public/project-background-images
-      - ./docker-data/attachments:/app/private/attachments
+      - /opt/docker-volumes/planka/user-avatars:/app/public/user-avatars
+      - /opt/docker-volumes/planka/project-background-images:/app/public/project-background-images
+      - /opt/docker-volumes/planka/attachments:/app/private/attachments
     environment:
       - PUID=1000
       - PGID=1000
@@ -26,12 +25,14 @@ services:
       - DATABASE_URL=postgresql://postgres@planka-postgres/planka
       - SECRET_KEY=${SECRET_KEY}
 
+      # SSO
       - OIDC_ISSUER=https://auth.tangram-orchestre.fr/application/o/planka/
       - OIDC_CLIENT_ID=${OIDC_CLIENT_ID}
       - OIDC_CLIENT_SECRET=${OIDC_CLIENT_SECRET}
       - OIDC_SCOPES=openid profile email
       - OIDC_ADMIN_ROLES=bureau
       - OIDC_ENFORCED=true
+
       # Email Notifications (https://nodemailer.com/smtp/)
       - SMTP_HOST=smtp-relay.gmail.com
       - SMTP_PORT=465
@@ -50,7 +51,7 @@ services:
     image: postgres:14-alpine
     restart: unless-stopped
     volumes:
-      - ./docker-data/db:/var/lib/postgresql/data
+      - /opt/docker-volumes/planka/db:/var/lib/postgresql/data
     user: 1000:1000
     environment:
       - PUID=1000
