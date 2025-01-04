@@ -5,8 +5,6 @@ services:
     restart: unless-stopped
     security_opt:
       - no-new-privileges:true
-    networks:
-      - backend
     labels:
       - traefik.enable=true
       - "traefik.http.routers.website.rule=Host(`tangram-orchestre.fr`) || Host(`www.tangram-orchestre.fr`)"
@@ -16,7 +14,3 @@ services:
       - traefik.http.routers.website.tls=true
       - traefik.http.routers.website.tls.certresolver=resolver
       - com.centurylinklabs.watchtower.enable=false
-
-networks:
-  backend:
-    external: true

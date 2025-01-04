@@ -15,9 +15,6 @@ services:
       - ./traefik.yml:/etc/traefik/traefik.yml
       - ./dynamic-conf:/etc/traefik/dynamic-conf
       - ./acme.json:/etc/traefik/acme.json
-    networks:
-      - backend
-      - frontend
     restart: unless-stopped
     labels:
       - traefik.enable=true
@@ -26,9 +23,3 @@ services:
       - traefik.http.routers.dashboard.tls=true
       - traefik.http.routers.dashboard.tls.certresolver=resolver
       - traefik.http.routers.dashboard.middlewares=authentik@file
-
-networks:
-  backend:
-    external: true
-  frontend:
-    external: true

@@ -14,8 +14,6 @@ services:
         condition: service_healthy
         restart: true
     user: 1000:1000
-    networks:
-      - backend
     volumes:
       - ./docker-data/user-avatars:/app/public/user-avatars
       - ./docker-data/project-background-images:/app/public/project-background-images
@@ -50,13 +48,10 @@ services:
 
   planka-postgres:
     image: postgres:14-alpine
-    container_name: planka-postgres
     restart: unless-stopped
     volumes:
       - ./docker-data/db:/var/lib/postgresql/data
     user: 1000:1000
-    networks:
-      - backend
     environment:
       - PUID=1000
       - PGID=1000
@@ -64,11 +59,7 @@ services:
       - POSTGRES_DB=planka
       - POSTGRES_HOST_AUTH_METHOD=trust
     healthcheck:
-      test: [ "CMD-SHELL", "pg_isready -U postgres -d planka" ]
+      test: ["CMD-SHELL", "pg_isready -U postgres -d planka"]
       interval: 10s
       timeout: 5s
       retries: 5
-
-networks:
-  backend:
-    external: true
