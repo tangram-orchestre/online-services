@@ -1,0 +1,6 @@
+include:
+  - ./traefik/docker-compose.yaml
+  - ./authentik/docker-compose.yaml
+  - ./planka/docker-compose.yaml
+  - ./website/docker-compose.yaml
+  - ./watchtower/docker-compose.yaml

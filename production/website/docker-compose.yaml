@@ -1,0 +1,22 @@
+services:
+  showcase-website:
+    image: ghcr.io/tangram-orchestre/showcase-website:latest
+    container_name: showcase-website
+    restart: unless-stopped
+    security_opt:
+      - no-new-privileges:true
+    networks:
+      - backend
+    labels:
+      - traefik.enable=true
+      - "traefik.http.routers.website.rule=Host(`tangram-orchestre.fr`) || Host(`www.tangram-orchestre.fr`)"
+      - "traefik.http.middlewares.redirect-none-to-www.redirectregex.regex=^https://tangram-orchestre\\.fr(.*)$$"
+      - "traefik.http.middlewares.redirect-none-to-www.redirectregex.replacement=https://www.tangram-orchestre.fr$${1}"
+      - traefik.http.routers.website.middlewares=redirect-none-to-www@docker
+      - traefik.http.routers.website.tls=true
+      - traefik.http.routers.website.tls.certresolver=resolver
+      - com.centurylinklabs.watchtower.enable=false
+
+networks:
+  backend:
+    external: true

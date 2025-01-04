@@ -1,0 +1,10 @@
+services:
+  watchtower:
+    image: containrrr/watchtower
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
+    command: --monitor-only
+    environment:
+      TZ: Europe/Paris
+      WATCHTOWER_NOTIFICATION_URL: ${WATCHTOWER_NOTIFICATION_URL}
+      WATCHTOWER_NOTIFICATIONS_HOSTNAME: Tangram Server

@@ -1,0 +1,34 @@
+services:
+  traefik:
+    image: traefik:v3.0
+    container_name: traefik
+    environment:
+      - TZ=Europe/Paris
+    ports:
+      # The HTTP port
+      - "80:80"
+      # The HTTPS port
+      - "443:443"
+    volumes:
+      # So that Traefik can listen to the Docker events
+      - /var/run/docker.sock:/var/run/docker.sock
+      - ./traefik.yml:/etc/traefik/traefik.yml
+      - ./dynamic-conf:/etc/traefik/dynamic-conf
+      - ./acme.json:/etc/traefik/acme.json
+    networks:
+      - backend
+      - frontend
+    restart: unless-stopped
+    labels:
+      - traefik.enable=true
+      - traefik.http.routers.dashboard.rule=Host(`traefik.tangram-orchestre.fr`)
+      - traefik.http.routers.dashboard.service=api@internal
+      - traefik.http.routers.dashboard.tls=true
+      - traefik.http.routers.dashboard.tls.certresolver=resolver
+      - traefik.http.routers.dashboard.middlewares=authentik@file
+
+networks:
+  backend:
+    external: true
+  frontend:
+    external: true

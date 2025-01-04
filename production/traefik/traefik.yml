@@ -1,0 +1,31 @@
+providers:
+  file:
+    directory: /etc/traefik/dynamic-conf
+    watch: true
+  docker:
+    exposedByDefault: false
+
+api:
+  dashboard: true
+
+entryPoints:
+  web:
+    address: ":80"
+    http:
+      redirections:
+        entryPoint:
+          to: websecure
+  websecure:
+    address: ":443"
+
+certificatesResolvers:
+  resolver:
+    acme:
+      email: admin@tangram-orchestre.fr
+      storage: /etc/traefik/acme.json
+      httpChallenge:
+        # used during the challenge
+        entryPoint: web
+
+log:
+  level: INFO
