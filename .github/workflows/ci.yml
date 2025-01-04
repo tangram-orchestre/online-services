@@ -6,6 +6,7 @@ on:
 
 jobs:
   build-showcase-website:
+    name: Build Showcase Website
     permissions:
       contents: read
       packages: write
