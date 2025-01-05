@@ -4,3 +4,4 @@ include:
   - ./planka/docker-compose.yaml
   - ./website/docker-compose.yaml
   - ./watchtower/docker-compose.yaml
+  - ./kopia/docker-compose.yaml

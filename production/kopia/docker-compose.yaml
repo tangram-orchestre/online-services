@@ -1,0 +1,29 @@
+services:
+  kopia:
+    image: kopia/kopia:0.18.2
+    restart: unless-stopped
+    command:
+      - server
+      - start
+      - --disable-csrf-token-checks
+      - --insecure
+      - --address=0.0.0.0:51515
+      - --server-username=${KOPIA_WEB_USERNAME}
+      - --server-password=${KOPIA_WEB_PASSWORD}
+    volumes:
+      # Mount local folders needed by kopia
+      - /opt/docker-volumes/kopia/config:/app/config
+      - /opt/docker-volumes-no-backup/kopia/cache:/app/cache
+      - /opt/docker-volumes-no-backup/kopia/logs:/app/logs
+      # Mount local folders to snapshot
+      - /opt/docker-volumes:/data/docker-volumes:ro
+      - /opt/services:/data/services:ro
+      # Mount path for browsing mounted snaphots
+      - /opt/snapshots:/tmp:shared
+      - /opt/rclone:/app/rclone:ro
+    labels:
+      - traefik.enable=true
+      - traefik.http.services.kopia.loadbalancer.server.port=51515
+      - traefik.http.routers.kopia.rule=Host(`kopia.tangram-orchestre.fr`)
+      - traefik.http.routers.kopia.tls=true
+      - traefik.http.routers.kopia.tls.certresolver=resolver

@@ -1,6 +1,6 @@
 # Tangram's Production Environment
 
-This repository holds Tangram website production environment.
+This folder holds Tangram website production environment.
 
 ## Infrastructure
 
@@ -20,9 +20,19 @@ At the top level a single `docker-compose.yaml` includes the ones in the subfold
     docker compose up -d
     ```
 
+### Automatic deployment
+
+The infrastructure is automatically deployed at each push on master, see [ci.yml](../.github/workflows/ci.yml):
+ 1. First this folder is `rsynced` to the production server
+ 2. Then the [update.sh](./update.sh) is run
+
+### Backups
+
+We use [kopia](https://kopia.io/) to backup the configuration to our Google Drive.
+
 ### .env files
 
-To keep secret secret, we use `.env` file that are not tracked by `git`, samples files are commited to know what key are needed.
+To keep secrets secret, we use `.env` file that are not tracked by `git`, samples files are commited to know what key are needed.
 
 You can run [check-env-file-coherency.py](scripts/check-env-file-coherency.py) to assert real and samples files are synchronised. Adding the script in your [pre-commit hooks](https://git-scm.com/book/en/v2/Customizing-Git-Git-Hooks) is also a good idea.
 
