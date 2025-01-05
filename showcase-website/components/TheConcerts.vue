@@ -93,11 +93,6 @@ const concerts: Array<Concert> = [
     date: "7 décembre 2024",
     location: "Pavillon de la Sirène",
     image: "/images/concerts/2024-12-07.png",
-    url: {
-      kind: "Tickets",
-      target:
-        "https://www.helloasso.com/associations/tangram/evenements/tangram-concert-a-la-sirene-le-7-12-2024",
-    },
   },
   {
     date: "28 juin 2024",
