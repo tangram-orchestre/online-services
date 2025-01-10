@@ -11,7 +11,13 @@ To develop on this project, follow these steps:
 - Clone the repository
 
 ```
-git clone git@github.com:tangram-orchestre/showcase-website.git
+git clone git@github.com:tangram-orchestre/online-services.git
+```
+
+- Switch to website repository
+
+```
+cd showcase-website
 ```
 
 - Install the dependencies
