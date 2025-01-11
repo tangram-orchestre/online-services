@@ -1,0 +1,23 @@
+name: CI/CD
+on:
+  pull_request:
+    types:
+      - opened
+      - synchronize
+      - reopened
+      - ready_for_review
+    branches:
+      - master
+
+jobs:
+  build-showcase-website:
+    name: Build Showcase Website
+    if: github.event.pull_request.draft == false
+    permissions:
+      contents: read
+      packages: write
+      attestations: write
+      id-token: write
+    uses: ./.github/workflows/build-showcase-website.yml
+    with:
+      push: false
