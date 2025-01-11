@@ -10,6 +10,9 @@ services:
       - --address=0.0.0.0:51515
       - --server-username=${KOPIA_WEB_USERNAME}
       - --server-password=${KOPIA_WEB_PASSWORD}
+    environment:
+      # Repository password
+      KOPIA_PASSWORD: ${KOPIA_PASSWORD}
     volumes:
       # Mount local folders needed by kopia
       - /opt/docker-volumes/kopia/config:/app/config

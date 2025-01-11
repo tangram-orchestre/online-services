@@ -15,4 +15,5 @@ http:
           - X-authentik-meta-outpost
           - X-authentik-meta-provider
           - X-authentik-meta-app
-          - X-authentik-meta-version
+          - X-authentik-meta-X-authentik-meta-version
+          - Authorization
