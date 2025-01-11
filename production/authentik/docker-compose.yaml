@@ -18,7 +18,7 @@ services:
     env_file:
       - .env
   authentik-redis:
-    image: docker.io/library/redis:alpine
+    image: docker.io/library/redis:7.4.2-alpine
     command: --save 60 1 --loglevel warning
     restart: unless-stopped
     user: 1000:1000
@@ -32,7 +32,7 @@ services:
       - /opt/docker-volumes/authentik/redis:/data
 
   authentik-server:
-    image: ghcr.io/goauthentik/server:2024.10
+    image: ghcr.io/goauthentik/server:2024.12.2
     restart: unless-stopped
     command: server
     user: 1000:1000
@@ -60,7 +60,7 @@ services:
       - authentik-redis
 
   authentik-worker:
-    image: ghcr.io/goauthentik/server:2024.10
+    image: ghcr.io/goauthentik/server:2024.12.2
     restart: unless-stopped
     command: worker
     user: 1000:1000
