@@ -142,7 +142,8 @@
     }
 
     .animate & .#{$name} {
-      animation: #{$name}-animation-filter $animation-length ease-in-out forwards;
+      animation: #{$name}-animation-filter $animation-length ease-in-out
+        forwards;
       animation-delay: $time-offset + s;
     }
 
