@@ -35,7 +35,7 @@
     "prettier": "^3.3.3",
     "sass": "^1.77.8",
     "sass-loader": "^16.0.1",
-    "tailwindcss": "^3.4.10",
+    "tailwindcss": "^3.4.17",
     "typescript": "^5.5.4",
     "vite": "5.4",
     "vite-svg-loader": "^5.1.0",
