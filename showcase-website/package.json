@@ -18,7 +18,7 @@
     "@nuxt/icon": "^1.7.0",
     "@nuxt/image": "^1.8.0",
     "@vueuse/core": "^11.0.3",
-    "@vueuse/nuxt": "^11.0.3",
+    "@vueuse/nuxt": "^12.4.0",
     "nuxt": "^3.13.1",
     "ts-pattern": "^5.4.0",
     "vue": "^3.4.32"
