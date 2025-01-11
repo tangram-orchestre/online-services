@@ -18,6 +18,9 @@ jobs:
       attestations: write
       id-token: write
     uses: ./.github/workflows/build-showcase-website.yml
+    with:
+      base_ref: production
+      push: true
     secrets: inherit
 
   deploy:
