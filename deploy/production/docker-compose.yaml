@@ -5,3 +5,7 @@ include:
   - ./website/docker-compose.yaml
   - ./watchtower/docker-compose.yaml
   - ./kopia/docker-compose.yaml
+
+networks:
+  default:
+    name: services
