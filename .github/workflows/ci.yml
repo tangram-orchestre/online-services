@@ -35,17 +35,17 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v4
 
-      - name: Sync production dir to production
+      - name: Sync production dir to server
         uses: burnett01/rsync-deployments@7.0.1
         with:
           switches: -avzr --delete --exclude='.env'
-          path: production/
+          path: deploy/production/
           remote_path: /opt/services/
           remote_host: tangram-orchestre.fr
           remote_user: ${{ secrets.PRODUCTION_USERNAME }}
           remote_key: ${{ secrets.PRODUCTION_KEY }}
 
-      - name: Deploy to production
+      - name: Update production services
         uses: appleboy/ssh-action@v1.0.3
         with:
           host: tangram-orchestre.fr
