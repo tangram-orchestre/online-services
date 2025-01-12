@@ -1,0 +1,25 @@
+name: Detect Changes
+description: Detect Changes to know what to build
+
+inputs:
+  ref_branch:
+    description: Branch to compare against
+outputs:
+  showcase-website:
+    description: "Should Showcase Website be build"
+    value: ${{ steps.changes.outputs.showcase-website }}
+
+runs:
+  using: "composite"
+  steps:
+  - name: Detect Changes
+    uses: dorny/paths-filter@v3
+    id: changes
+    with:
+      base: ${{ inputs.ref_branch }}
+      filters: |
+        showcase-website:
+          - 'showcase-website/**'
+          - '.github/workflows/build-showcase-website.yml'
+
+
