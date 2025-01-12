@@ -1,0 +1,48 @@
+name: Build Showcase Website
+description: Build Showcase Website of Tangram
+
+inputs:
+  DOCKER_REGISTRY:
+    description: Docker Registry, if absent, no push
+  IMAGE_NAME:
+    description: Image name to push
+  TAG:
+    description: Tag for docker image
+
+runs:
+  using: "composite"
+  steps:
+    - name: Checkout repository
+      uses: actions/checkout@v4
+      with:
+        lfs: true
+
+    - name: Docker meta
+      if: inputs.DOCKER_REGISTRY != ''
+      id: meta
+      uses: docker/metadata-action@v5
+      with:
+        tags: |
+          type=raw,value=${{ inputs.TAG }}
+          type=sha,format=long
+        images: ${{ inputs.DOCKER_REGISTRY }}/${{ inputs.IMAGE_NAME }}
+
+    - name: Build and push
+      id: push
+      uses: docker/build-push-action@v6
+      with:
+        context: showcase-website
+        push: ${{ inputs.DOCKER_REGISTRY != '' }}
+        tags: ${{ steps.meta.outputs.tags }}
+        labels: ${{ steps.meta.outputs.labels }}
+        # Build with cache is slower!
+        # cache-from: type=gha
+        # cache-to: type=gha,mode=max
+
+    - name: Generate artifact attestation
+      if: inputs.DOCKER_REGISTRY != ''
+      uses: actions/attest-build-provenance@v1
+      with:
+        subject-name: ${{ inputs.DOCKER_REGISTRY }}/${{ inputs.IMAGE_NAME}}
+        subject-digest: ${{ steps.push.outputs.digest }}
+        push-to-registry: true

@@ -8,16 +8,26 @@ on:
       - ready_for_review
     branches:
       - master
+      - develop
 
 jobs:
-  build-showcase-website:
-    name: Build Showcase Website
+  check-pr:
+    name: Check PR
+    runs-on: ubuntu-latest
     if: github.event.pull_request.draft == false
     permissions:
       contents: read
       packages: write
       attestations: write
       id-token: write
-    uses: ./.github/workflows/build-showcase-website.yml
-    with:
-      push: false
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          lfs: true
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Build Showcase Website
+        uses: ./.github/actions/build-showcase-website
