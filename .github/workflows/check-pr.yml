@@ -26,8 +26,13 @@ jobs:
         with:
           lfs: true
 
+      - name: Detect Changes
+        id: changes
+        uses: ./.github/actions/detect-changes
+
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
 
       - name: Build Showcase Website
+        if: steps.changes.outputs.showcase-website == 'true'
         uses: ./.github/actions/build-showcase-website

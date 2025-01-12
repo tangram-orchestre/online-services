@@ -18,7 +18,7 @@
         <div
           class="title roboto-thin text-[calc(clamp(1px,15vw,6rem))] leading-[1.067em]"
         >
-          TANGRAM
+          PUZZLE
         </div>
         <div
           class="sub-title oswald text-center text-[calc(clamp(1px,3vw,1.3rem))] tracking-wide"
