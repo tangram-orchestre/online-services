@@ -1,0 +1,7 @@
+include:
+  - ./website/docker-compose.yaml
+
+networks:
+  default:
+    name: services
+    external: true
