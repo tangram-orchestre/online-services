@@ -14,11 +14,13 @@ jobs:
       - uses: actions/checkout@v4
         with:
           ref: develop
+          ssh-key: ${{ secrets.UPDATE_BRANCH_KEY }}
       - name: Detect Changes
         uses: dorny/paths-filter@v3
         id: changes
         with:
-          base: master
+          ref: master
+          base: develop
           filters: |
             any:
               - '**'
