@@ -1,0 +1,26 @@
+name: Create Deploy develop to master pull request
+on:
+  push:
+    branches:
+      - develop
+
+jobs:
+  deploy-develop:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+      pull-requests: write
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: master
+      - name: Reset master branch
+        run: |
+          git fetch origin develop:develop
+          git reset --hard develop
+      - name: Create Pull Request
+        uses: peter-evans/create-pull-request@v7
+        with:
+          branch: deploy-develop-to-master
+          draft: always-true
+          title: Deploy develop to master
