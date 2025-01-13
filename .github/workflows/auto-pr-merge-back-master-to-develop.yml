@@ -1,0 +1,42 @@
+name: Create Merge back master to develop pull request
+on:
+  push:
+    branches:
+      - master
+
+jobs:
+  deploy-develop:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+      pull-requests: write
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: develop
+      - name: Detect Changes
+        uses: dorny/paths-filter@v3
+        id: changes
+        with:
+          base: master
+          filters: |
+            any:
+              - '**'
+      - name: Reset master branch
+        if: steps.changes.outputs.any == 'true'
+        run: |
+          git fetch origin master:master
+          git reset --hard master
+      - name: Create Pull Request
+        if: steps.changes.outputs.any == 'true'
+        id: create-pr
+        uses: peter-evans/create-pull-request@v7
+        with:
+          branch: merge-back-master
+          title: Merge back master to develop
+
+      - name: Enable Pull Request Automerge
+        if: steps.changes.outputs.any == 'true'
+        run: gh pr merge --merge --auto "${{ steps.create-pr.outputs.pull-request-number }}"
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
