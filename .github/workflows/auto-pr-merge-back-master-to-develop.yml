@@ -14,7 +14,6 @@ jobs:
       - uses: actions/checkout@v4
         with:
           ref: develop
-          ssh-key: ${{ secrets.UPDATE_BRANCH_KEY }}
       - name: Detect Changes
         uses: dorny/paths-filter@v3
         id: changes
@@ -35,6 +34,7 @@ jobs:
         uses: peter-evans/create-pull-request@v7
         with:
           branch: merge-back-master
+          draft: always-true
           title: Merge back master to develop
 
       - name: Enable Pull Request Automerge
