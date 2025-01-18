@@ -1,0 +1,22 @@
+providers:
+  docker:
+    exposedByDefault: false
+
+api:
+  dashboard: true
+
+entryPoints:
+  web:
+    address: ":80"
+    http:
+      redirections:
+        entryPoint:
+          to: websecure
+  websecure:
+    address: ":443"
+
+# log:
+#   level: TRACE
+
+# accesslog:
+#   addInternals: true

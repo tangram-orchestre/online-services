@@ -6,6 +6,10 @@
 .cache
 dist
 
+# Generated openapi client
+utils/client
+client
+
 # Node dependencies
 node_modules
 

@@ -1,7 +1,7 @@
 services:
   # Backend service running Poem OpenAPI.
   backend:
-    build: ./backend/docker
+    build: ./backend/dev
     init: true
     volumes:
       - ./scripts:/opt/scripts:ro
@@ -15,21 +15,55 @@ services:
     working_dir: /opt/backend
     environment:
       - CARGO_TARGET_DIR=/opt/cargo_target_dir
-    command: watchexec --restart -- ./dev.sh
+    command: watchexec --restart -- ./dev/dev.sh
     ports:
       - 3000:3000
+    labels:
+      - traefik.enable=true
+      - traefik.http.routers.backend.rule=PathPrefix(`/api`)
+      - traefik.http.services.backend.loadbalancer.server.port=3000
+      - traefik.http.routers.backend.tls=true
 
-  # Generate front reqwest client from spec.json.
-  openapi:
-    build: openapi/docker
-    init: true
+  showcase-website:
+    build: ./showcase-website/dev
     volumes:
-      - ./openapi:/opt/openapi
-    working_dir: /opt/openapi
-    command: ./dev.sh
-    depends_on:
-      - backend
+      - ./scripts:/opt/scripts:ro
+      - ./showcase-website:/opt/showcase-website
+      - ./openapi:/opt/openapi # dev.sh will write spec.json here.
+
+      # Use anonymous volumes to cache data on container config change.
+      - showcase-website_node_modules:/opt/showcase-website/node_modules
+    working_dir: /opt/showcase-website
+    command: bash -c "FORCE_COLOR=1 yarn install && FORCE_COLOR=1 yarn run dev2"
+    ports:
+      - 3001:3000
+    tmpfs:
+      - /tmp
+
+    labels:
+      - traefik.enable=true
+      - traefik.http.routers.showcase-website.rule=!PathPrefix(`/api`)
+      - traefik.http.services.showcase-website.loadbalancer.server.port=3000
+      - traefik.http.routers.showcase-website.tls=true
+
+  traefik:
+    image: traefik:v3.0
+    ports:
+      # The HTTP port
+      - "80:80"
+      # The HTTPS port
+      - "443:443"
+    volumes:
+      # So that Traefik can listen to the Docker events
+      - /var/run/docker.sock:/var/run/docker.sock
+      - ./dev/traefik/traefik.yml:/etc/traefik/traefik.yml
+    labels:
+      - traefik.enable=true
+      - traefik.http.routers.dashboard.rule=HostRegexp(`^traefik\..+$`)
+      - traefik.http.routers.dashboard.service=api@internal
+      - traefik.http.routers.dashboard.tls=true
 
 volumes:
   backend_cargo_target_dir:
   backend_cargo_registry:
+  showcase-website_node_modules:

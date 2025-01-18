@@ -1,4 +1,4 @@
-FROM openapitools/openapi-generator-cli:v7.10.0
+FROM node:22.13
 
 # Install tools
 RUN apt-get update && apt-get install -y inotify-tools

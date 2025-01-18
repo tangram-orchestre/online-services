@@ -1,22 +1,25 @@
+use std::time::Duration;
+
 use poem::{listener::TcpListener, Route};
-use poem_openapi::{param::Query, payload::PlainText, OpenApi, OpenApiService};
+use poem_openapi::{param::Query, payload::Json, OpenApi, OpenApiService};
 
 struct Api;
 
 #[OpenApi]
 impl Api {
     #[oai(path = "/hello", method = "get")]
-    async fn index(&self, name: Query<Option<String>>) -> PlainText<String> {
+    async fn index(&self, name: Query<Option<String>>) -> Json<String> {
+        tokio::time::sleep(Duration::from_millis(1500)).await;
         match name.0 {
-            Some(name) => PlainText(format!("hello, {}!", name)),
-            None => PlainText("hello!".to_string()),
+            Some(name) => Json(format!("hello, {}!", name)),
+            None => Json("hello!".to_string()),
         }
     }
 }
 
 #[tokio::main]
 async fn main() -> Result<(), std::io::Error> {
-    let api = OpenApiService::new(Api, "Tangram Orchestre", "1.0.0").server("/api");
+    let api = OpenApiService::new(Api, "Tangram Orchestre", "1.0.0").url_prefix("/api");
     let docs = api.swagger_ui();
     let spec = api.spec_endpoint();
 

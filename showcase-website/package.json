@@ -11,9 +11,13 @@
     "lint": "yarn lint:eslint && yarn lint:prettier",
     "lint:eslint": "eslint .",
     "lint:prettier": "prettier . --check",
-    "lint:fix": "eslint . --fix && prettier --write --list-different ."
+    "lint:fix": "eslint . --fix && prettier --write --list-different .",
+    "openapi-ts": "openapi-ts",
+    "openapi-ts:lint": "eslint ./client/**/*.ts --no-ignore --fix",
+    "dev2": "concurrently -n nuxt-dev,client-gen -c green,blue --kill-others \"yarn run dev\" \"./dev/generate-client.sh\""
   },
   "dependencies": {
+    "@hey-api/client-nuxt": "^0.1.1",
     "@nuxt/fonts": "^0.10.3",
     "@nuxt/icon": "^1.10.3",
     "@nuxt/image": "^1.9.0",
@@ -25,8 +29,13 @@
   },
   "packageManager": "yarn@1.22.22+sha512.a6b2f7906b721bba3d67d4aff083df04dad64c399707841b7acf00f6b133b7ac24255f2652fa22ae3534329dc6180534e98d17432037ff6fd140556e2bb3137e",
   "devDependencies": {
+    "@hey-api/openapi-ts": "^0.62.3",
+    "@iconify-json/ic": "^1.2.2",
+    "@iconify-json/mdi": "^1.2.2",
+    "@iconify-json/uil": "^1.2.3",
     "@nuxt/eslint": "^0.7.5",
     "autoprefixer": "^10.4.20",
+    "concurrently": "^9.1.2",
     "eslint": "^9.18.0",
     "eslint-config-prettier": "^10.0.1",
     "eslint-plugin-prettier": "^5.2.3",

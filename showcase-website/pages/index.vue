@@ -1,3 +1,7 @@
+<script setup lang="ts">
+import TheContact from "~/components/TheContact.vue";
+</script>
+
 <template>
   <Head>
     <Title>Tangram Orchestre</Title>
@@ -35,6 +39,7 @@
         <TheLinks />
         <TheCagnotte />
       </NavBarSections>
+      <TheContact />
     </main>
 
     <TheFooter />
