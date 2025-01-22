@@ -1,11 +1,11 @@
 <script setup lang="ts">
-import { getApiHello } from "~/client";
+import { getPublicHello } from "~/client";
 
 const name = ref("Luc");
 
 const nameDebounced = useDebounce(name, 250);
 
-const { data, status } = getApiHello({
+const { data, status, error } = getPublicHello({
   composable: "useAsyncData",
   key: "hello",
   query: { name: nameDebounced },
@@ -19,7 +19,7 @@ const { data, status } = getApiHello({
 <template>
   <div class="bg-slate-900 px-4 pb-10 pt-20 text-white md:pb-16">
     <h1>CONTACT</h1>
-    <p>{{ status }} {{ data }}</p>
+    <p>{{ status }} {{ data }} {{ error }}</p>
     <input v-model="name" class="text-black" />
   </div>
 </template>

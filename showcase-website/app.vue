@@ -20,7 +20,7 @@ useSeoMeta({
 // configure internal service client
 client.setConfig({
   // set default base url for requests
-  baseURL: import.meta.server ? "http://backend:3000" : window.location.origin,
+  baseURL: import.meta.server ? "http://backend:3000" : "https://api.localhost",
 });
 </script>
 

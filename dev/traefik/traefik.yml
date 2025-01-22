@@ -1,4 +1,7 @@
 providers:
+  file:
+    directory: /etc/traefik/dynamic-conf
+    watch: true
   docker:
     exposedByDefault: false
 

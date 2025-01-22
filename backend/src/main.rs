@@ -1,6 +1,6 @@
 use std::time::Duration;
 
-use poem::{listener::TcpListener, Route};
+use poem::{listener::TcpListener, middleware::Cors, EndpointExt, Route};
 use poem_openapi::{param::Query, payload::Json, OpenApi, OpenApiService};
 
 struct Api;
@@ -19,16 +19,18 @@ impl Api {
 
 #[tokio::main]
 async fn main() -> Result<(), std::io::Error> {
-    let api = OpenApiService::new(Api, "Tangram Orchestre", "1.0.0").url_prefix("/api");
-    let docs = api.swagger_ui();
-    let spec = api.spec_endpoint();
+    let public_api =
+        OpenApiService::new(Api, "Tangram Orchestre Public", "1.0.0").url_prefix("/public");
+    let public_docs = public_api.swagger_ui();
+    let public_spec = public_api.spec_endpoint();
 
     let app = Route::new()
-        .nest("/api", api)
-        .nest("/api/docs", docs)
-        .nest("/api/spec", spec);
+        .nest("/public", public_api)
+        .nest("/public/docs", public_docs)
+        .nest("/public/spec", public_spec);
 
     poem::Server::new(TcpListener::bind("0.0.0.0:3000"))
-        .run(app)
+        // FIXME: use proper CORS policy
+        .run(app.with(Cors::new()))
         .await
 }
