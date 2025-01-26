@@ -2,7 +2,6 @@ services:
   authentik-postgresql:
     image: docker.io/library/postgres:16-alpine
     restart: unless-stopped
-    user: 1000:1000
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -d $${POSTGRES_DB} -U $${POSTGRES_USER}"]
       start_period: 20s
@@ -21,7 +20,6 @@ services:
     image: docker.io/library/redis:7.4.2-alpine
     command: --save 60 1 --loglevel warning
     restart: unless-stopped
-    user: 1000:1000
     healthcheck:
       test: ["CMD-SHELL", "redis-cli ping | grep PONG"]
       start_period: 20s
@@ -35,7 +33,6 @@ services:
     image: ghcr.io/goauthentik/server:2024.12.2
     restart: unless-stopped
     command: server
-    user: 1000:1000
     environment:
       AUTHENTIK_REDIS__HOST: authentik-redis
       AUTHENTIK_POSTGRESQL__HOST: authentik-postgresql
@@ -63,7 +60,6 @@ services:
     image: ghcr.io/goauthentik/server:2024.12.2
     restart: unless-stopped
     command: worker
-    user: 1000:1000
     environment:
       AUTHENTIK_REDIS__HOST: authentik-redis
       AUTHENTIK_POSTGRESQL__HOST: authentik-postgresql

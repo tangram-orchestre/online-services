@@ -22,7 +22,8 @@ services:
       - /opt/docker-volumes:/data/docker-volumes:ro
       - /opt/services:/data/services:ro
       # Mount path for browsing mounted snaphots
-      - /opt/snapshots:/tmp:shared
+      # - /opt/snapshots:/tmp:shared
+      # Mount rclone config
       - /opt/rclone:/app/rclone:ro
     labels:
       - traefik.enable=true
