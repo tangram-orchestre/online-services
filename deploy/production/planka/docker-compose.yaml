@@ -12,14 +12,11 @@ services:
       authentik-worker:
         condition: service_healthy
         restart: true
-    user: 1000:1000
     volumes:
       - /opt/docker-volumes/planka/user-avatars:/app/public/user-avatars
       - /opt/docker-volumes/planka/project-background-images:/app/public/project-background-images
       - /opt/docker-volumes/planka/attachments:/app/private/attachments
     environment:
-      - PUID=1000
-      - PGID=1000
       - TZ=Europe/Paris
       - BASE_URL=https://planka.tangram-orchestre.fr
       - DATABASE_URL=postgresql://postgres@planka-postgres/planka
@@ -52,10 +49,7 @@ services:
     restart: unless-stopped
     volumes:
       - /opt/docker-volumes/planka/db:/var/lib/postgresql/data
-    user: 1000:1000
     environment:
-      - PUID=1000
-      - PGID=1000
       - TZ=Europe/Paris
       - POSTGRES_DB=planka
       - POSTGRES_HOST_AUTH_METHOD=trust
