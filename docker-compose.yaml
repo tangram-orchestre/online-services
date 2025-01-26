@@ -15,6 +15,7 @@ services:
     working_dir: /opt/backend
     environment:
       - CARGO_TARGET_DIR=/opt/cargo_target_dir
+      - APP_CORS_ORIGINS=https://localhost
     command: watchexec --restart -- ./dev/dev.sh
     labels:
       - traefik.enable=true

@@ -3,6 +3,8 @@ use std::time::Duration;
 use poem::{listener::TcpListener, middleware::Cors, EndpointExt, Route};
 use poem_openapi::{param::Query, payload::Json, OpenApi, OpenApiService};
 
+mod settings;
+
 struct Api;
 
 #[OpenApi]
@@ -29,8 +31,9 @@ async fn main() -> Result<(), std::io::Error> {
         .nest("/public/docs", public_docs)
         .nest("/public/spec", public_spec);
 
+    let settings = settings::Settings::load().expect("invalid settings");
+
     poem::Server::new(TcpListener::bind("0.0.0.0:3000"))
-        // FIXME: use proper CORS policy
-        .run(app.with(Cors::new()))
+        .run(app.with(Cors::new().allow_origins(settings.cors_origins.split(','))))
         .await
 }
