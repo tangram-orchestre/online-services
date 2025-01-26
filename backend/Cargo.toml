@@ -1,0 +1,9 @@
+[package]
+name = "backend"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+poem = "3.1.6"
+poem-openapi = { version = "5.1.5", features = ["swagger-ui", "email", "chrono"] }
+tokio = { version = "1.43.0", features = ["full"] }
