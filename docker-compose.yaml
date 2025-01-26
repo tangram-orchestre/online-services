@@ -30,6 +30,9 @@ services:
       - ./openapi:/opt/openapi # dev.sh will write spec.json here.
     working_dir: /opt/showcase-website
     command: bash -c "FORCE_COLOR=1 yarn install && FORCE_COLOR=1 yarn run dev2"
+    environment:
+      - PRIVATE_API_BASE_URL=http://backend:3000
+      - PUBLIC_API_BASE_URL=https://api.localhost
     tmpfs:
       - /tmp
     labels:
