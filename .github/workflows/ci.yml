@@ -49,7 +49,7 @@ jobs:
           password: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Build Showcase Website
-        if: steps.changes.outputs.showcase-website == 'true'
+        if: vars.FORCE_BUILD == 'true' || steps.changes.outputs.showcase-website == 'true'
         uses: ./.github/actions/build-showcase-website
         with:
           DOCKER_REGISTRY: ghcr.io
