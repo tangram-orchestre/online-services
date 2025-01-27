@@ -1,26 +1,35 @@
 <script setup lang="ts">
-import { getPublicHello } from "~/client";
+import { postPublicSendContactForm } from "~/client";
 
-const name = ref("Luc");
+const email = ref("");
+const first_name = ref("");
+const last_name = ref("");
+const message = ref("");
 
-const nameDebounced = useDebounce(name, 250);
-
-const { data, status, error } = getPublicHello({
-  composable: "useAsyncData",
-  key: "hello",
-  query: { name: nameDebounced },
-  asyncDataOptions: {
-    watch: [nameDebounced],
-  },
-});
+const postForm = async () => {
+  await postPublicSendContactForm({
+    composable: "$fetch",
+    body: {
+      email: email.value,
+      first_name: first_name.value,
+      last_name: last_name.value,
+      message: message.value,
+    },
+  });
+};
 </script>
 
 <!-- eslint-disable tailwindcss/no-custom-classname -->
 <template>
-  <div class="bg-slate-900 px-4 pb-10 pt-20 text-white md:pb-16">
+  <div
+    class="flex flex-col gap-2 bg-slate-900 px-4 pb-10 pt-20 text-white md:pb-16"
+  >
     <h1>CONTACT</h1>
-    <p>{{ status }} {{ data }} {{ error }}</p>
-    <input v-model="name" class="text-black" />
+    <input v-model="first_name" class="text-black" />
+    <input v-model="last_name" class="text-black" />
+    <input v-model="email" class="text-black" />
+    <input v-model="message" class="text-black" />
+    <button @click="postForm">Send</button>
   </div>
 </template>
 

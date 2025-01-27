@@ -1,28 +1,38 @@
-use std::time::Duration;
-
 use poem::{listener::TcpListener, middleware::Cors, EndpointExt, Route};
-use poem_openapi::{param::Query, payload::Json, OpenApi, OpenApiService};
+use poem_openapi::{payload::Json, types::Email, Object, OpenApi, OpenApiService, Tags};
 
 mod settings;
 
-struct Api;
+struct PublicApi;
 
-#[OpenApi]
-impl Api {
-    #[oai(path = "/hello", method = "get")]
-    async fn index(&self, name: Query<Option<String>>) -> Json<String> {
-        tokio::time::sleep(Duration::from_millis(1500)).await;
-        match name.0 {
-            Some(name) => Json(format!("hello, {}!", name)),
-            None => Json("hello!".to_string()),
-        }
+#[derive(Debug, Clone, Object)]
+struct ContactForm {
+    /// First name of the sender
+    first_name: String,
+    /// Last name of the sender
+    last_name: String,
+    /// Email name of the sender
+    email: Email,
+    /// Message to be sent
+    message: String,
+}
+
+#[derive(Tags)]
+enum PublicApiTags {
+    Contact,
+}
+
+#[OpenApi(prefix_path = "/public")]
+impl PublicApi {
+    #[oai(path = "/send_contact_form", method = "post", tag = PublicApiTags::Contact)]
+    async fn send_contact_form(&self, contact_form: Json<ContactForm>) {
+        eprintln!("{:#?}", contact_form);
     }
 }
 
 #[tokio::main]
 async fn main() -> Result<(), std::io::Error> {
-    let public_api =
-        OpenApiService::new(Api, "Tangram Orchestre Public", "1.0.0").url_prefix("/public");
+    let public_api = OpenApiService::new(PublicApi, "Tangram Orchestre Public", "1.0.0");
     let public_docs = public_api.swagger_ui();
     let public_spec = public_api.spec_endpoint();
 
