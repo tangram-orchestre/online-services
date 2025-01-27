@@ -22,7 +22,7 @@ enum PublicApiTags {
     Contact,
 }
 
-#[OpenApi(prefix_path = "/public")]
+#[OpenApi]
 impl PublicApi {
     #[oai(path = "/send_contact_form", method = "post", tag = PublicApiTags::Contact)]
     async fn send_contact_form(&self, contact_form: Json<ContactForm>) {
@@ -32,7 +32,8 @@ impl PublicApi {
 
 #[tokio::main]
 async fn main() -> Result<(), std::io::Error> {
-    let public_api = OpenApiService::new(PublicApi, "Tangram Orchestre Public", "1.0.0");
+    let public_api =
+        OpenApiService::new(PublicApi, "Tangram Orchestre Public", "1.0.0").url_prefix("public");
     let public_docs = public_api.swagger_ui();
     let public_spec = public_api.spec_endpoint();
 

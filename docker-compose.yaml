@@ -2,7 +2,6 @@ services:
   # Backend service running Poem OpenAPI.
   backend:
     build: ./backend/dev
-    init: true
     volumes:
       - ./scripts:/opt/scripts:ro
       - ./backend:/opt/backend
@@ -44,6 +43,7 @@ services:
 
   traefik:
     image: traefik:v3.0
+    stop_signal: SIGKILL
     ports:
       # The HTTP port
       - "80:80"
