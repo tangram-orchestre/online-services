@@ -19,7 +19,6 @@ const postForm = async () => {
 };
 </script>
 
-<!-- eslint-disable tailwindcss/no-custom-classname -->
 <template>
   <div
     class="flex flex-col gap-2 bg-slate-900 px-4 pb-10 pt-20 text-white md:pb-16"
