@@ -6,16 +6,18 @@ const first_name = ref("");
 const last_name = ref("");
 const message = ref("");
 
+const { status, error, execute } = postPublicSendContactForm({
+  composable: "useAsyncData",
+  body: {
+    email,
+    first_name,
+    last_name,
+    message,
+  },
+});
+
 const postForm = async () => {
-  await postPublicSendContactForm({
-    composable: "$fetch",
-    body: {
-      email: email.value,
-      first_name: first_name.value,
-      last_name: last_name.value,
-      message: message.value,
-    },
-  });
+  execute();
 };
 </script>
 
@@ -29,6 +31,7 @@ const postForm = async () => {
     <input v-model="email" class="text-black" />
     <input v-model="message" class="text-black" />
     <button @click="postForm">Send</button>
+    <p>{{ status }} {{ error }}</p>
   </div>
 </template>
 
