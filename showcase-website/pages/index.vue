@@ -37,9 +37,9 @@ import TheContact from "~/components/TheContact.vue";
         <TheMissions />
         <TheConcerts />
         <TheLinks />
+        <TheContact />
         <TheCagnotte />
       </NavBarSections>
-      <TheContact />
     </main>
 
     <TheFooter />

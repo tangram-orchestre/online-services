@@ -1,3 +1,5 @@
+use std::time::Duration;
+
 use poem::{listener::TcpListener, middleware::Cors, EndpointExt, Route};
 use poem_openapi::{payload::Json, types::Email, Object, OpenApi, OpenApiService, Tags};
 
@@ -7,13 +9,14 @@ struct PublicApi;
 
 #[derive(Debug, Clone, Object)]
 struct ContactForm {
-    /// First name of the sender
-    first_name: String,
-    /// Last name of the sender
-    last_name: String,
+    /// Name of the sender
+    #[oai(validator { min_length = 2,  max_length = 50 })]
+    name: String,
     /// Email name of the sender
+    #[oai(validator { max_length = 50 })]
     email: Email,
     /// Message to be sent
+    #[oai(validator { min_length = 3, max_length = 1000 })]
     message: String,
 }
 
@@ -26,6 +29,7 @@ enum PublicApiTags {
 impl PublicApi {
     #[oai(path = "/send_contact_form", method = "post", tag = PublicApiTags::Contact)]
     async fn send_contact_form(&self, contact_form: Json<ContactForm>) {
+        tokio::time::sleep(Duration::from_millis(1500)).await;
         eprintln!("{:#?}", contact_form);
     }
 }
