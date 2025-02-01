@@ -12,6 +12,13 @@ inputs:
 runs:
   using: "composite"
   steps:
+    # Only download images if we're deploying the image, they're not needed to
+    # check the build is passing.
+    - name: Download LFS images
+      if: inputs.DOCKER_REGISTRY != ''
+      shell: bash
+      run: git lfs pull --include "showcase-website/**"
+
     - name: Docker meta
       if: inputs.DOCKER_REGISTRY != ''
       id: meta
