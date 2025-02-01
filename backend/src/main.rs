@@ -1,7 +1,11 @@
 use std::time::Duration;
 
 use poem::{listener::TcpListener, middleware::Cors, EndpointExt, Route};
-use poem_openapi::{payload::Json, types::Email, Object, OpenApi, OpenApiService, Tags};
+use poem_openapi::{
+    payload::{Json, PlainText},
+    types::Email,
+    ApiResponse, Object, OpenApi, OpenApiService, Tags,
+};
 
 mod settings;
 
@@ -16,7 +20,7 @@ struct ContactForm {
     #[oai(validator { max_length = 50 })]
     email: Email,
     /// Message to be sent
-    #[oai(validator { min_length = 3, max_length = 1000 })]
+    #[oai(validator { min_length = 3, max_length = 2000 })]
     message: String,
 }
 
@@ -25,12 +29,26 @@ enum PublicApiTags {
     Contact,
 }
 
+#[derive(ApiResponse)]
+enum SendContactFormResponse {
+    #[oai(status = 200)]
+    Success,
+    #[oai(status = 400)]
+    BadRequest(PlainText<String>),
+}
+
 #[OpenApi]
 impl PublicApi {
     #[oai(path = "/send_contact_form", method = "post", tag = PublicApiTags::Contact)]
-    async fn send_contact_form(&self, contact_form: Json<ContactForm>) {
-        tokio::time::sleep(Duration::from_millis(1500)).await;
+    async fn send_contact_form(&self, contact_form: Json<ContactForm>) -> SendContactFormResponse {
         eprintln!("{:#?}", contact_form);
+        if contact_form.name == "loser" {
+            SendContactFormResponse::BadRequest(PlainText(
+                "L'envoi du message a échoué.".to_string(),
+            ))
+        } else {
+            SendContactFormResponse::Success
+        }
     }
 }
 

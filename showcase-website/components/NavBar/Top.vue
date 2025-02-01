@@ -17,7 +17,7 @@ const indexToOrder = (index: number) => {
   }
 };
 
-const sections = ["Missions", "Concerts", "Réseaux", "Contact", "Cagnotte"];
+const sections = ["Missions", "Concerts", "Réseaux", "Contact"];
 </script>
 
 <template>

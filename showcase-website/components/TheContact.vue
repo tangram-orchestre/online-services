@@ -8,7 +8,15 @@ const contactForm = ref({
   message: "",
 });
 
-const { status, error, execute } = postPublicSendContactForm({
+type FormKeys = keyof typeof contactForm.value;
+
+const messageLength = computed(() => contactForm.value.message.length);
+
+const {
+  status,
+  error: backendError,
+  execute,
+} = postPublicSendContactForm({
   composable: "useAsyncData",
   asyncDataOptions: {
     server: false,
@@ -17,44 +25,63 @@ const { status, error, execute } = postPublicSendContactForm({
   body: contactForm,
 });
 
-watch(status, (s) => {
-  if (s == "success") {
-    contactForm.value.name = "";
-    contactForm.value.email = "";
-    contactForm.value.message = "";
-  }
-});
-
-const errors = ref({
+const zodErrors = ref({
   name: null as string | null,
   email: null as string | null,
   message: null as string | null,
 });
 
-const postForm = async (e: Event) => {
-  e.preventDefault();
+// Mark
+const changed = ref({
+  name: false,
+  email: false,
+  message: false,
+});
+
+// Reset all fields on succesful submition
+watch(status, (s) => {
+  if (s == "success") {
+    for (const key of Object.keys(contactForm.value) as FormKeys[]) {
+      contactForm.value[key] = "";
+      changed.value[key] = false;
+    }
+  }
+});
+
+const checkForm = (isChange: boolean, keyToCheck: FormKeys | null) => {
+  const keysToCheck = keyToCheck
+    ? [keyToCheck]
+    : (Object.keys(zodErrors.value) as FormKeys[]);
 
   // Clean errors
-  for (const key of Object.keys(
-    errors.value,
-  ) as (keyof typeof errors.value)[]) {
-    errors.value[key] = null;
+  for (const key of keysToCheck) {
+    zodErrors.value[key] = null;
+    if (isChange) {
+      changed.value[key] = true;
+    }
   }
 
   const res = zContactForm.safeParse(contactForm.value);
-  if (!res.success) {
-    for (const key of Object.keys(
-      errors.value,
-    ) as (keyof typeof errors.value)[]) {
-      const issue = res.error.issues.find((i) => i.path[0] == key);
-      if (issue) {
-        errors.value[key] = issue.message;
-      }
-    }
-    console.error(res.error.message);
+  if (res.success) {
+    return true;
+  }
 
+  for (const key of keysToCheck) {
+    const issue = res.error.issues.find((i) => i.path[0] == key);
+    if (changed.value[key] && issue) {
+      zodErrors.value[key] = issue.message;
+    }
+  }
+  console.error(res.error.message);
+
+  return false;
+};
+
+const postForm = async () => {
+  if (!checkForm(true, null)) {
     return;
   }
+
   execute();
 };
 </script>
@@ -72,8 +99,12 @@ const postForm = async (e: Event) => {
           placeholder="Nom"
           class="rounded-lg p-2 text-black"
           required
+          @change="checkForm(true, 'name')"
+          @input="checkForm(false, 'name')"
         />
-        <p v-if="errors.name" class="mt-3 text-red-400">{{ errors.name }}</p>
+        <p v-if="zodErrors.name" class="mt-2 text-red-400">
+          {{ zodErrors.name }}
+        </p>
         <label class="lilita-one-regular mb-2 mt-4 text-xl">Email</label>
         <input
           v-model="contactForm.email"
@@ -81,29 +112,41 @@ const postForm = async (e: Event) => {
           type="email"
           class="rounded-lg p-2 text-black"
           required
+          @change="checkForm(true, 'email')"
+          @input="checkForm(false, 'email')"
         />
-        <p v-if="errors.email" class="mt-3 text-red-400">{{ errors.email }}</p>
+        <p v-if="zodErrors.email" class="mt-2 text-red-400">
+          {{ zodErrors.email }}
+        </p>
         <label class="lilita-one-regular mb-2 mt-4 text-xl">Message</label>
         <textarea
           v-model="contactForm.message"
           placeholder="Votre message"
           class="min-h-32 rounded-lg p-2 text-black"
           required
+          @change="checkForm(true, 'message')"
+          @input="checkForm(false, 'message')"
         />
-        <p v-if="errors.message" class="mt-3 text-red-400">
-          {{ errors.message }}
-        </p>
-        <p v-if="error" class="mt-3 text-red-400">Erreur : {{ error.data }}</p>
-        <p v-if="status == 'success'" class="mt-3 text-green-400">
-          Message envoyé !
-        </p>
+        <div class="mt-2 flex">
+          <p v-if="status == 'success'" class="text-green-400">
+            Message envoyé !
+          </p>
+          <p v-else-if="status == 'pending'">Envoie en cours...</p>
+          <div class="flex-col text-red-400">
+            <div v-if="zodErrors.message">{{ zodErrors.message }}</div>
+            <div v-if="backendError" class="">
+              {{ backendError.data }}
+            </div>
+          </div>
+          <div class="ml-auto">{{ messageLength }} / 2000 caractères</div>
+        </div>
 
         <button
           class="lilita-one-regular mx-auto mt-4 w-1/2 rounded-lg border-2 bg-[#81ccb5] p-2 text-2xl text-black hover:bg-[#8adac2]"
           :class="{
             'disabled cursor-default brightness-75': status == 'pending',
           }"
-          @click="postForm"
+          @click.prevent="postForm"
         >
           Envoyer
         </button>

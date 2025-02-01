@@ -36,9 +36,11 @@ import TheContact from "~/components/TheContact.vue";
       <NavBarSections>
         <TheMissions />
         <TheConcerts />
-        <TheLinks />
+        <div>
+          <TheLinks />
+          <TheCagnotte />
+        </div>
         <TheContact />
-        <TheCagnotte />
       </NavBarSections>
     </main>
 
