@@ -1,18 +1,12 @@
 <script setup lang="ts">
-import type { ZodError, ZodIssue } from "zod";
-import { any } from "zod";
 import { postPublicSendContactForm } from "~/client";
 import { zContactForm } from "~/client/zod.gen";
 
-const name = ref("");
-const email = ref("");
-const message = ref("");
-
-const body = computed(() => ({
-  name: name.value,
-  email: email.value,
-  message: message.value,
-}));
+const contactForm = ref({
+  name: "",
+  email: "",
+  message: "",
+});
 
 const { status, error, execute } = postPublicSendContactForm({
   composable: "useAsyncData",
@@ -20,24 +14,45 @@ const { status, error, execute } = postPublicSendContactForm({
     server: false,
     immediate: false,
   },
-  body,
+  body: contactForm,
 });
-
-const zodError: Ref<null | ZodIssue[]> = ref(null);
 
 watch(status, (s) => {
   if (s == "success") {
-    name.value = "";
-    email.value = "";
-    message.value = "";
+    contactForm.value.name = "";
+    contactForm.value.email = "";
+    contactForm.value.message = "";
   }
+});
+
+const errors = ref({
+  name: null as string | null,
+  email: null as string | null,
+  message: null as string | null,
 });
 
 const postForm = async (e: Event) => {
   e.preventDefault();
-  const res = zContactForm.safeParse(body.value);
+
+  // Clean errors
+  for (const key of Object.keys(
+    errors.value,
+  ) as (keyof typeof errors.value)[]) {
+    errors.value[key] = null;
+  }
+
+  const res = zContactForm.safeParse(contactForm.value);
   if (!res.success) {
-    zodError.value = res.error.issues;
+    for (const key of Object.keys(
+      errors.value,
+    ) as (keyof typeof errors.value)[]) {
+      const issue = res.error.issues.find((i) => i.path[0] == key);
+      if (issue) {
+        errors.value[key] = issue.message;
+      }
+    }
+    console.error(res.error.message);
+
     return;
   }
   execute();
@@ -53,35 +68,33 @@ const postForm = async (e: Event) => {
       <form class="flex w-full flex-col">
         <label class="lilita-one-regular mb-2 mt-4 text-xl">Nom</label>
         <input
-          v-model="name"
+          v-model="contactForm.name"
           placeholder="Nom"
           class="rounded-lg p-2 text-black"
           required
         />
+        <p v-if="errors.name" class="mt-3 text-red-400">{{ errors.name }}</p>
         <label class="lilita-one-regular mb-2 mt-4 text-xl">Email</label>
         <input
-          v-model="email"
+          v-model="contactForm.email"
           placeholder="Email"
           type="email"
           class="rounded-lg p-2 text-black"
           required
         />
+        <p v-if="errors.email" class="mt-3 text-red-400">{{ errors.email }}</p>
         <label class="lilita-one-regular mb-2 mt-4 text-xl">Message</label>
         <textarea
-          v-model="message"
+          v-model="contactForm.message"
           placeholder="Votre message"
           class="min-h-32 rounded-lg p-2 text-black"
           required
         />
+        <p v-if="errors.message" class="mt-3 text-red-400">
+          {{ errors.message }}
+        </p>
         <p v-if="error" class="mt-3 text-red-400">Erreur : {{ error.data }}</p>
-        <li v-else-if="zodError">
-          <ul v-for="(err, i) in zodError" :key="i">
-            {{
-              err.message
-            }}
-          </ul>
-        </li>
-        <p v-else-if="status == 'success'" class="mt-3 text-green-400">
+        <p v-if="status == 'success'" class="mt-3 text-green-400">
           Message envoyé !
         </p>
 
