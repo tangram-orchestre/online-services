@@ -12,6 +12,20 @@ inputs:
 runs:
   using: "composite"
   steps:
+    - uses: mfinelli/setup-imagemagick@v6
+      with:
+        cache: true
+
+    - name: Download LFS images
+      if: inputs.DOCKER_REGISTRY != ''
+      shell: bash
+      run: git lfs pull --include "showcase-website/**"
+
+    - name: Replace lfs images with blanks to save space
+      if: inputs.DOCKER_REGISTRY == ''
+      shell: bash
+      run: ./scripts/replace-images-with-blanks.sh
+
     - name: Docker meta
       if: inputs.DOCKER_REGISTRY != ''
       id: meta
