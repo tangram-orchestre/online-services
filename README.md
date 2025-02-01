@@ -13,6 +13,14 @@ This repository contains source code for every online services deployed for the 
 - [/openapi](scripts) : Folder mounted in docker containers that will hold OpenApi generated specs.
 - [/dev](scripts) : Development environment with integrated reverse proxy.
 
+## Development Flow
+
+We use the [Git Flow](https://www.atlassian.com/git/tutorials/comparing-workflows/gitflow-workflow) process to organize our work:
+ - the `master` branch is automatically deployed to production at [https://*.tangram-orchestre.fr]
+   - the `production` branch is updated to the currently deployed commit
+ - the `develop` branch is automatically deployed to staging environment at [https://*.staging.tangram-orchestre.fr]
+   - the `staging` branch is updated to the currently deployed commit
+
 ## Contributing
 
 ### Requirements
