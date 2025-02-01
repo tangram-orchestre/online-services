@@ -84,16 +84,39 @@ const concerts: Array<Concert> = [
     date: "25 janvier 2025",
     location: "Mairie du XIV<sup>ème</sup>",
     image: "/images/concerts/2025-01-25.png",
-    url: {
-      kind: "Tickets",
-      target:
-        "https://www.helloasso.com/associations/tangram/evenements/tangram-concert-a-la-mairie-du-14e-le-25-01-2025",
-    },
+    program: [
+      { name: "Zelda - La vallée Gerudo", direction: "Thibaud" },
+      { name: "Genshin Impact - Fontaine", direction: "Antoine" },
+      { name: "Mean Girls - Someone gets hurt", direction: "Anaelle" },
+      {
+        name: "Encanto - Le tango dysfonctionnel",
+        direction: "Cédric / Anice",
+      },
+      { name: "Triangle strategy", direction: "Intila" },
+      { name: "Impossible", direction: "Benjamin" },
+      { name: "God Of War - Memory of mother", direction: "Ryadh" },
+      { name: "Shrek", direction: "Noémie" },
+      { name: "Aladdin - Prince Ali", direction: "Alix" },
+      { name: "Hades - In the blood", direction: "Arthur" },
+    ],
   },
   {
     date: "7 décembre 2024",
     location: "Pavillon de la Sirène",
     image: "/images/concerts/2024-12-07.png",
+    program: [
+      { name: "Triangle strategy", direction: "Intila" },
+      {
+        name: "Encanto - Le tango dysfonctionnel",
+        direction: "Cédric / Anice",
+      },
+      { name: "Genshin Impact - Fontaine", direction: "Antoine" },
+      { name: "God Of War - Memory of mother", direction: "Ryadh" },
+      { name: "Impossible", direction: "Benjamin" },
+      { name: "Mean Girls - Someone gets hurt", direction: "Anaelle" },
+      { name: "Aladdin - Prince Ali", direction: "Alix" },
+      { name: "Zelda - La vallée Gerudo", direction: "Thibaud" },
+    ],
   },
   {
     date: "28 juin 2024",
