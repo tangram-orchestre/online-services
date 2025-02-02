@@ -36,6 +36,13 @@ export default defineNuxtConfig({
   },
   vite: {
     plugins: [svgLoader()],
+    vue: {
+      template: {
+        compilerOptions: {
+          isCustomElement: (tag) => tag.indexOf("-") >= 0,
+        },
+      },
+    },
     css: {
       preprocessorOptions: {
         scss: {

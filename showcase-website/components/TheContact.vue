@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { postPublicSendContactForm } from "~/client";
 import { zContactForm } from "~/client/zod.gen";
+import TheAltcha from "./TheAltcha.vue";
 
 const contactForm = ref({
   name: "",
@@ -140,6 +141,8 @@ const postForm = async () => {
           </div>
           <div class="ml-auto">{{ messageLength }} / 2000 caractères</div>
         </div>
+
+        <TheAltcha />
 
         <button
           class="lilita-one-regular mx-auto mt-4 w-1/2 rounded-lg border-2 bg-[#81ccb5] p-2 text-2xl text-black hover:bg-[#8adac2]"
