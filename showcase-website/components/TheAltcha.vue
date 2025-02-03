@@ -1,6 +1,11 @@
 <script setup lang="ts">
 import { ClientOnly } from "#components";
-import { ref, onMounted, onUnmounted, watch } from "vue";
+import { ref } from "vue";
+import type { GetPublicAltchaChallengeData } from "~/client";
+import { client } from "~/client/client.gen";
+
+const altcha_url: GetPublicAltchaChallengeData["url"] =
+  "/public/altcha_challenge";
 
 // Importing altcha package will introduce a new element <altcha-widget>
 if (import.meta.browser) {
@@ -8,48 +13,27 @@ if (import.meta.browser) {
 }
 
 const altchaWidget = ref<HTMLElement | null>(null);
-const props = defineProps({
-  payload: {
-    required: false,
-    type: String,
-  },
-});
-const emit = defineEmits<{
-  (e: "update:payload", value: string): void;
-}>();
-const internalValue = ref(props.payload);
-
-watch(internalValue, (v) => {
-  emit("update:payload", v || "");
-});
+const model = defineModel<unknown>();
 
 const onStateChange = (ev: CustomEvent | Event) => {
   if ("detail" in ev) {
     const { payload, state } = ev.detail;
     if (state === "verified" && payload) {
-      internalValue.value = payload;
+      model.value = JSON.parse(atob(payload));
     } else {
-      internalValue.value = "";
+      model.value = null;
     }
   }
 };
-
-onMounted(() => {
-  if (altchaWidget.value) {
-    altchaWidget.value.addEventListener("statechange", onStateChange);
-  }
-});
-
-onUnmounted(() => {
-  if (altchaWidget.value) {
-    altchaWidget.value.removeEventListener("statechange", onStateChange);
-  }
-});
 </script>
 
 <template>
   <!-- Configure your `challengeurl` and remove the `test` attribute, see docs: https://altcha.org/docs/website-integration/#using-altcha-widget -->
   <ClientOnly>
-    <altcha-widget ref="altchaWidget" debug test />
+    <altcha-widget
+      ref="altchaWidget"
+      :challengeurl="client.getConfig().baseURL + altcha_url"
+      @statechange="onStateChange"
+    />
   </ClientOnly>
 </template>

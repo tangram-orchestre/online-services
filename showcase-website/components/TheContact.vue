@@ -7,6 +7,7 @@ const contactForm = ref({
   name: "",
   email: "",
   message: "",
+  altcha: {},
 });
 
 type FormKeys = keyof typeof contactForm.value;
@@ -30,6 +31,7 @@ const zodErrors = ref({
   name: null as string | null,
   email: null as string | null,
   message: null as string | null,
+  altcha: null as string | null,
 });
 
 // Mark
@@ -37,6 +39,7 @@ const changed = ref({
   name: false,
   email: false,
   message: false,
+  altcha: false,
 });
 
 // Reset all fields on succesful submition
@@ -73,15 +76,16 @@ const checkForm = (isChange: boolean, keyToCheck: FormKeys | null) => {
       zodErrors.value[key] = issue.message;
     }
   }
-  console.error(res.error.message);
 
   return false;
 };
 
 const postForm = async () => {
+  console.log("checking form");
   if (!checkForm(true, null)) {
     return;
   }
+  console.log("executing request");
 
   execute();
 };
@@ -142,7 +146,7 @@ const postForm = async () => {
           <div class="ml-auto">{{ messageLength }} / 2000 caractères</div>
         </div>
 
-        <TheAltcha />
+        <TheAltcha v-model="contactForm.altcha" />
 
         <button
           class="lilita-one-regular mx-auto mt-4 w-1/2 rounded-lg border-2 bg-[#81ccb5] p-2 text-2xl text-black hover:bg-[#8adac2]"
