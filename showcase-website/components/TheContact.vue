@@ -7,7 +7,7 @@ const contactForm = ref({
   name: "",
   email: "",
   message: "",
-  altcha: {},
+  altcha: null as string | null,
 });
 
 type FormKeys = keyof typeof contactForm.value;
@@ -34,7 +34,6 @@ const zodErrors = ref({
   altcha: null as string | null,
 });
 
-// Mark
 const changed = ref({
   name: false,
   email: false,
@@ -59,6 +58,7 @@ const checkForm = (isChange: boolean, keyToCheck: FormKeys | null) => {
 
   // Clean errors
   for (const key of keysToCheck) {
+    status.value = "idle";
     zodErrors.value[key] = null;
     if (isChange) {
       changed.value[key] = true;
@@ -80,12 +80,18 @@ const checkForm = (isChange: boolean, keyToCheck: FormKeys | null) => {
   return false;
 };
 
+const unsendable = computed(() => {
+  return status.value == "pending" || contactForm.value.altcha == null;
+});
+
 const postForm = async () => {
-  console.log("checking form");
+  if (unsendable.value) {
+    return;
+  }
+
   if (!checkForm(true, null)) {
     return;
   }
-  console.log("executing request");
 
   execute();
 };
@@ -133,28 +139,36 @@ const postForm = async () => {
           @input="checkForm(false, 'message')"
         />
         <div class="mt-2 flex">
-          <p v-if="status == 'success'" class="text-green-400">
-            Message envoyé !
-          </p>
-          <p v-else-if="status == 'pending'">Envoie en cours...</p>
+          <p v-if="status == 'pending'">Envoie en cours...</p>
           <div class="flex-col text-red-400">
             <div v-if="zodErrors.message">{{ zodErrors.message }}</div>
             <div v-if="backendError" class="">
               {{ backendError.data }}
             </div>
           </div>
-          <div class="ml-auto">{{ messageLength }} / 2000 caractères</div>
+          <div class="ml-auto">
+            {{ messageLength }} /
+            {{ zContactForm.shape.message.maxLength }} caractères
+          </div>
         </div>
 
+        <p
+          v-if="status == 'success'"
+          class="mt-2 w-full text-center text-green-400"
+        >
+          Message envoyé !
+        </p>
         <div
-          class="mt-2 grid grid-flow-col grid-rows-2 items-center gap-y-2 sm:grid-rows-1"
+          v-else
+          class="mt-2 grid grid-cols-1 grid-rows-2 items-center gap-x-4 gap-y-2 sm:grid-cols-2 sm:grid-rows-1"
         >
           <TheAltcha v-model="contactForm.altcha" />
 
           <button
-            class="lilita-one-regular mx-auto w-full rounded-lg border-2 bg-[#81ccb5] p-2 text-2xl text-black hover:bg-[#8adac2]"
+            class="lilita-one-regular mx-auto w-full rounded-lg border-2 bg-[#81ccb5] p-2 text-2xl text-black"
             :class="{
-              'disabled cursor-default brightness-75': status == 'pending',
+              'brightness-75': unsendable,
+              'hover:bg-[#8adac2]': !unsendable,
             }"
             @click.prevent="postForm"
           >

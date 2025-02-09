@@ -32,6 +32,7 @@ const onStateChange = (ev: CustomEvent | Event) => {
   <ClientOnly>
     <altcha-widget
       ref="altchaWidget"
+      style="--altcha-max-width: 100%"
       :challengeurl="client.getConfig().baseURL + altcha_url"
       @statechange="onStateChange"
     />
