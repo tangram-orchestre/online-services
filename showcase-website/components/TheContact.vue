@@ -146,17 +146,21 @@ const postForm = async () => {
           <div class="ml-auto">{{ messageLength }} / 2000 caractères</div>
         </div>
 
-        <TheAltcha v-model="contactForm.altcha" />
-
-        <button
-          class="lilita-one-regular mx-auto mt-4 w-1/2 rounded-lg border-2 bg-[#81ccb5] p-2 text-2xl text-black hover:bg-[#8adac2]"
-          :class="{
-            'disabled cursor-default brightness-75': status == 'pending',
-          }"
-          @click.prevent="postForm"
+        <div
+          class="mt-2 grid grid-flow-col grid-rows-2 items-center gap-y-2 sm:grid-rows-1"
         >
-          Envoyer
-        </button>
+          <TheAltcha v-model="contactForm.altcha" />
+
+          <button
+            class="lilita-one-regular mx-auto w-full rounded-lg border-2 bg-[#81ccb5] p-2 text-2xl text-black hover:bg-[#8adac2]"
+            :class="{
+              'disabled cursor-default brightness-75': status == 'pending',
+            }"
+            @click.prevent="postForm"
+          >
+            Envoyer
+          </button>
+        </div>
       </form>
     </div>
   </div>
