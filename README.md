@@ -51,8 +51,10 @@ mkcert -install
 From the root of the repo simply run:
 
 ```bash
-docker compose up
+./dev/run.sh
 ```
+
+Using this script ensures docker containers will run as your user. This will allow you to modify and remove work files such as `node_modules` or `.nuxt`.
 
 This will spawn all services (backend, portal, database and showcase-website) as well as a reverse proxy to access them.
 
