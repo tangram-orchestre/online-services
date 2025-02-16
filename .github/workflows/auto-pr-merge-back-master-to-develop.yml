@@ -5,7 +5,8 @@ on:
       - master
 
 jobs:
-  deploy-develop:
+  create-pr-merge-back-master-to-develop:
+    name: Create Merge back master to develop pull request
     runs-on: ubuntu-latest
     permissions:
       contents: write
@@ -34,7 +35,6 @@ jobs:
         uses: peter-evans/create-pull-request@v7
         with:
           branch: merge-back-master
-          draft: always-true
           title: Merge back master to develop
 
       - name: Enable Pull Request Automerge
