@@ -5,13 +5,13 @@ This repository contains source code for every online services deployed for the 
 ## Repository layout
 
 - [/deploy](deploy)
-  - [/production](deploy/production/) : The production environment, hosts authentication server, showcase website, member portal and other services. Deployed automatically from `master` branch.
-  - [/staging](deploy/staging/) : A staging environment to test *almost* services before releasing to production. Deployed automatically from `develop` branch.
-- [/showcase-website](showcase-website/) : The site deployed at [www.tangram-orchestre.fr](https://www.tangram-orchestre.fr).
-- [/backend](backend) : The backend for the members portal, deployed at [api.tangram-orchestre.fr](https://api.tangram-orchestre.fr).
-- [/scripts](scripts) : Common scripts useful for multiple services.
-- [/openapi](scripts) : Folder mounted in docker containers that will hold OpenApi generated specs.
-- [/dev](scripts) : Development environment with integrated reverse proxy.
+  - [/production](deploy/production/): The production environment, hosts authentication server, showcase website, member portal and other services. Deployed automatically from `master` branch.
+  - [/staging](deploy/staging/): A staging environment to test *almost* services before releasing to production. Deployed automatically from `develop` branch.
+- [/showcase-website](showcase-website/): The site deployed at [www.tangram-orchestre.fr](https://www.tangram-orchestre.fr).
+- [/backend](backend): The backend for the members portal, deployed at [api.tangram-orchestre.fr](https://api.tangram-orchestre.fr).
+- [/scripts](scripts): Common scripts useful for multiple services.
+- [/openapi](scripts): Folder mounted in docker containers that will hold OpenApi generated specs.
+- [/dev](scripts): Development environment with integrated reverse proxy.
 
 ## Development Flow
 
