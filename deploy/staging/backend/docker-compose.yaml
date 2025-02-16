@@ -1,0 +1,15 @@
+services:
+  backend-staging:
+    image: ghcr.io/tangram-orchestre/backend:staging
+    restart: unless-stopped
+    security_opt:
+      - no-new-privileges:true
+    environment:
+      - APP_CORS_ORIGINS=https://www.staging.tangram-orchestre.fr,https://api.staging.tangram-orchestre.fr
+      - APP_ALTCHA_SECRET=${APP_ALTCHA_SECRET}
+    labels:
+      - traefik.enable=true
+      - "traefik.http.routers.backend.rule=Host(`api.staging.tangram-orchestre.fr`)"
+      - traefik.http.routers.backend.tls=true
+      - traefik.http.routers.backend.tls.certresolver=resolver
+      - traefik.http.routers.backend.middlewares=authentik@file

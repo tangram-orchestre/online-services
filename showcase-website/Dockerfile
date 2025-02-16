@@ -4,6 +4,13 @@ WORKDIR /app
 COPY package.json yarn.lock ./
 RUN yarn install --locked
 COPY . .
+
+ENV PRIVATE_API_BASE_URL=placeholder
+ENV PUBLIC_API_BASE_URL=placeholder
+
+RUN mkdir /opt/openapi && mv spec.json /opt/openapi
+RUN yarn run openapi-ts
+
 RUN yarn build
 RUN yarn lint
 

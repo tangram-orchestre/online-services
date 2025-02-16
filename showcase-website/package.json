@@ -13,7 +13,7 @@
     "lint:prettier": "prettier . --check",
     "lint:fix": "eslint . --fix && prettier --write --list-different .",
     "openapi-ts": "openapi-ts",
-    "openapi-ts:lint": "eslint ./client/**/*.ts --no-ignore --fix",
+    "openapi-ts:lint:fix": "eslint ./client/**/*.ts --no-ignore --fix",
     "dev2": "concurrently -n nuxt-dev,client-gen -c green,blue --kill-others \"yarn run dev\" \"./dev/generate-client.sh\""
   },
   "dependencies": {

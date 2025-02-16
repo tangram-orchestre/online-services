@@ -20,7 +20,7 @@ services:
     working_dir: /opt/backend
     environment:
       - APP_CORS_ORIGINS=https://localhost,https://api.localhost
-      - APP_ALTCHA_SECRET=super-secet
+      - APP_ALTCHA_SECRET=super-secret
     command: watchexec --restart -- ./dev/dev.sh
     labels:
       - traefik.enable=true

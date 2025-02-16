@@ -113,17 +113,24 @@ struct AppState {
 
 #[tokio::main]
 async fn main() -> Result<(), std::io::Error> {
+    let public_api =
+        OpenApiService::new(PublicApi, "Tangram Orchestre Public", "1.0.0").url_prefix("/public");
+    let public_docs = public_api.swagger_ui();
+    let public_spec = public_api.spec_endpoint();
+
+    if let Ok(path) = std::env::var("PUBLIC_OPENAPI_SPEC_PATH") {
+        eprintln!("Writing Public OpenAPI spec to {}", path);
+        std::fs::write(path, public_api.spec())?;
+
+        std::process::exit(0);
+    }
+
     let settings = settings::Settings::load().expect("invalid settings");
 
     let state = Arc::new(AppState {
         altcha_secret: settings.altcha_secret,
         altcha_validated_challenges: Default::default(),
     });
-
-    let public_api =
-        OpenApiService::new(PublicApi, "Tangram Orchestre Public", "1.0.0").url_prefix("/public");
-    let public_docs = public_api.swagger_ui();
-    let public_spec = public_api.spec_endpoint();
 
     let app = Route::new()
         .nest("/public", public_api)

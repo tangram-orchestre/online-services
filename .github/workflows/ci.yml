@@ -46,12 +46,13 @@ jobs:
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: Build Showcase Website
-        if: vars.FORCE_BUILD == 'true' || steps.changes.outputs.showcase-website == 'true'
-        uses: ./.github/actions/build-showcase-website
+      - name: Build & Push Containers
+        if: vars.FORCE_BUILD == 'true' || steps.changes.outputs.need-rebuild == 'true'
+        uses: ./.github/actions/build-containers
         with:
           DOCKER_REGISTRY: ghcr.io
-          IMAGE_NAME: ${{ github.repository_owner }}/showcase-website
+          BACKEND_IMAGE_NAME: ${{ github.repository_owner }}/backend
+          SHOWCASE_WEBSITE_IMAGE_NAME: ${{ github.repository_owner }}/showcase-website
           TAG: ${{ env.MARKER_BRANCH }}
 
       - name: Sync dir to server
