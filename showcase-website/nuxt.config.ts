@@ -2,10 +2,24 @@
 
 import svgLoader from "vite-svg-loader";
 
+const get_env_var = (s: string): string => {
+  const val = process.env[s];
+  if (!val) {
+    throw new Error(`Missing ${s} env var`);
+  }
+  return val;
+};
+
 export default defineNuxtConfig({
   compatibilityDate: "2024-04-03",
   devtools: { enabled: true },
   typescript: { typeCheck: true },
+  runtimeConfig: {
+    private_api_base_url: get_env_var("PRIVATE_API_BASE_URL"),
+    public: {
+      api_base_url: get_env_var("PUBLIC_API_BASE_URL"),
+    },
+  },
   modules: [
     "@nuxt/eslint",
     "@vueuse/nuxt",
@@ -22,6 +36,13 @@ export default defineNuxtConfig({
   },
   vite: {
     plugins: [svgLoader()],
+    vue: {
+      template: {
+        compilerOptions: {
+          isCustomElement: (tag) => tag.indexOf("-") >= 0,
+        },
+      },
+    },
     css: {
       preprocessorOptions: {
         scss: {

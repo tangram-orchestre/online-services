@@ -4,6 +4,9 @@ services:
     restart: unless-stopped
     security_opt:
       - no-new-privileges:true
+    environment:
+      - PRIVATE_API_BASE_URL=http://backend:3000
+      - PUBLIC_API_BASE_URL=https://api.staging.tangram-orchestre.fr
     labels:
       - traefik.enable=true
       - "traefik.http.routers.staging-website.rule=Host(`www.staging.tangram-orchestre.fr`)"

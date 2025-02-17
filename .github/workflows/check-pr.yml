@@ -10,6 +10,10 @@ on:
       - master
       - develop
 
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: false
+
 jobs:
   check-pr:
     name: Check PR
@@ -31,6 +35,6 @@ jobs:
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
 
-      - name: Build Showcase Website
-        if: steps.changes.outputs.showcase-website == 'true'
-        uses: ./.github/actions/build-showcase-website
+      - name: Build Containers
+        if: steps.changes.outputs.need-rebuild == 'true'
+        uses: ./.github/actions/build-containers
