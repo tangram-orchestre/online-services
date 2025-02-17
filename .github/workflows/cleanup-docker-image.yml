@@ -24,13 +24,15 @@ jobs:
         run: |
           SHOWCASE_WEBSITE_PROD=$(docker manifest inspect ghcr.io/tangram-orchestre/showcase-website:production | jq -r '.manifests.[] | .digest' | paste -s -d ' ' -)
           SHOWCASE_WEBSITE_STAGING=$(docker manifest inspect ghcr.io/tangram-orchestre/showcase-website:staging | jq -r '.manifests.[] | .digest' | paste -s -d ' ' -)
-          echo "multi-arch-digests=${SHOWCASE_WEBSITE_PROD},${SHOWCASE_WEBSITE_STAGING}" >> $GITHUB_OUTPUT
+          BACKEND_PROD=$(docker manifest inspect ghcr.io/tangram-orchestre/backend:production | jq -r '.manifests.[] | .digest' | paste -s -d ' ' -)
+          BACKEND_STAGING=$(docker manifest inspect ghcr.io/tangram-orchestre/backend:staging | jq -r '.manifests.[] | .digest' | paste -s -d ' ' -)
+          echo "multi-arch-digests=${SHOWCASE_WEBSITE_PROD},${SHOWCASE_WEBSITE_STAGING},${BACKEND_PROD},${BACKEND_STAGING}" >> $GITHUB_OUTPUT
 
       - uses: snok/container-retention-policy@v3.0.0
         with:
           account: tangram-orchestre
           token: ${{ secrets.GITHUB_TOKEN }}
-          image-names: "showcase-website"
+          image-names: "showcase-website backend"
           image-tags: "!production !staging"
           cut-off: 1d
           skip-shas: ${{ steps.multi-arch-digests.outputs.multi-arch-digests }}

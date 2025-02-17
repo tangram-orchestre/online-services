@@ -4,6 +4,15 @@ version = "0.1.0"
 edition = "2021"
 
 [dependencies]
+altcha-lib-rs = "0.1.1"
+chrono = "0.4.39"
+config = { version = "0.15.7", default-features = false, features = [] }
 poem = "3.1.6"
-poem-openapi = { version = "5.1.5", features = ["swagger-ui", "email", "chrono"] }
+poem-openapi = { version = "5.1.5", features = [
+    "swagger-ui",
+    "email",
+    "chrono",
+] }
+serde = { version = "1.0.217", features = ["derive"] }
+serde_json = "1.0.138"
 tokio = { version = "1.43.0", features = ["full"] }

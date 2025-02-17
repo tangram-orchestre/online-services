@@ -1,5 +1,6 @@
 include:
   - ./website/docker-compose.yaml
+  - ./backend/docker-compose.yaml
 
 networks:
   default:

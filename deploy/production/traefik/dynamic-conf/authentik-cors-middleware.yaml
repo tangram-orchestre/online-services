@@ -1,0 +1,8 @@
+http:
+  middlewares:
+    authentik-cors:
+      headers:
+        # accesscontrolallowmethods: "GET,OPTIONS,PUT"
+        # accesscontrolallowheaders: "*"
+        accessControlAllowOriginList: https://auth.tangram-orchestre.fr,https://api.staging.tangram-orchestre.fr,https://www.staging.tangram-orchestre.fr"
+        # accessControlAllowOriginListRegex: "^https://.+\\.tangram-orchestre\\.fr`"

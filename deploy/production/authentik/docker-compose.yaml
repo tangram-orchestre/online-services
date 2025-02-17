@@ -3,7 +3,7 @@ services:
     image: docker.io/library/postgres:16-alpine
     restart: unless-stopped
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -d $${POSTGRES_DB} -U $${POSTGRES_USER}"]
+      test: [ "CMD-SHELL", "pg_isready -d $${POSTGRES_DB} -U $${POSTGRES_USER}" ]
       start_period: 20s
       interval: 30s
       retries: 5
@@ -21,7 +21,7 @@ services:
     command: --save 60 1 --loglevel warning
     restart: unless-stopped
     healthcheck:
-      test: ["CMD-SHELL", "redis-cli ping | grep PONG"]
+      test: [ "CMD-SHELL", "redis-cli ping | grep PONG" ]
       start_period: 20s
       interval: 30s
       retries: 5
@@ -46,6 +46,7 @@ services:
       - traefik.http.routers.authentik.rule=Host(`auth.tangram-orchestre.fr`)
       - traefik.http.routers.authentik.tls=true
       - traefik.http.routers.authentik.tls.certresolver=resolver
+      - traefik.http.routers.authentik.middlewares=authentik-cors@file
     volumes:
       - /opt/docker-volumes/authentik/icons:/icons
       - /opt/docker-volumes/authentik/media:/media

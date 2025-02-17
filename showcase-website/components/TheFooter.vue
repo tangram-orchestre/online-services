@@ -1,5 +1,5 @@
 <template>
-  <div class="flex items-center justify-center bg-slate-900 text-white">
+  <div class="flex items-center justify-center bg-slate-700 text-white">
     <p class="py-4">
       <a
         href="https://github.com/tangram-orchestre/showcase-website"

@@ -7,7 +7,7 @@ cargo run --color always &
 bash /opt/scripts/wait-for-it.sh 127.0.0.1:3000 -t 0 -- \
     curl -s \
     -o /opt/openapi/spec.json \
-    -X 'GET' 'http://127.0.0.1:3000/api/spec'  \
+    -X 'GET' 'http://127.0.0.1:3000/public/spec'  \
     -H 'accept: application/json; charset=utf-8'
 
 wait

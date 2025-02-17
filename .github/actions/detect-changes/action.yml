@@ -5,9 +5,9 @@ inputs:
   ref_branch:
     description: Branch to compare against
 outputs:
-  showcase-website:
+  need-rebuild:
     description: "Should Showcase Website be build"
-    value: ${{ steps.changes.outputs.showcase-website }}
+    value: ${{ steps.changes.outputs.need-rebuild }}
 
 runs:
   using: "composite"
@@ -18,8 +18,9 @@ runs:
     with:
       base: ${{ inputs.ref_branch }}
       filters: |
-        showcase-website:
+        need-rebuild:
           - 'showcase-website/**'
+          - 'backend/**'
           - '.github/workflows/build-showcase-website.yml'
 
 
