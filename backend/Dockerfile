@@ -13,4 +13,5 @@ RUN cargo build --locked --release
 FROM gcr.io/distroless/cc-debian12 AS backend
 WORKDIR /opt/backend
 COPY --from=build /opt/backend/target/release/backend /backend
+EXPOSE 3000
 ENTRYPOINT ["/backend"]
