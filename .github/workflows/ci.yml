@@ -12,7 +12,6 @@ concurrency:
 
 env:
   DOCKER_REGISTRY: ghcr.io
-  IMAGE_NAME: ${{ github.repository_owner }}/showcase-website
   MARKER_BRANCH: ${{ github.ref == 'refs/heads/master' && 'production' || 'staging' }}
   DEPLOY_SOURCE_DIR: ${{ github.ref == 'refs/heads/master' && 'deploy/production/' || 'deploy/staging/' }}
   DEPLOY_TARGET_DIR: ${{ github.ref == 'refs/heads/master' && '/opt/services/' || '/opt/services-staging/' }}
@@ -52,9 +51,7 @@ jobs:
         if: vars.FORCE_BUILD == 'true' || steps.changes.outputs.need-rebuild == 'true'
         uses: ./.github/actions/build-containers
         with:
-          DOCKER_REGISTRY: ghcr.io
-          BACKEND_IMAGE_NAME: ${{ github.repository_owner }}/backend
-          SHOWCASE_WEBSITE_IMAGE_NAME: ${{ github.repository_owner }}/showcase-website
+          PUSH_TO_REGISTRY: "true"
           TAG: ${{ env.MARKER_BRANCH }}
 
       - name: Sync dir to server

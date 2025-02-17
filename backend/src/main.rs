@@ -118,6 +118,7 @@ async fn main() -> Result<(), std::io::Error> {
     let public_docs = public_api.swagger_ui();
     let public_spec = public_api.spec_endpoint();
 
+    eprintln!("Starting");
     if let Ok(path) = std::env::var("PUBLIC_OPENAPI_SPEC_PATH") {
         eprintln!("Writing Public OpenAPI spec to {}", path);
         std::fs::write(path, public_api.spec())?;
