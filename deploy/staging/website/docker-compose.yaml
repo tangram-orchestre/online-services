@@ -6,7 +6,7 @@ services:
       - no-new-privileges:true
     environment:
       - NUXT_PRIVATE_API_BASE_URL=http://backend:3000
-      - NUXT_PUBLIC_API_BASE_URL=https://api.staging.tangram-orchestre.fr
+      - NUXT_PUBLIC_API_BASE_URL=https://www.staging.tangram-orchestre.fr/api
     labels:
       - traefik.enable=true
       - "traefik.http.routers.staging-website.rule=Host(`www.staging.tangram-orchestre.fr`)"

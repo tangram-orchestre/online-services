@@ -4,6 +4,12 @@ import { ref } from "vue";
 import type { GetPublicAltchaChallengeData } from "~/client";
 import { client } from "~/client/client.gen";
 
+declare global {
+  interface Window {
+    altchaCustomFetch: (url: string, init: RequestInit) => Promise<Response>;
+  }
+}
+
 const altcha_url: GetPublicAltchaChallengeData["url"] =
   "/public/altcha_challenge";
 
@@ -25,6 +31,18 @@ const onStateChange = (ev: CustomEvent | Event) => {
     }
   }
 };
+
+const altchaCustomFetch = (url: string, init: RequestInit) => {
+  return fetch(url, {
+    ...init,
+    credentials: "include", // Include cookies with the request
+  });
+};
+
+// Make the function available globally
+onMounted(() => {
+  window.altchaCustomFetch = altchaCustomFetch;
+});
 </script>
 
 <template>
@@ -34,6 +52,7 @@ const onStateChange = (ev: CustomEvent | Event) => {
       ref="altchaWidget"
       style="--altcha-max-width: 100%"
       :challengeurl="client.getConfig().baseURL + altcha_url"
+      customfetch="altchaCustomFetch"
       @statechange="onStateChange"
     />
   </ClientOnly>

@@ -9,7 +9,8 @@ services:
       - APP_ALTCHA_SECRET=${APP_ALTCHA_SECRET}
     labels:
       - traefik.enable=true
-      - "traefik.http.routers.backend.rule=Host(`api.staging.tangram-orchestre.fr`)"
+      - "traefik.http.routers.backend.rule=Host(`www.staging.tangram-orchestre.fr`) && PathPrefix(`/api`)"
       - traefik.http.routers.backend.tls=true
       - traefik.http.routers.backend.tls.certresolver=resolver
-      - traefik.http.routers.backend.middlewares=authentik@file
+      - "traefik.http.middlewares.backend-stripprefix.stripprefix.prefixes=/api"
+      - traefik.http.routers.backend.middlewares=authentik@file,backend-stripprefix
