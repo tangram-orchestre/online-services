@@ -12,4 +12,4 @@ services:
       - "traefik.http.routers.backend.rule=Host(`api.staging.tangram-orchestre.fr`)"
       - traefik.http.routers.backend.tls=true
       - traefik.http.routers.backend.tls.certresolver=resolver
-      - traefik.http.routers.backend.middlewares=authentik@file
+      - traefik.http.routers.backend.middlewares=authentik-cors@file,authentik@file

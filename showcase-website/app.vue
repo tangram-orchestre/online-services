@@ -38,6 +38,7 @@ client.setConfig({
   baseURL: import.meta.server
     ? runtimeConfig.private_api_base_url
     : runtimeConfig.public.api_base_url,
+  credentials: "include",
 });
 </script>
 
