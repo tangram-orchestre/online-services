@@ -20,6 +20,9 @@ export default defineNuxtConfig({
       api_base_url: get_env_var("PUBLIC_API_BASE_URL"),
     },
   },
+  build: {
+    transpile: ["@hey-api/client-nuxt"],
+  },
   modules: [
     "@nuxt/eslint",
     "@vueuse/nuxt",

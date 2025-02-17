@@ -137,9 +137,10 @@ async fn main() -> Result<(), std::io::Error> {
         .nest("/public", public_api)
         .nest("/public/docs", public_docs)
         .nest("/public/spec", public_spec)
-        .with(AddData::new(state));
+        .with(AddData::new(state))
+        .with(Cors::new().allow_origins(settings.cors_origins.split(',')));
 
     poem::Server::new(TcpListener::bind("0.0.0.0:3000"))
-        .run(app.with(Cors::new().allow_origins(settings.cors_origins.split(','))))
+        .run(app)
         .await
 }
