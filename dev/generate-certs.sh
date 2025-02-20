@@ -11,4 +11,4 @@ fi
 mkcert \
     -cert-file ${SCRIPT_DIR}/traefik/certs/localhost.pem \
     -key-file ${SCRIPT_DIR}/traefik/certs/localhost-key.pem \
-    localhost api.localhost portal.localhost traefik.localhost
+    localhost api.localhost portal.localhost traefik.localhost maildev.localhost
