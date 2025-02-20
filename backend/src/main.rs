@@ -29,6 +29,9 @@ struct ContactForm {
     /// Email name of the sender
     #[oai(validator { max_length = 50 })]
     email: Email,
+    /// Subject of the message
+    #[oai(validator { min_length = 2,  max_length = 50 })]
+    subject: String,
     /// Message to be sent
     #[oai(validator { min_length = 3, max_length = 2000 })]
     message: String,

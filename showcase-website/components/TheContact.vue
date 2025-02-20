@@ -7,6 +7,7 @@ const contactForm = ref({
   name: "",
   email: "",
   message: "",
+  subject: "",
   altcha: null as string | null,
 });
 
@@ -31,6 +32,7 @@ const zodErrors = ref({
   name: null as string | null,
   email: null as string | null,
   message: null as string | null,
+  subject: null as string | null,
   altcha: null as string | null,
 });
 
@@ -38,6 +40,7 @@ const changed = ref({
   name: false,
   email: false,
   message: false,
+  subject: false,
   altcha: false,
 });
 
@@ -128,6 +131,19 @@ const postForm = async () => {
         />
         <p v-if="zodErrors.email" class="mt-2 text-red-400">
           {{ zodErrors.email }}
+        </p>
+        <label class="lilita-one-regular mb-2 mt-4 text-xl">Sujet</label>
+        <input
+          v-model="contactForm.subject"
+          placeholder="Sujet"
+          type="subject"
+          class="rounded-lg p-2 text-black"
+          required
+          @change="checkForm(true, 'subject')"
+          @input="checkForm(false, 'subject')"
+        />
+        <p v-if="zodErrors.subject" class="mt-2 text-red-400">
+          {{ zodErrors.subject }}
         </p>
         <label class="lilita-one-regular mb-2 mt-4 text-xl">Message</label>
         <textarea
