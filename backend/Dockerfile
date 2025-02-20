@@ -1,17 +1,23 @@
-FROM rust:1.84.1-bullseye AS build
-WORKDIR /opt/backend
+FROM rust:1.84.1-bullseye AS chef
+# We only pay the installation cost once,
+# it will be cached from the second build onwards
+RUN cargo install cargo-chef
+WORKDIR /app
 
-# Small trick to cache dependencies using docker layer caching
-COPY Cargo.toml .
-COPY Cargo.lock .
-RUN mkdir src && echo "fn main() {}" > src/main.rs
-RUN cargo build --locked --release
-
+FROM chef AS planner
 COPY . .
-RUN cargo build --locked --release
+RUN cargo chef prepare --recipe-path recipe.json
 
-FROM gcr.io/distroless/cc-debian12 AS backend
+FROM chef AS builder
+COPY --from=planner /app/recipe.json recipe.json
+# Build dependencies - this is the caching Docker layer!
+RUN cargo chef cook --release --recipe-path recipe.json
+# Build application
+COPY . .
+RUN cargo build --release --locked
+
+FROM gcr.io/distroless/cc-debian12:debug AS backend
 WORKDIR /opt/backend
-COPY --from=build /opt/backend/target/release/backend /backend
+COPY --from=builder /app/target/release/backend /backend
 EXPOSE 3000
 ENTRYPOINT ["/backend"]

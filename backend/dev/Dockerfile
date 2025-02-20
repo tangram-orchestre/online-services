@@ -3,7 +3,7 @@ FROM ubuntu:24.04
 ARG UID=1000
 ARG GID=1000
 
-RUN apt-get update && apt-get install -y curl build-essential libpq-dev bash
+RUN apt-get update && apt-get install -y curl build-essential libpq-dev bash pkg-config
 
 # Install rust
 ENV RUSTUP_HOME /opt/rustup_home

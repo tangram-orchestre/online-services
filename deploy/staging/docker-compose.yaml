@@ -2,6 +2,15 @@ include:
   - ./website/docker-compose.yaml
   - ./backend/docker-compose.yaml
 
+services:
+  maildev:
+    image: maildev/maildev:2.2.1
+    labels:
+      - traefik.enable=true
+      - traefik.http.routers.maildev.rule=Host(`maildev.tangram-orchestre.fr`)
+      - traefik.http.services.maildev.loadbalancer.server.port=1080
+      - traefik.http.routers.maildev.tls=true
+
 networks:
   default:
     name: services

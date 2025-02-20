@@ -8,6 +8,9 @@ use config::ConfigError;
 pub struct Settings {
     pub cors_origins: String,
     pub altcha_secret: String,
+    pub smtp_host: String,
+    pub smtp_name: Option<String>,
+    pub smtp_password: Option<String>,
 }
 
 impl Settings {

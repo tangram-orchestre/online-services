@@ -5,6 +5,11 @@ use std::{
 
 use altcha_lib_rs::{verify_solution, Challenge, ChallengeOptions};
 use chrono::Utc;
+use lettre::{
+    message::{header::ContentType, Mailbox},
+    transport::smtp::authentication::Credentials,
+    AsyncSmtpTransport, AsyncTransport, Message, Tokio1Executor,
+};
 use poem::{
     listener::TcpListener,
     middleware::{AddData, Cors},
@@ -105,13 +110,50 @@ impl PublicApi {
             validated_challenges.insert(contact_form.altcha.0.salt.clone(), now);
         }
 
-        SendContactFormResponse::Success
+        let email = match Message::builder()
+            .from(
+                "NoReply Tangram <noreply@tangram-orchestre.fr>"
+                    .parse()
+                    .unwrap(),
+            )
+            .reply_to(Mailbox::new(
+                Some(contact_form.name.clone()),
+                contact_form.email.0.parse().unwrap(),
+            ))
+            .to("Contact Tangram <contact@tangram-orchestre.fr>"
+                .parse()
+                .unwrap())
+            .subject(format!(
+                "[Website Contact Form] {} - {}",
+                contact_form.name, contact_form.subject
+            ))
+            .header(ContentType::TEXT_PLAIN)
+            .body(contact_form.message.clone())
+        {
+            Ok(email) => email,
+            e => {
+                eprintln!("Could not create email: {:?}", e);
+                return SendContactFormResponse::BadRequest(PlainText(
+                    "Could not create email".to_string(),
+                ));
+            }
+        };
+
+        // Send the email
+        match state.mailer.send(email).await {
+            Ok(_) => SendContactFormResponse::Success,
+            Err(_e) => {
+                eprintln!("Could not send email: {:?}", _e);
+                SendContactFormResponse::BadRequest(PlainText("Could not send email".to_string()))
+            }
+        }
     }
 }
 
 struct AppState {
     altcha_secret: String,
     altcha_validated_challenges: Mutex<HashMap<String, chrono::DateTime<Utc>>>,
+    mailer: AsyncSmtpTransport<Tokio1Executor>,
 }
 
 #[tokio::main]
@@ -131,9 +173,12 @@ async fn main() -> Result<(), std::io::Error> {
 
     let settings = settings::Settings::load().expect("invalid settings");
 
+    let mailer = make_mailer(&settings);
+
     let state = Arc::new(AppState {
         altcha_secret: settings.altcha_secret,
         altcha_validated_challenges: Default::default(),
+        mailer,
     });
 
     let app = Route::new()
@@ -150,4 +195,20 @@ async fn main() -> Result<(), std::io::Error> {
     poem::Server::new(TcpListener::bind("0.0.0.0:3000"))
         .run(app)
         .await
+}
+
+fn make_mailer(settings: &settings::Settings) -> AsyncSmtpTransport<Tokio1Executor> {
+    match (&settings.smtp_name, &settings.smtp_password) {
+        (Some(name), Some(password)) => {
+            AsyncSmtpTransport::<Tokio1Executor>::starttls_relay(&settings.smtp_host)
+                .unwrap()
+                .credentials(Credentials::new(name.clone(), password.clone()))
+        }
+        (None, None) => {
+            AsyncSmtpTransport::<Tokio1Executor>::builder_dangerous(settings.smtp_host.clone())
+                .port(1025)
+        }
+        _ => panic!("SMTP name and password must be both set or both unset"),
+    }
+    .build()
 }
