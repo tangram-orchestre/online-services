@@ -58,6 +58,8 @@ enum SendContactFormResponse {
 }
 
 const ALTCHA_EXPIRATION_MINUTES: i64 = 1;
+// See https://altcha.org/docs/complexity/
+const ALTCHA_CHALLENGE_COMPLEXITY: u64 = 100_000;
 
 #[OpenApi]
 impl PublicApi {
@@ -66,6 +68,7 @@ impl PublicApi {
         let challenge = altcha_lib_rs::create_challenge(ChallengeOptions {
             hmac_key: &state.altcha_secret,
             expires: Some(Utc::now() + chrono::TimeDelta::minutes(ALTCHA_EXPIRATION_MINUTES)),
+            max_number: Some(ALTCHA_CHALLENGE_COMPLEXITY),
             ..Default::default()
         })
         .expect("should be ok");
@@ -141,7 +144,14 @@ impl PublicApi {
 
         // Send the email
         match state.mailer.send(email).await {
-            Ok(_) => SendContactFormResponse::Success,
+            Ok(_) => {
+                eprintln!(
+                    "Email sent (sender: {:?}), alcha time: {:?}ms",
+                    contact_form.email,
+                    contact_form.altcha.0.took.unwrap_or(0)
+                );
+                SendContactFormResponse::Success
+            }
             Err(_e) => {
                 eprintln!("Could not send email: {:?}", _e);
                 SendContactFormResponse::BadRequest(PlainText("Could not send email".to_string()))
