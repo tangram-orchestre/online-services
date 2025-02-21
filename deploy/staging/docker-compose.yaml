@@ -8,8 +8,9 @@ services:
     labels:
       - traefik.enable=true
       - traefik.http.routers.maildev.rule=Host(`maildev.tangram-orchestre.fr`)
-      - traefik.http.services.maildev.loadbalancer.server.port=1080
       - traefik.http.routers.maildev.tls=true
+      - traefik.http.routers.maildev.tls.certresolver=resolver
+      - traefik.http.services.maildev.loadbalancer.server.port=1080
 
 networks:
   default:
