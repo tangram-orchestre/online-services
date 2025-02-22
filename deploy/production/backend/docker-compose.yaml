@@ -1,6 +1,6 @@
 services:
-  backend-staging:
-    image: ghcr.io/tangram-orchestre/backend:staging
+  backend:
+    image: ghcr.io/tangram-orchestre/backend:production
     restart: unless-stopped
     security_opt:
       - no-new-privileges:true
@@ -12,7 +12,7 @@ services:
       - APP_SMTP_PASSWORD=${APP_SMTP_PASSWORD}
     labels:
       - traefik.enable=true
-      - "traefik.http.routers.backend.rule=Host(`api.tangram-orchestre.fr`) || Host(`www.tangram-orchestre.fr`) && PathPrefix(`/api`)"
+      - "traefik.http.routers.backend.rule=Host(`api.tangram-orchestre.fr`) || Host(`www.tangram-orchestre.fr`) && PathPrefix(`/api/public`)"
       - traefik.http.routers.backend.tls=true
       - traefik.http.routers.backend.tls.certresolver=resolver
-      - traefik.http.routers.backend.middlewares=authentik@file,strip-api@file
+      - traefik.http.routers.backend.middlewares=strip-api@file

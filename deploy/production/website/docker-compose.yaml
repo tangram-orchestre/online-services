@@ -4,6 +4,9 @@ services:
     restart: unless-stopped
     security_opt:
       - no-new-privileges:true
+    environment:
+      - NUXT_PRIVATE_API_BASE_URL=http://backend-staging:3000
+      - NUXT_PUBLIC_API_BASE_URL=https://www.tangram-orchestre.fr/api
     labels:
       - traefik.enable=true
       - "traefik.http.routers.website.rule=Host(`tangram-orchestre.fr`) || Host(`www.tangram-orchestre.fr`)"

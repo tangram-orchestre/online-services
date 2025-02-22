@@ -7,6 +7,7 @@ services:
     image: maildev/maildev:2.2.1
     environment:
       - MAILDEV_MAIL_DIRECTORY=/opt/maildev
+    user: root:root
     volumes:
       - /opt/docker-volumes-no-backup/maildev:/opt/maildev
     labels:
