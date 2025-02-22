@@ -2,9 +2,10 @@ include:
   - ./traefik/docker-compose.yaml
   - ./authentik/docker-compose.yaml
   - ./planka/docker-compose.yaml
-  - ./website/docker-compose.yaml
   - ./watchtower/docker-compose.yaml
   - ./kopia/docker-compose.yaml
+  - ./backend/docker-compose.yaml
+  - ./website/docker-compose.yaml
 
 services:
   unhealthy_container_restarter:
