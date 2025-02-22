@@ -10,8 +10,7 @@ services:
       - APP_SMTP_HOST=maildev
     labels:
       - traefik.enable=true
-      - "traefik.http.routers.backend.rule=Host(`www.staging.tangram-orchestre.fr`) && PathPrefix(`/api`)"
-      - traefik.http.routers.backend.tls=true
-      - traefik.http.routers.backend.tls.certresolver=resolver
-      - "traefik.http.middlewares.backend-stripprefix.stripprefix.prefixes=/api"
-      - traefik.http.routers.backend.middlewares=authentik@file,backend-stripprefix
+      - "traefik.http.routers.backend-staging.rule=Host(`api.tangram-orchestre.fr`) || Host(`www.staging.tangram-orchestre.fr`) && PathPrefix(`/api`)"
+      - traefik.http.routers.backend-staging.tls=true
+      - traefik.http.routers.backend-staging.tls.certresolver=resolver
+      - traefik.http.routers.backend-staging.middlewares=authentik@file,strip-api@file

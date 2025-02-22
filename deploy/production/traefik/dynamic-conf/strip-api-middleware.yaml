@@ -1,0 +1,6 @@
+http:
+  middlewares:
+    strip-api:
+      stripprefix:
+        prefixes:
+         - /api

@@ -1,0 +1,18 @@
+services:
+  backend-staging:
+    image: ghcr.io/tangram-orchestre/backend:staging
+    restart: unless-stopped
+    security_opt:
+      - no-new-privileges:true
+    environment:
+      - APP_CORS_ORIGINS=https://www.tangram-orchestre.fr,https://api.tangram-orchestre.fr
+      - APP_ALTCHA_SECRET=${APP_ALTCHA_SECRET}
+      - APP_SMTP_HOST=smtp-relay.gmail.com
+      - APP_SMTP_NAME=${APP_SMTP_NAME}
+      - APP_SMTP_PASSWORD=${APP_SMTP_PASSWORD}
+    labels:
+      - traefik.enable=true
+      - "traefik.http.routers.backend.rule=Host(`api.tangram-orchestre.fr`) || Host(`www.tangram-orchestre.fr`) && PathPrefix(`/api`)"
+      - traefik.http.routers.backend.tls=true
+      - traefik.http.routers.backend.tls.certresolver=resolver
+      - traefik.http.routers.backend.middlewares=authentik@file,strip-api@file
