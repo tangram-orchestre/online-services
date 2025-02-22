@@ -12,7 +12,18 @@ export default withNuxt(
       "vue/no-multiple-template-root": "off",
       "vue/no-v-html": "off",
       "tailwindcss/no-custom-classname": "off",
-      "vue/html-self-closing": "error",
+      "vue/html-self-closing": [
+        "error",
+        {
+          html: {
+            void: "always",
+            normal: "always",
+            component: "always",
+          },
+          svg: "always",
+          math: "always",
+        },
+      ],
     },
   },
 );
