@@ -15,15 +15,15 @@ runs:
     # Only download images if we're deploying the image, they're not needed to
     # check the build is passing.
     - name: Download LFS images
-      if: inputs.PUSH_TO_REGISTRY != ''
+      if: inputs.PUSH_TO_REGISTRY
       shell: bash
       run: git lfs pull --include "showcase-website/**"
 
     - name: Configure env
       shell:  bash
       run: |
-        echo "BACKEND_IMAGE_NAME=${{ github.repository_owner }}/backend" >> $GITHUB_ENV
-        echo "SHOWCASE_WEBSITE_IMAGE_NAME=${{ github.repository_owner }}/showcase-website" >> $GITHUB_ENV
+        echo "BACKEND_IMAGE_NAME=${{ env.DOCKER_REGISTRY }}/${{ github.repository_owner }}/backend" >> $GITHUB_ENV
+        echo "SHOWCASE_WEBSITE_IMAGE_NAME=${{ env.DOCKER_REGISTRY }}/${{ github.repository_owner }}/showcase-website" >> $GITHUB_ENV
 
 
     - name: Docker meta Backend
@@ -33,27 +33,20 @@ runs:
         tags: |
           type=raw,value=${{ inputs.TAG }}
           type=sha,format=long
-        images: ${{ env.DOCKER_REGISTRY }}/${{ env.BACKEND_IMAGE_NAME }}
+        images: ${{ env.BACKEND_IMAGE_NAME }}
 
     - name: Build and push
       id: push-backend
       uses: docker/build-push-action@v6
       with:
         context: backend
-        push: ${{ inputs.PUSH_TO_REGISTRY != '' }}
-        tags: ${{ inputs.PUSH_TO_REGISTRY != '' && steps.meta-backend.outputs.tags }}
-        labels: ${{ inputs.PUSH_TO_REGISTRY != '' && steps.meta-backend.outputs.labels || ''}}
+        push: ${{ inputs.PUSH_TO_REGISTRY }}
+        tags: ${{ steps.meta-backend.outputs.tags }}
+        labels: ${{ steps.meta-backend.outputs.labels}}
         load: true
         cache-from: type=gha
         cache-to: type=gha,mode=max
 
-    # - name: Generate artifact attestation for backend
-    #   if: inputs.PUSH_TO_REGISTRY != ''
-    #   uses: actions/attest-build-provenance@v2
-    #   with:
-    #     subject-name: ${{ env.DOCKER_REGISTRY }}/${{ env.BACKEND_IMAGE_NAME }}
-    #     subject-digest: ${{ steps.push-backend.outputs.digest }}
-    #     push-to-registry: true
 
     - name: Generate OpenAPI spec
       shell: bash
@@ -61,7 +54,7 @@ runs:
         docker run --rm \
           -v ./openapi:/opt/openapi \
           -e PUBLIC_OPENAPI_SPEC_PATH=/opt/openapi/spec.json \
-          ${{ env.DOCKER_REGISTRY }}/${{ env.BACKEND_IMAGE_NAME }}:sha-${{ github.sha }}
+          ${{ env.BACKEND_IMAGE_NAME }}:sha-${{ github.sha }}
         cp openapi/spec.json showcase-website/spec.json
 
 
@@ -72,24 +65,16 @@ runs:
         tags: |
           type=raw,value=${{ inputs.TAG }}
           type=sha,format=long
-        images: ${{ env.DOCKER_REGISTRY }}/${{ env.SHOWCASE_WEBSITE_IMAGE_NAME }}
+        images: ${{ env.SHOWCASE_WEBSITE_IMAGE_NAME }}
 
     - name: Build and push
       id: push-showcase-website
       uses: docker/build-push-action@v6
       with:
         context: showcase-website
-        push: ${{ inputs.PUSH_TO_REGISTRY != '' }}
+        push: ${{ inputs.PUSH_TO_REGISTRY }}
         tags: ${{ steps.meta-showcase-website.outputs.tags }}
         labels: ${{ steps.meta-showcase-website.outputs.labels }}
         # Build with cache is slower!
         # cache-from: type=gha
         # cache-to: type=gha,mode=max
-
-    # - name: Generate artifact attestation for frontend
-    #   if: inputs.PUSH_TO_REGISTRY != ''
-    #   uses: actions/attest-build-provenance@v2
-    #   with:
-    #     subject-name: ${{ env.DOCKER_REGISTRY }}/${{ env.SHOWCASE_WEBSITE_IMAGE_NAME }}
-    #     subject-digest: ${{ steps.push-showcase-website.outputs.digest }}
-    #     push-to-registry: true
