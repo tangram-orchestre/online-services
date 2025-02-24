@@ -1,0 +1,61 @@
+services:
+  # lgtm:
+  #   image: grafana/otel-lgtm:0.8.6
+  #   restart: unless-stopped
+  #   security_opt:
+  #     - no-new-privileges:true
+  #   volumes:
+  #     - /opt/docker-volumes-no-backup/lgtm:/data
+  #   environment:
+  #     - GF_PATHS_DATA=/data/grafana
+  #   labels:
+  #     - traefik.enable=true
+  #     - "traefik.http.routers.lgtm.rule=Host(`grafana.tangram-orchestre.fr`)"
+  #     - traefik.http.services.lgtm.loadbalancer.server.port=3000
+  #     - traefik.http.routers.lgtm.tls=true
+  #     - traefik.http.routers.lgtm.tls.certresolver=resolver
+  #     - traefik.http.routers.lgtm.middlewares=authentik@file
+
+  grafana:
+    image: grafana/grafana-oss:11.3.4
+    volumes:
+      - ./grafana.ini:/etc/grafana/grafana.ini
+      - /opt/docker-volumes/grafana:/var/lib/grafana
+    user: root:root
+    environment:
+      - GF_SERVER_ROOT_URL=https://grafana.tangram-orchestre.fr
+    labels:
+      - traefik.enable=true
+      - "traefik.http.routers.lgtm.rule=Host(`grafana.tangram-orchestre.fr`)"
+      - traefik.http.services.lgtm.loadbalancer.server.port=3000
+      - traefik.http.routers.lgtm.tls=true
+      - traefik.http.routers.lgtm.tls.certresolver=resolver
+
+  # Collector
+  alloy:
+    image: grafana/alloy:v1.6.1
+    restart: unless-stopped
+    security_opt:
+      - no-new-privileges:true
+    volumes:
+      - ./config.alloy:/etc/alloy/config.alloy
+      - /opt/docker-volumes-no-backup/alloy:/var/lib/alloy/data
+    command: 'run --server.http.listen-addr=0.0.0.0:12345 --storage.path=/var/lib/alloy/data /etc/alloy/config.alloy'
+    labels:
+      - traefik.enable=true
+      - "traefik.http.routers.alloy.rule=Host(`alloy.tangram-orchestre.fr`)"
+      - traefik.http.services.alloy.loadbalancer.server.port=12345
+      - traefik.http.routers.alloy.tls=true
+      - traefik.http.routers.alloy.tls.certresolver=resolver
+      - traefik.http.routers.alloy.middlewares=authentik@file
+
+  loki:
+    image: grafana/loki:3.4.1
+    restart: unless-stopped
+    security_opt:
+      - no-new-privileges:true
+    user: root:root
+    volumes:
+      - ./loki-config.yaml:/etc/loki/local-config.yaml
+      - /opt/docker-volumes-no-backup/loki:/tmp/loki/
+    command: '-config.file=/etc/loki/local-config.yaml'
