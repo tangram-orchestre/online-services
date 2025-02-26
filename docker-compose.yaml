@@ -19,6 +19,7 @@ services:
 
     working_dir: /opt/backend
     environment:
+      - APP_HOST=localhost
       - APP_CORS_ORIGINS=https://localhost,https://api.localhost
       - APP_ALTCHA_SECRET=super-secret
       - APP_SMTP_HOST=maildev

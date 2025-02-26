@@ -6,6 +6,7 @@ use config::ConfigError;
 
 #[derive(Debug, serde::Deserialize)]
 pub struct Settings {
+    pub host: String,
     pub cors_origins: String,
     pub altcha_secret: String,
     pub smtp_host: String,

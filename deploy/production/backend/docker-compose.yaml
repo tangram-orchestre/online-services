@@ -5,6 +5,7 @@ services:
     security_opt:
       - no-new-privileges:true
     environment:
+      - APP_HOST=tangram-orchestre.fr
       - APP_CORS_ORIGINS=https://www.tangram-orchestre.fr,https://api.tangram-orchestre.fr
       - APP_ALTCHA_SECRET=${APP_ALTCHA_SECRET}
       - APP_SMTP_HOST=smtp-relay.gmail.com
