@@ -7,7 +7,7 @@ use altcha_lib_rs::{verify_solution, Challenge, ChallengeOptions};
 use chrono::Utc;
 use lettre::{
     message::{header::ContentType, Mailbox},
-    transport::smtp::authentication::Credentials,
+    transport::smtp::{authentication::Credentials, extension::ClientId},
     AsyncSmtpTransport, AsyncTransport, Message, Tokio1Executor,
 };
 use poem::{
@@ -210,9 +210,10 @@ async fn main() -> Result<(), std::io::Error> {
 fn make_mailer(settings: &settings::Settings) -> AsyncSmtpTransport<Tokio1Executor> {
     match (&settings.smtp_name, &settings.smtp_password) {
         (Some(name), Some(password)) => {
-            AsyncSmtpTransport::<Tokio1Executor>::starttls_relay(&settings.smtp_host)
+            AsyncSmtpTransport::<Tokio1Executor>::relay(&settings.smtp_host)
                 .unwrap()
                 .credentials(Credentials::new(name.clone(), password.clone()))
+                .hello_name(ClientId::Domain(settings.host.to_string()))
         }
         (None, None) => {
             AsyncSmtpTransport::<Tokio1Executor>::builder_dangerous(settings.smtp_host.clone())

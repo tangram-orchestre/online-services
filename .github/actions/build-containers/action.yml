@@ -15,7 +15,7 @@ runs:
     # Only download images if we're deploying the image, they're not needed to
     # check the build is passing.
     - name: Download LFS images
-      if: inputs.PUSH_TO_REGISTRY
+      if: inputs.PUSH_TO_REGISTRY == 'true'
       shell: bash
       run: git lfs pull --include "showcase-website/**"
 
