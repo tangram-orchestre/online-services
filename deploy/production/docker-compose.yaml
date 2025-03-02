@@ -13,7 +13,8 @@ services:
     network_mode: none
     cap_drop:
       - ALL
-    volumes: ["/var/run/docker.sock:/var/run/docker.sock"]
+    volumes:
+      - /run/user/${UID}/docker.sock:/var/run/docker.sock
     command:
       [
         "/bin/sh",
