@@ -24,6 +24,7 @@ services:
     user: root:root
     environment:
       - GF_SERVER_ROOT_URL=https://grafana.tangram-orchestre.fr
+      - GF_SMTP_PASSWORD=${GF_SMTP_PASSWORD}
     labels:
       - traefik.enable=true
       - "traefik.http.routers.lgtm.rule=Host(`grafana.tangram-orchestre.fr`)"
@@ -75,3 +76,27 @@ services:
       - '--storage.tsdb.path=/prometheus'
       - '--storage.tsdb.retention.time=2w'
       - '--storage.tsdb.retention.size=2GB'
+
+  node-exporter:
+    image: quay.io/prometheus/node-exporter:v1.9.0
+    restart: unless-stopped
+    volumes:
+      - /proc:/host/proc:ro
+      - /sys:/host/sys:ro
+      - /:/rootfs:ro
+    command:
+      - '--path.procfs=/host/proc'
+      - '--path.rootfs=/rootfs'
+      - '--path.sysfs=/host/sys'
+      - '--collector.disable-defaults'
+      - '--collector.cpu'
+      - '--collector.cpufreq'
+      - '--collector.loadavg'
+      - '--collector.pressure'
+      - '--collector.netdev'
+      - '--collector.diskstats'
+      - '--collector.filesystem'
+      - '--collector.filesystem.mount-points-exclude=^/(sys|proc|dev|host|etc)($$|/)'
+      - '--collector.meminfo'
+      - '--collector.ethtool'
+      - '--collector.ethtool.device-include=^ens3$$'

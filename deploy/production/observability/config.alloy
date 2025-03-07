@@ -18,6 +18,13 @@ otelcol.receiver.otlp "default" {
   }
 }
 
+prometheus.scrape "node_exporter" {
+  job_name   = "node_exporter"
+  targets    = [{ "__address__" = "node-exporter:9100" }]
+  forward_to = [prometheus.remote_write.default.receiver]
+}
+
+
 otelcol.processor.batch "default" {
   timeout = "10s"
   send_batch_size = 10000
