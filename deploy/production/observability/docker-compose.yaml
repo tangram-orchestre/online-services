@@ -59,3 +59,19 @@ services:
       - ./loki-config.yaml:/etc/loki/local-config.yaml
       - /opt/docker-volumes-no-backup/loki:/tmp/loki/
     command: '-config.file=/etc/loki/local-config.yaml'
+
+  prometheus:
+    image: prom/prometheus:v3.2.1
+    restart: unless-stopped
+    security_opt:
+      - no-new-privileges:true
+    user: root:root
+    volumes:
+      - ./prometheus.yml:/etc/prometheus/prometheus.yml
+      - /opt/docker-volumes-no-backup/prometheus:/prometheus
+    command:
+      - '--config.file=/etc/prometheus/prometheus.yml'
+      - '--web.enable-remote-write-receiver'
+      - '--storage.tsdb.path=/prometheus'
+      - '--storage.tsdb.retention.time=2w'
+      - '--storage.tsdb.retention.size=2GB'
