@@ -22,8 +22,67 @@ prometheus.scrape "node_exporter" {
   job_name   = "node_exporter"
   targets    = [{ "__address__" = "node-exporter:9100" }]
   forward_to = [prometheus.remote_write.default.receiver]
+  scrape_interval = "60s"
 }
 
+prometheus.scrape "docker" {
+  job_name   = "docker"
+  targets    = [{ "__address__" = "host.docker.internal:9323" }]
+  forward_to = [prometheus.remote_write.default.receiver]
+  scrape_interval = "60s"
+}
+
+prometheus.scrape "cadvisor" {
+  job_name   = "cadvisor"
+  targets    = [{ "__address__" = "cadvisor:8080" }]
+  forward_to = [prometheus.remote_write.default.receiver]
+  scrape_interval = "10s"
+}
+
+discovery.docker "logs_integrations_docker" {
+  host = "unix:///var/run/docker.sock"
+  refresh_interval = "5s"
+}
+
+discovery.relabel "logs_integrations_docker" {
+  targets = []
+
+  rule {
+      target_label = "job"
+      replacement = "integrations/docker"
+  }
+
+
+  rule {
+      target_label = "instance"
+      replacement = constants.hostname
+  }
+
+  rule {
+      source_labels = ["__meta_docker_container_name"]
+      regex = "/(.*)"
+      target_label = "container"
+  }
+
+  rule {
+      source_labels = ["__meta_docker_container_log_stream"]
+      target_label = "stream"
+  }
+}
+
+loki.source.docker "default" {
+  host       = "unix:///var/run/docker.sock"
+  targets    = discovery.docker.logs_integrations_docker.targets
+  relabel_rules = discovery.relabel.logs_integrations_docker.rules
+  labels     = {"app" = "docker"}
+  forward_to = [loki.write.local.receiver]
+}
+
+loki.write "local" {
+  endpoint {
+    url = "http://loki:8080/loki/api/v1/push"
+  }
+}
 
 otelcol.processor.batch "default" {
   timeout = "10s"
@@ -32,7 +91,7 @@ otelcol.processor.batch "default" {
   output {
     metrics = [otelcol.exporter.prometheus.default.input]
     logs    = [otelcol.exporter.otlphttp.default.input]
-    traces  = [otelcol.exporter.otlp.default.input]
+    // traces  = [otelcol.exporter.otlp.default.input]
   }
 }
 

@@ -18,6 +18,7 @@ services:
 
   grafana:
     image: grafana/grafana-oss:11.3.4
+    restart: unless-stopped
     volumes:
       - ./grafana.ini:/etc/grafana/grafana.ini
       - /opt/docker-volumes/grafana:/var/lib/grafana
@@ -36,12 +37,20 @@ services:
   alloy:
     image: grafana/alloy:v1.6.1
     restart: unless-stopped
+    depends_on:
+      - loki
+      - prometheus
+      - node-exporter
+      - cadvisor
     security_opt:
       - no-new-privileges:true
     volumes:
+      - /run/user/${UID}/docker.sock:/var/run/docker.sock:ro
       - ./config.alloy:/etc/alloy/config.alloy
       - /opt/docker-volumes-no-backup/alloy:/var/lib/alloy/data
     command: 'run --server.http.listen-addr=0.0.0.0:12345 --storage.path=/var/lib/alloy/data /etc/alloy/config.alloy'
+    extra_hosts:
+      - host.docker.internal=host-gateway
     labels:
       - traefik.enable=true
       - "traefik.http.routers.alloy.rule=Host(`alloy.tangram-orchestre.fr`)"
@@ -100,3 +109,13 @@ services:
       - '--collector.meminfo'
       - '--collector.ethtool'
       - '--collector.ethtool.device-include=^ens3$$'
+
+  cadvisor:
+    image: gcr.io/cadvisor/cadvisor:v0.49.2
+    restart: unless-stopped
+    volumes:
+      - /:/rootfs:ro
+      - /run/user/${UID}/docker.sock:/var/run/docker.sock:ro
+      - /sys:/sys:ro
+      - ~/.local/share/docker/:/var/lib/docker:ro
+      - /dev/disk/:/dev/disk:ro
