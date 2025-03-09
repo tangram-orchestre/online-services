@@ -5,6 +5,7 @@ include:
 services:
   maildev:
     image: maildev/maildev:2.2.1
+    restart: unless-stopped
     environment:
       - MAILDEV_MAIL_DIRECTORY=/opt/maildev
     user: root:root
