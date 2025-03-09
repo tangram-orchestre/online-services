@@ -1,23 +1,23 @@
-FROM node:20.16.0 AS build
+FROM oven/bun:1.2.4 AS build
 
 WORKDIR /app
-COPY package.json yarn.lock ./
-RUN yarn install --locked
+COPY package.json bun.lock ./
+RUN bun install --locked
 COPY . .
 
 ENV PRIVATE_API_BASE_URL=placeholder
 ENV PUBLIC_API_BASE_URL=placeholder
 
 RUN mkdir /opt/openapi && mv spec.json /opt/openapi
-RUN yarn run openapi-ts
+RUN bun run openapi-ts
 
-RUN yarn build
-RUN yarn lint
+RUN bun build
+RUN bun lint
 
-FROM node:20.16.0-slim
+FROM oven/bun:1.2.4-slim
 
 WORKDIR /app
 COPY --from=build /app/.output ./
 
 EXPOSE 3000
-CMD [ "node", "server/index.mjs" ]
+CMD [ "bun", "server/index.mjs" ]

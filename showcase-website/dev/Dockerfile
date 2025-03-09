@@ -1,4 +1,4 @@
-FROM node:22.13
+FROM oven/bun:1.2.4
 
 ARG UID=1000
 ARG GID=1000

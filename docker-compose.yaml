@@ -44,7 +44,7 @@ services:
       - ./openapi:/opt/openapi # dev.sh will write spec.json here.
     user: ${UID-1000}:${GID-1000}
     working_dir: /opt/showcase-website
-    command: bash -c "FORCE_COLOR=1 yarn install --locked && FORCE_COLOR=1 yarn run dev2"
+    command: bash -c "FORCE_COLOR=1 bun install --locked && FORCE_COLOR=1 bun run dev2"
     environment:
       - PRIVATE_API_BASE_URL=http://backend:3000
       - PUBLIC_API_BASE_URL=https://localhost/api
@@ -78,6 +78,7 @@ services:
 
   maildev:
     image: maildev/maildev:2.2.1
+    restart: unless-stopped
     labels:
       - traefik.enable=true
       - traefik.http.routers.maildev.rule=Host(`maildev.localhost`)

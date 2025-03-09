@@ -14,9 +14,9 @@ generate_if_modified () {
     NEW_HASH=$(md5sum "$SPEC_FILE" "$CONFIG_FILE")
     if [ "$HASH" != "$NEW_HASH" ]; then
         echo "Generating client"
-        if yarn run openapi-ts -f $CONFIG_FILE; then
+        if bun run openapi-ts -f $CONFIG_FILE; then
             echo "Applying ESLint"
-            yarn run openapi-ts:lint:fix
+            bun run openapi-ts:lint:fix
             echo "$NEW_HASH" > "$HASH_FILE"
         fi
     fi
