@@ -19,6 +19,8 @@ services:
   grafana:
     image: grafana/grafana-oss:11.3.4
     restart: unless-stopped
+    profiles:
+      - observability
     volumes:
       - ./grafana.ini:/etc/grafana/grafana.ini
       - /opt/docker-volumes/grafana:/var/lib/grafana
@@ -37,6 +39,8 @@ services:
   alloy:
     image: grafana/alloy:v1.6.1
     restart: unless-stopped
+    profiles:
+      - observability
     depends_on:
       - loki
       - prometheus
@@ -48,7 +52,7 @@ services:
       - /run/user/${UID}/docker.sock:/var/run/docker.sock:ro
       - ./config.alloy:/etc/alloy/config.alloy
       - /opt/docker-volumes-no-backup/alloy:/var/lib/alloy/data
-    command: 'run --server.http.listen-addr=0.0.0.0:12345 --storage.path=/var/lib/alloy/data /etc/alloy/config.alloy'
+    command: "run --server.http.listen-addr=0.0.0.0:12345 --storage.path=/var/lib/alloy/data /etc/alloy/config.alloy"
     extra_hosts:
       - host.docker.internal=host-gateway
     labels:
@@ -62,17 +66,21 @@ services:
   loki:
     image: grafana/loki:3.4.1
     restart: unless-stopped
+    profiles:
+      - observability
     security_opt:
       - no-new-privileges:true
     user: root:root
     volumes:
       - ./loki-config.yaml:/etc/loki/local-config.yaml
       - /opt/docker-volumes-no-backup/loki:/tmp/loki/
-    command: '-config.file=/etc/loki/local-config.yaml'
+    command: "-config.file=/etc/loki/local-config.yaml"
 
   prometheus:
     image: prom/prometheus:v3.2.1
     restart: unless-stopped
+    profiles:
+      - observability
     security_opt:
       - no-new-privileges:true
     user: root:root
@@ -80,39 +88,43 @@ services:
       - ./prometheus.yml:/etc/prometheus/prometheus.yml
       - /opt/docker-volumes-no-backup/prometheus:/prometheus
     command:
-      - '--config.file=/etc/prometheus/prometheus.yml'
-      - '--web.enable-remote-write-receiver'
-      - '--storage.tsdb.path=/prometheus'
-      - '--storage.tsdb.retention.time=2w'
-      - '--storage.tsdb.retention.size=2GB'
+      - "--config.file=/etc/prometheus/prometheus.yml"
+      - "--web.enable-remote-write-receiver"
+      - "--storage.tsdb.path=/prometheus"
+      - "--storage.tsdb.retention.time=2w"
+      - "--storage.tsdb.retention.size=2GB"
 
   node-exporter:
     image: quay.io/prometheus/node-exporter:v1.9.0
     restart: unless-stopped
+    profiles:
+      - observability
     volumes:
       - /proc:/host/proc:ro
       - /sys:/host/sys:ro
       - /:/rootfs:ro
     command:
-      - '--path.procfs=/host/proc'
-      - '--path.rootfs=/rootfs'
-      - '--path.sysfs=/host/sys'
-      - '--collector.disable-defaults'
-      - '--collector.cpu'
-      - '--collector.cpufreq'
-      - '--collector.loadavg'
-      - '--collector.pressure'
-      - '--collector.netdev'
-      - '--collector.diskstats'
-      - '--collector.filesystem'
-      - '--collector.filesystem.mount-points-exclude=^/(sys|proc|dev|host|etc)($$|/)'
-      - '--collector.meminfo'
-      - '--collector.ethtool'
-      - '--collector.ethtool.device-include=^ens3$$'
+      - "--path.procfs=/host/proc"
+      - "--path.rootfs=/rootfs"
+      - "--path.sysfs=/host/sys"
+      - "--collector.disable-defaults"
+      - "--collector.cpu"
+      - "--collector.cpufreq"
+      - "--collector.loadavg"
+      - "--collector.pressure"
+      - "--collector.netdev"
+      - "--collector.diskstats"
+      - "--collector.filesystem"
+      - "--collector.filesystem.mount-points-exclude=^/(sys|proc|dev|host|etc)($$|/)"
+      - "--collector.meminfo"
+      - "--collector.ethtool"
+      - "--collector.ethtool.device-include=^ens3$$"
 
   cadvisor:
     image: gcr.io/cadvisor/cadvisor:v0.49.2
     restart: unless-stopped
+    profiles:
+      - observability
     volumes:
       - /:/rootfs:ro
       - /run/user/${UID}/docker.sock:/var/run/docker.sock:ro
