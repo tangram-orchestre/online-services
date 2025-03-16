@@ -19,8 +19,8 @@ runs:
       base: ${{ inputs.ref_branch }}
       filters: |
         need-rebuild:
-          - 'showcase-website/**'
-          - 'backend/**'
+          - 'services/showcase-website/**'
+          - 'services/backend/**'
           - '.github/workflows/build-showcase-website.yml'
 
 
