@@ -57,7 +57,7 @@ jobs:
       - name: Sync dir to server
         uses: burnett01/rsync-deployments@7.0.1
         with:
-          switches: -avzr --delete --exclude='.env'
+          switches: -vzrp --chmod=u=rwx,g=rx,o-rwx --delete --exclude='.env'
           path: ${{ env.DEPLOY_SOURCE_DIR }}
           remote_path: ${{ env.DEPLOY_TARGET_DIR }}
           remote_host: tangram-orchestre.fr
