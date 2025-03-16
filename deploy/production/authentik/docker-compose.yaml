@@ -3,7 +3,7 @@ services:
     image: docker.io/library/postgres:16-alpine
     restart: unless-stopped
     healthcheck:
-      test: [ "CMD-SHELL", "pg_isready -d $${POSTGRES_DB} -U $${POSTGRES_USER}" ]
+      test: ["CMD-SHELL", "pg_isready -d $${POSTGRES_DB} -U $${POSTGRES_USER}"]
       start_period: 20s
       interval: 30s
       retries: 5
@@ -21,7 +21,7 @@ services:
     command: --save 60 1 --loglevel warning
     restart: unless-stopped
     healthcheck:
-      test: [ "CMD-SHELL", "redis-cli ping | grep PONG" ]
+      test: ["CMD-SHELL", "redis-cli ping | grep PONG"]
       start_period: 20s
       interval: 30s
       retries: 5
@@ -35,7 +35,7 @@ services:
     restart: unless-stopped
     command: server
     healthcheck:
-      test: [ "CMD-SHELL", "curl -f http://localhost:9000 || exit 1" ]
+      test: ["CMD-SHELL", "curl -f http://localhost:9000 || exit 1"]
       start_period: 60s
       interval: 30s
       retries: 5
@@ -47,6 +47,7 @@ services:
       AUTHENTIK_POSTGRESQL__NAME: authentik
       AUTHENTIK_POSTGRESQL__PASSWORD: ${PG_PASS}
       AUTHENTIK_WEB__WORKERS: 1
+      # AUTHENTIK_LOG_LEVEL: trace
     labels:
       - traefik.enable=true
       - traefik.http.services.authentik.loadbalancer.server.port=9000
@@ -64,7 +65,7 @@ services:
       - authentik-redis
 
   authentik-worker:
-    image: ghcr.io/goauthentik/server:2024.12.2
+    image: ghcr.io/goauthentik/server:2025.2.1
     restart: unless-stopped
     command: worker
     environment:
