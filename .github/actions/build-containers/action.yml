@@ -12,13 +12,6 @@ inputs:
 runs:
   using: "composite"
   steps:
-    # Only download images if we're deploying the image, they're not needed to
-    # check the build is passing.
-    - name: Download LFS images
-      if: inputs.PUSH_TO_REGISTRY == 'true'
-      shell: bash
-      run: git lfs pull --include "showcase-website/**"
-
     - name: Configure env
       shell:  bash
       run: |
@@ -58,6 +51,12 @@ runs:
           ${{ env.BACKEND_IMAGE_NAME }}:sha-${{ github.sha }}
         cp openapi/spec.json showcase-website/spec.json
 
+    # Only download images if we're deploying the image, they're not needed to
+    # check the build is passing.
+    - name: Download LFS images
+      if: inputs.PUSH_TO_REGISTRY == 'true'
+      shell: bash
+      run: git lfs pull --include "services/showcase-website/**"
 
     - name: Docker meta Showcase Website
       id: meta-showcase-website
