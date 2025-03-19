@@ -75,6 +75,5 @@ runs:
         push: ${{ inputs.PUSH_TO_REGISTRY }}
         tags: ${{ steps.meta-showcase-website.outputs.tags }}
         labels: ${{ steps.meta-showcase-website.outputs.labels }}
-        # Build with cache is slower!
-        # cache-from: type=gha
-        # cache-to: type=gha,mode=max
+        cache-from: type=gha
+        cache-to: type=gha,mode=max
