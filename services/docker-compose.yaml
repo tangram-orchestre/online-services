@@ -20,18 +20,17 @@ services:
     working_dir: /opt/backend
     environment:
       - APP_HOST=localhost
-      - APP_CORS_ORIGINS=https://localhost,https://api.localhost
+      - APP_CORS_ORIGINS=https://localhost,https://api.localhost,https://portal.localhost
       - APP_ALTCHA_SECRET=super-secret
       - APP_SMTP_HOST=maildev
     command: watchexec --restart -- ./dev/dev.sh
     labels:
       - traefik.enable=true
-      - "traefik.http.routers.backend.rule=(Host(`localhost`) && PathPrefix(`/api`)) || Host(`api.localhost`)"
-      - "traefik.http.routers.backend.rule=(Host(`portal.localhost`) && PathPrefix(`/api`)) || Host(`api.localhost`)"
+      - "traefik.http.routers.backend.rule=(Host(`localhost`) && PathPrefix(`/api`)) || (Host(`portal.localhost`) && PathPrefix(`/api`)) || Host(`api.localhost`)"
       - traefik.http.services.backend.loadbalancer.server.port=3000
       - traefik.http.routers.backend.tls=true
       - "traefik.http.middlewares.backend-stripprefix.stripprefix.prefixes=/api"
-      - traefik.http.routers.backend.middlewares=backend-stripprefix
+      - traefik.http.routers.backend.middlewares=backend-stripprefix,fake-auth@file
 
   showcase-website:
     build:
@@ -97,6 +96,14 @@ services:
       - traefik.http.routers.dashboard.rule=Host(`traefik.localhost`)
       - traefik.http.routers.dashboard.service=api@internal
       - traefik.http.routers.dashboard.tls=true
+
+  fake-auth:
+    image: node:22-alpine
+    volumes:
+      - ./dev/fake-auth/:/app
+    working_dir: /app
+    stop_signal: SIGKILL
+    command: node --watch index.js
 
   maildev:
     image: maildev/maildev:2.2.1
