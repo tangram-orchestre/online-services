@@ -19,6 +19,7 @@ http:
           # - X-authentik-meta-X-authentik-meta-version
 
           # App headers for portal
+          - X-App-UserId
           - X-App-User
           - X-App-Email
           - X-App-Groups
