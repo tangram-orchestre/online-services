@@ -47,9 +47,11 @@ runs:
         cd services
         docker run --rm \
           -v ./openapi:/opt/openapi \
-          -e PUBLIC_OPENAPI_SPEC_PATH=/opt/openapi/spec.json \
+          -e PUBLIC_OPENAPI_SPEC_PATH=/opt/openapi/public-spec.json \
+          -e PRIVATE_OPENAPI_SPEC_PATH=/opt/openapi/private-spec.json \
           ${{ env.BACKEND_IMAGE_NAME }}:sha-${{ github.sha }}
-        cp openapi/spec.json showcase-website/spec.json
+        cp openapi/public-spec.json showcase-website/public-spec.json
+        cp openapi/private-spec.json showcase-website/private-spec.json
 
     # Only download images if we're deploying the image, they're not needed to
     # check the build is passing.
