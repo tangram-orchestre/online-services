@@ -27,6 +27,7 @@ services:
     labels:
       - traefik.enable=true
       - "traefik.http.routers.backend.rule=(Host(`localhost`) && PathPrefix(`/api`)) || Host(`api.localhost`)"
+      - "traefik.http.routers.backend.rule=(Host(`portal.localhost`) && PathPrefix(`/api`)) || Host(`api.localhost`)"
       - traefik.http.services.backend.loadbalancer.server.port=3000
       - traefik.http.routers.backend.tls=true
       - "traefik.http.middlewares.backend-stripprefix.stripprefix.prefixes=/api"
@@ -69,9 +70,6 @@ services:
     user: ${UID-1000}:${GID-1000}
     working_dir: /opt/portal
     command: bash -c "FORCE_COLOR=1 yarn install --locked && FORCE_COLOR=1 yarn run dev2"
-    environment:
-      - PRIVATE_API_BASE_URL=http://backend:3000
-      - PUBLIC_API_BASE_URL=https://localhost/api
     tmpfs:
       - /tmp
     labels:
