@@ -56,6 +56,30 @@ services:
       - traefik.http.services.showcase-website.loadbalancer.server.port=3000
       - traefik.http.routers.showcase-website.tls=true
 
+  portal:
+    build:
+      context: ./portal/dev
+      args:
+        - UID=${UID-1000}
+        - GID=${UID-1000}
+    volumes:
+      - ./scripts:/opt/scripts:ro
+      - ./portal:/opt/portal
+      - ./openapi:/opt/openapi # dev.sh will write spec.json here.
+    user: ${UID-1000}:${GID-1000}
+    working_dir: /opt/portal
+    command: bash -c "FORCE_COLOR=1 yarn install --locked && FORCE_COLOR=1 yarn run dev2"
+    environment:
+      - PRIVATE_API_BASE_URL=http://backend:3000
+      - PUBLIC_API_BASE_URL=https://localhost/api
+    tmpfs:
+      - /tmp
+    labels:
+      - traefik.enable=true
+      - traefik.http.routers.portal.rule=Host(`portal.localhost`)
+      - traefik.http.services.portal.loadbalancer.server.port=3000
+      - traefik.http.routers.portal.tls=true
+
   traefik:
     image: traefik:v3.0
     stop_signal: SIGKILL
