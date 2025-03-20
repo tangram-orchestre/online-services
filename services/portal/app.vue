@@ -11,24 +11,22 @@ client.setConfig({
   credentials: "include",
 });
 
-const { status, data, refresh } = getTest({
+const isDark = useDark({
+  selector: "html",
+  attribute: "class",
+  valueDark: "tangram-dark",
+});
+const toggleDark = useToggle(isDark);
+
+const { data, refresh } = getTest({
   composable: "useAsyncData",
 });
-
-const toggleDarkMode = () => {
-  const html = document.querySelector("html")!;
-  html.classList.toggle("tangram-dark");
-};
 </script>
 
 <template>
   <div>
-    <Button
-      label="Toggle Dark Theme"
-      icon="pi pi-moon"
-      @click="toggleDarkMode()"
-    />
-    <div>{{ status }} toto {{ data }}</div>
+    <Button label="Toggle Dark Theme" icon="pi pi-moon" @click="toggleDark()" />
+    <div>Hello {{ data }}, how are you?</div>
     <Button label="Refresh" @click="() => refresh()" />
   </div>
 </template>

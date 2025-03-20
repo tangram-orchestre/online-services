@@ -8,6 +8,7 @@ export default defineNuxtConfig({
 
   modules: [
     "@primevue/nuxt-module",
+    "@vueuse/nuxt",
     "@nuxt/eslint",
     "@nuxt/image",
     "@nuxt/fonts",

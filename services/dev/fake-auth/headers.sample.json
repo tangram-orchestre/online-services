@@ -1,0 +1,8 @@
+{
+    "X-App-User": "jdoe",
+    "X-App-Email": "john@example.com",
+    "X-App-Groups": "Orga",
+    "X-App-FirstName": "John",
+    "X-App-LastName": "Doe",
+    "X-App-PhoneNumber": "1234567890"
+}
