@@ -1,0 +1,51 @@
+{
+  "name": "portal",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "nuxt dev",
+    "generate": "nuxt generate",
+    "preview": "nuxt preview",
+    "postinstall": "nuxt prepare",
+    "lint": "yarn lint:eslint && yarn lint:prettier",
+    "lint:eslint": "eslint .",
+    "lint:fix": "eslint . --fix && prettier --write --list-different .",
+    "openapi-ts": "openapi-ts",
+    "openapi-ts:lint:fix": "eslint ./client/**/*.ts --no-ignore --fix",
+    "dev2": "concurrently -n nuxt-dev,client-gen -c green,blue --kill-others \"yarn run dev\" \"./dev/generate-client.sh\""
+  },
+  "dependencies": {
+    "@hey-api/client-nuxt": "^0.3.0",
+    "@nuxt/fonts": "^0.11.0",
+    "@nuxt/icon": "^1.10.3",
+    "@nuxt/image": "^1.9.0",
+    "@primeuix/themes": "^1.0.0",
+    "@primevue/forms": "^4.3.2",
+    "@vueuse/core": "^13.0.0",
+    "@vueuse/nuxt": "^13.0.0",
+    "i18next": "^24.2.2",
+    "nuxt": "^3.15.3",
+    "primeicons": "^7.0.0",
+    "primevue": "^4.3.2",
+    "ts-pattern": "^5.6.1",
+    "vue": "^3.4.32",
+    "zod": "^3.24.1",
+    "zod-i18n-map": "^2.27.0"
+  },
+  "packageManager": "yarn@1.22.22+sha512.a6b2f7906b721bba3d67d4aff083df04dad64c399707841b7acf00f6b133b7ac24255f2652fa22ae3534329dc6180534e98d17432037ff6fd140556e2bb3137e",
+  "devDependencies": {
+    "@hey-api/openapi-ts": "^0.64.13",
+    "@nuxt/eslint": "^1.2.0",
+    "@primevue/nuxt-module": "^4.3.2",
+    "concurrently": "^9.1.2",
+    "eslint": "^9.18.0",
+    "eslint-config-prettier": "^10.0.1",
+    "eslint-plugin-prettier": "^5.2.3",
+    "prettier": "^3.4.2",
+    "sass": "^1.86.0",
+    "typescript": "^5.7.3",
+    "vite": "6.0",
+    "vue-tsc": "2.2",
+    "@vue/compiler-sfc": "^3.5.13"
+  }
+}
