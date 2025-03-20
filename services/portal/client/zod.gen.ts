@@ -2,10 +2,4 @@
 
 import { z } from "zod";
 
-export const zContactForm = z.object({
-  name: z.string().min(2).max(50),
-  email: z.string().email().max(50),
-  subject: z.string().min(2).max(50),
-  message: z.string().min(3).max(2000),
-  altcha: z.unknown(),
-});
+export const zGetTestResponse = z.string();

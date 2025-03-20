@@ -6,11 +6,7 @@ import type {
   TDataShape,
   Client,
 } from "@hey-api/client-nuxt";
-import type {
-  GetPublicAltchaChallengeData,
-  PostPublicSendContactFormData,
-  PostPublicSendContactFormError,
-} from "./types.gen";
+import type { GetTestData, GetTestResponse } from "./types.gen";
 import { client as _heyApiClient } from "./client.gen";
 
 export type Options<
@@ -32,50 +28,19 @@ export type Options<
   meta?: Record<string, unknown>;
 };
 
-export const getPublicAltchaChallenge = <
+export const getTest = <
   TComposable extends Composable,
-  DefaultT = undefined,
+  DefaultT extends GetTestResponse = GetTestResponse,
 >(
-  options: Options<
-    TComposable,
-    GetPublicAltchaChallengeData,
-    unknown,
-    DefaultT
-  >,
+  options: Options<TComposable, GetTestData, GetTestResponse, DefaultT>,
 ) => {
   return (options.client ?? _heyApiClient).get<
     TComposable,
-    unknown | DefaultT,
+    GetTestResponse | DefaultT,
     unknown,
     DefaultT
   >({
-    url: "/public/altcha_challenge",
+    url: "/test",
     ...options,
-  });
-};
-
-export const postPublicSendContactForm = <
-  TComposable extends Composable,
-  DefaultT = undefined,
->(
-  options: Options<
-    TComposable,
-    PostPublicSendContactFormData,
-    unknown,
-    DefaultT
-  >,
-) => {
-  return (options.client ?? _heyApiClient).post<
-    TComposable,
-    unknown | DefaultT,
-    PostPublicSendContactFormError,
-    DefaultT
-  >({
-    url: "/public/send_contact_form",
-    ...options,
-    headers: {
-      "Content-Type": "application/json; charset=utf-8",
-      ...options?.headers,
-    },
   });
 };

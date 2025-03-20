@@ -8,7 +8,7 @@ dist
 
 # Generated openapi client
 client
-spec.json
+*spec.json
 
 # Node dependencies
 node_modules

@@ -1,4 +1,5 @@
 {
   "cSpell.words": ["nuxt"],
-  "editor.formatOnSave": true
+  "editor.formatOnSave": true,
+  "rust-analyzer.linkedProjects": ["./services/backend/Cargo.toml"]
 }

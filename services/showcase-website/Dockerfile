@@ -8,7 +8,7 @@ COPY . .
 ENV PRIVATE_API_BASE_URL=placeholder
 ENV PUBLIC_API_BASE_URL=placeholder
 
-RUN mkdir /opt/openapi && mv spec.json /opt/openapi
+RUN mkdir /opt/openapi && mv public-spec.json /opt/openapi
 RUN yarn run openapi-ts
 
 RUN yarn build

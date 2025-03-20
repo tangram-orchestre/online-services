@@ -2,7 +2,7 @@
 
 OUT_DIR="./client"
 HASH_FILE="$OUT_DIR/hash.md5"
-SPEC_FILE="/opt/openapi/spec.json"
+SPEC_FILE="/opt/openapi/public-spec.json"
 CONFIG_FILE="./openapi-ts.config.ts"
 
 mkdir -p "$OUT_DIR"
@@ -26,7 +26,7 @@ generate_if_modified () {
 generate_if_modified
 
 
-# Run client code generation when spec.json changes.
+# Run client code generation when public-spec.json changes.
 (inotifywait -m -e modify "$SPEC_FILE" |
     while read; do
         generate_if_modified

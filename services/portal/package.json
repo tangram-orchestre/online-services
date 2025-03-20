@@ -37,6 +37,8 @@
     "@hey-api/openapi-ts": "^0.64.13",
     "@nuxt/eslint": "^1.2.0",
     "@primevue/nuxt-module": "^4.3.2",
+    "@types/node": "^22.13.10",
+    "@vue/compiler-sfc": "^3.5.13",
     "concurrently": "^9.1.2",
     "eslint": "^9.18.0",
     "eslint-config-prettier": "^10.0.1",
@@ -45,7 +47,6 @@
     "sass": "^1.86.0",
     "typescript": "^5.7.3",
     "vite": "6.0",
-    "vue-tsc": "2.2",
-    "@vue/compiler-sfc": "^3.5.13"
+    "vue-tsc": "2.2"
   }
 }

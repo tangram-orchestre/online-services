@@ -12,6 +12,11 @@ export default defineNuxtConfig({
     "@nuxt/image",
     "@nuxt/fonts",
   ],
+  runtimeConfig: {
+    public: {
+      api_base_url: "/api",
+    },
+  },
   primevue: {
     options: {
       theme: {
