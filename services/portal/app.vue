@@ -27,7 +27,8 @@ const { data, refresh } = getUsersMe({
   <div>
     <Button label="Toggle Dark Theme" icon="pi pi-moon" @click="toggleDark()" />
     <div v-if="data">
-      Hello {{ data.first_name }} {{ data.last_name }}, how are you?
+      Hello {{ data.first_name }} ({{ data.username }}) {{ data.last_name }}
+      {{ data.phone_number }}, how are you?
     </div>
     <Button label="Refresh" @click="() => refresh()" />
   </div>

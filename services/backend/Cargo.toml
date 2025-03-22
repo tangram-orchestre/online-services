@@ -22,3 +22,4 @@ lettre = { version = "0.11", default-features = false, features = [
     "smtp-transport",
     "pool",
 ] }
+thiserror = "2.0.12"
