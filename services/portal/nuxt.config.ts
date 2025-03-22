@@ -1,5 +1,3 @@
-import Aura from "@primeuix/themes/aura";
-
 // https://nuxt.com/docs/api/configuration/nuxt-config
 export default defineNuxtConfig({
   compatibilityDate: "2024-11-01",
@@ -7,25 +5,23 @@ export default defineNuxtConfig({
   ssr: false,
 
   modules: [
-    "@primevue/nuxt-module",
     "@vueuse/nuxt",
     "@nuxt/eslint",
     "@nuxt/image",
     "@nuxt/fonts",
+    "vuetify-nuxt-module",
   ],
+  vuetify: {
+    moduleOptions: {
+      /* module specific options */
+    },
+    vuetifyOptions: {
+      /* vuetify options */
+    },
+  },
   runtimeConfig: {
     public: {
       api_base_url: "/api",
-    },
-  },
-  primevue: {
-    options: {
-      theme: {
-        preset: Aura,
-        options: {
-          darkModeSelector: ".tangram-dark",
-        },
-      },
     },
   },
   fonts: {
