@@ -1,6 +1,7 @@
 include:
   - ./website/docker-compose.yaml
   - ./backend/docker-compose.yaml
+  - ./portal/docker-compose.yaml
 
 services:
   maildev:

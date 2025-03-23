@@ -22,6 +22,8 @@ export default defineNuxtConfig({
   runtimeConfig: {
     public: {
       api_base_url: "/api",
+      sso_user_settings_url:
+        "https://auth.tangram-orchestre.fr/if/user/#/settings",
     },
   },
   fonts: {
