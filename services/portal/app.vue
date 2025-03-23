@@ -58,7 +58,7 @@ const drawer = ref(false);
 
         <template v-if="user.groups.includes('Orga')">
           <v-divider />
-          <v-list-item prepend-icon="mdi-account-group" to="/users">
+          <v-list-item prepend-icon="mdi-account-group" to="/members">
             Membres
           </v-list-item>
         </template>

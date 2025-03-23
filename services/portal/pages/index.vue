@@ -1,5 +1,7 @@
 <script setup lang="ts">
 const user = await currentUser();
+
+const runtimeConfig = useRuntimeConfig();
 </script>
 
 <template>
@@ -53,7 +55,7 @@ const user = await currentUser();
               color="primary"
               height="56"
               block
-              href="https://auth.tangram-orchestre.fr/if/user/#/settings"
+              :href="runtimeConfig.public.sso_user_settings_url"
             >
               Modifier mes informations
             </v-btn>

@@ -1,5 +1,5 @@
 <template>
   <v-container>
-    <h1>Dashboard</h1>
+    <h1>Membres</h1>
   </v-container>
 </template>

@@ -17,6 +17,7 @@ runs:
       run: |
         echo "BACKEND_IMAGE_NAME=${{ env.DOCKER_REGISTRY }}/${{ github.repository_owner }}/backend" >> $GITHUB_ENV
         echo "SHOWCASE_WEBSITE_IMAGE_NAME=${{ env.DOCKER_REGISTRY }}/${{ github.repository_owner }}/showcase-website" >> $GITHUB_ENV
+        echo "PORTAL_IMAGE_NAME=${{ env.DOCKER_REGISTRY }}/${{ github.repository_owner }}/portal" >> $GITHUB_ENV
 
 
     - name: Docker meta Backend
@@ -28,7 +29,7 @@ runs:
           type=sha,format=long
         images: ${{ env.BACKEND_IMAGE_NAME }}
 
-    - name: Build and push
+    - name: Build and push Backend
       id: push-backend
       uses: docker/build-push-action@v6
       with:
@@ -51,7 +52,7 @@ runs:
           -e PRIVATE_OPENAPI_SPEC_PATH=/opt/openapi/private-spec.json \
           ${{ env.BACKEND_IMAGE_NAME }}:sha-${{ github.sha }}
         cp openapi/public-spec.json showcase-website/public-spec.json
-        cp openapi/private-spec.json showcase-website/private-spec.json
+        cp openapi/private-spec.json portal/private-spec.json
 
     # Only download images if we're deploying the image, they're not needed to
     # check the build is passing.
@@ -69,7 +70,7 @@ runs:
           type=sha,format=long
         images: ${{ env.SHOWCASE_WEBSITE_IMAGE_NAME }}
 
-    - name: Build and push
+    - name: Build and push Showcase Website
       id: push-showcase-website
       uses: docker/build-push-action@v6
       with:
@@ -77,5 +78,26 @@ runs:
         push: ${{ inputs.PUSH_TO_REGISTRY }}
         tags: ${{ steps.meta-showcase-website.outputs.tags }}
         labels: ${{ steps.meta-showcase-website.outputs.labels }}
+        cache-from: type=gha
+        cache-to: type=gha,mode=max
+
+
+    - name: Docker meta Portal
+      id: meta-portal
+      uses: docker/metadata-action@v5
+      with:
+        tags: |
+          type=raw,value=${{ inputs.TAG }}
+          type=sha,format=long
+        images: ${{ env.PORTAL_IMAGE_NAME }}
+
+    - name: Build and push Portal
+      id: push-portal
+      uses: docker/build-push-action@v6
+      with:
+        context: services/portal
+        push: ${{ inputs.PUSH_TO_REGISTRY }}
+        tags: ${{ steps.meta-portal.outputs.tags }}
+        labels: ${{ steps.meta-portal.outputs.labels }}
         cache-from: type=gha
         cache-to: type=gha,mode=max

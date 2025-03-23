@@ -21,6 +21,7 @@ runs:
         need-rebuild:
           - 'services/showcase-website/**'
           - 'services/backend/**'
+          - 'services/portal/**'
           - '.github/actions/build-containers/action.yml'
 
 

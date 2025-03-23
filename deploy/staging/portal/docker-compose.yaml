@@ -1,0 +1,12 @@
+services:
+  portal-staging:
+    image: ghcr.io/tangram-orchestre/portal:staging
+    restart: unless-stopped
+    security_opt:
+      - no-new-privileges:true
+    labels:
+      - traefik.enable=true
+      - "traefik.http.routers.staging-portal.rule=Host(`portal.staging.tangram-orchestre.fr`)"
+      - traefik.http.routers.staging-portal.tls=true
+      - traefik.http.routers.staging-portal.tls.certresolver=resolver
+      - traefik.http.routers.staging-portal.middlewares=authentik@file

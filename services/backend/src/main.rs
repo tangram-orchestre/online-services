@@ -44,9 +44,9 @@ async fn main() -> Result<(), std::io::Error> {
         std::fs::write(path, public_api.spec())?;
         should_exit = true;
     }
-    if let Ok(path) = std::env::var("PRIVATE_OPENAPI_JSON_PATH") {
+    if let Ok(path) = std::env::var("PRIVATE_OPENAPI_SPEC_PATH") {
         eprintln!("Writing Private OpenAPI JSON to {}", path);
-        std::fs::write(path, public_api.spec())?;
+        std::fs::write(path, private_api.spec())?;
         should_exit = true;
     }
     if should_exit {

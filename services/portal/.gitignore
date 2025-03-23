@@ -24,3 +24,4 @@ logs
 !.env.example
 
 client
+private-spec.json
