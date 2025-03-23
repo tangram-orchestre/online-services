@@ -1,6 +1,6 @@
 <script lang="ts" setup>
+import { NuxtPage } from "#components";
 import { client } from "./client/client.gen";
-import { getUsersMe } from "~/client";
 
 import { useTheme } from "vuetify";
 
@@ -17,39 +17,48 @@ const isDark = useDark();
 const toggleDark = useToggle(isDark);
 const theme = useTheme();
 
-watch(isDark, (value) => {
-  theme.global.name.value = value ? "dark" : "light";
+const setTheme = () => {
+  theme.global.name.value = isDark.value ? "dark" : "light";
+};
+
+onMounted(() => {
+  setTheme();
 });
 
-const { data, refresh } = getUsersMe({
-  composable: "useAsyncData",
+watch(isDark, () => {
+  setTheme();
 });
+
+const drawer = ref(false);
 </script>
 
 <template>
   <v-app>
-    <v-navigation-drawer>
-      <v-list>
-        <v-list-item title="My Application" subtitle="Vuetify" />
-        <v-divider />
-        <v-list-item title="Navigation drawer" />
-      </v-list>
-    </v-navigation-drawer>
+    <v-app-bar color="primary">
+      <v-app-bar-nav-icon variant="text" @click.stop="drawer = !drawer" />
 
-    <v-app-bar title="Tangram">
+      <v-toolbar-title>Tangram</v-toolbar-title>
+
+      <v-spacer />
+
       <v-btn
         :icon="isDark ? 'mdi-weather-night' : 'mdi-brightness-5'"
         @click="toggleDark()"
       />
+      <v-btn icon="mdi-account" to="/" />
     </v-app-bar>
 
+    <v-navigation-drawer v-model="drawer">
+      <v-list nav>
+        <v-list-item prepend-icon="mdi-calendar" to="/calendar">
+          Calendrier
+        </v-list-item>
+      </v-list>
+    </v-navigation-drawer>
+
     <v-main>
-      <v-container>
-        <div v-if="data">
-          Hello {{ data.first_name }} ({{ data.username }})
-          {{ data.last_name }} {{ data.phone_number }}, how are you?
-        </div>
-        <v-btn @click="() => refresh()">Refresh</v-btn>
+      <v-container fluid>
+        <NuxtPage />
       </v-container>
     </v-main>
   </v-app>
