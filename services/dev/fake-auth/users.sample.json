@@ -6,7 +6,6 @@
     "last_login": "2025-03-07T10:27:01.734392Z",
     "groups_obj": [
       {
-        "pk": "32e0bb9c-3989-4e7b-b0c1-69858a672bcf",
         "num_pk": 67628,
         "name": "Orga"
       }
@@ -17,8 +16,19 @@
       "first_name": "John",
       "phone_number": "1234567890",
       "google_workspace_email": "jdoe@tangram-orchestre.fr"
-    },
-    "uid": "e7e250ce3844f20c3e9ac51a9b332a43cefa736e760ce77a04a7912638e5571e",
-    "uuid": "ed442478-4aea-4ef4-9f6d-ba7b2bc7c4e4"
+    }
+  },
+  {
+    "pk": 1,
+    "username": "jzey",
+    "is_active": true,
+    "last_login": "2025-03-02T10:27:01.734392Z",
+    "groups_obj": [],
+    "email": "jzey@gmail.com",
+    "attributes": {
+      "last_name": "Zey",
+      "first_name": "Jane",
+      "phone_number": "1234567890"
+    }
   }
 ]

@@ -13,6 +13,8 @@ client.setConfig({
   credentials: "include",
 });
 
+const user = await currentUser();
+
 const isDark = useDark();
 const toggleDark = useToggle(isDark);
 const theme = useTheme();
@@ -50,16 +52,21 @@ const drawer = ref(false);
 
     <v-navigation-drawer v-model="drawer">
       <v-list nav>
-        <v-list-item prepend-icon="mdi-calendar" to="/calendar">
-          Calendrier
+        <v-list-item prepend-icon="mdi-view-dashboard" to="/dashboard">
+          Dashboard
         </v-list-item>
+
+        <template v-if="user.groups.includes('Orga')">
+          <v-divider />
+          <v-list-item prepend-icon="mdi-account-group" to="/users">
+            Membres
+          </v-list-item>
+        </template>
       </v-list>
     </v-navigation-drawer>
 
     <v-main>
-      <v-container fluid>
-        <NuxtPage />
-      </v-container>
+      <NuxtPage />
     </v-main>
   </v-app>
 </template>
