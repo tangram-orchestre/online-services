@@ -34,6 +34,7 @@ struct User {
 
 #[OpenApi]
 impl PrivateApi {
+    /// Get the current logged in user.
     #[oai(path = "/users/me", method = "get", tag = PublicApiTags::Placeholder)]
     async fn users_me(&self, headers: &HeaderMap) -> Result<Json<User>> {
         let get_header = |key: &str| -> Result<String, ApiError> {
