@@ -54,6 +54,7 @@ const ALTCHA_CHALLENGE_COMPLEXITY: u64 = 100_000;
 
 #[OpenApi]
 impl PublicApi {
+    /// Retrieve an Altcha challenge that can be used to validate a contact form
     #[oai(path = "/altcha_challenge", method = "get", tag = PublicApiTags::Contact)]
     async fn altcha_challenge(&self, state: Data<&Arc<AppState>>) -> Json<Any<Challenge>> {
         let challenge = altcha_lib_rs::create_challenge(ChallengeOptions {
@@ -69,6 +70,7 @@ impl PublicApi {
         Json(Any(challenge))
     }
 
+    /// Send a contact form
     #[oai(path = "/send_contact_form", method = "post", tag = PublicApiTags::Contact)]
     async fn send_contact_form(
         &self,
