@@ -20,29 +20,19 @@ runs:
         echo "PORTAL_IMAGE_NAME=${{ env.DOCKER_REGISTRY }}/${{ github.repository_owner }}/portal" >> $GITHUB_ENV
 
 
-    - name: Docker meta Backend
-      id: meta-backend
-      uses: docker/metadata-action@v5
-      with:
-        tags: |
-          type=raw,value=${{ inputs.TAG }}
-          type=sha,format=long
-        images: ${{ env.BACKEND_IMAGE_NAME }}
-
-    - name: Build and push Backend
-      id: push-backend
+    - name: Build Backend once to be able to generate OpenAPI spec
+      id: build-backend
       uses: docker/build-push-action@v6
       with:
         context: services/backend
-        push: ${{ inputs.PUSH_TO_REGISTRY }}
-        tags: ${{ steps.meta-backend.outputs.tags }}
-        labels: ${{ steps.meta-backend.outputs.labels}}
+        push: false
+        tags: ${{ env.BACKEND_IMAGE_NAME }}:tmp
         load: true
         cache-from: type=gha
         cache-to: type=gha,mode=max
 
-
     - name: Generate OpenAPI spec
+      id: generate-openapi-spec
       shell: bash
       run: |
         cd services
@@ -50,9 +40,36 @@ runs:
           -v ./openapi:/opt/openapi \
           -e PUBLIC_OPENAPI_SPEC_PATH=/opt/openapi/public-spec.json \
           -e PRIVATE_OPENAPI_SPEC_PATH=/opt/openapi/private-spec.json \
-          ${{ env.BACKEND_IMAGE_NAME }}:sha-${{ github.sha }}
+          ${{ env.BACKEND_IMAGE_NAME }}:tmp
+
         cp openapi/public-spec.json showcase-website/public-spec.json
         cp openapi/private-spec.json portal/private-spec.json
+
+        echo PUBLIC_OPEN_SPEC_MD5SUM=`md5sum openapi/public-spec.json | awk '{ print $1 }'` >> "$GITHUB_OUTPUT"
+        echo PRIVATE_OPEN_SPEC_MD5SUM=`md5sum openapi/private-spec.json | awk '{ print $1 }'` >> "$GITHUB_OUTPUT"
+
+    - name: Docker meta Backend
+      id: meta-backend
+      uses: docker/metadata-action@v5
+      with:
+        tags: |
+          type=raw,value=${{ inputs.TAG }}
+          type=sha,format=long
+        annotations: |
+          PUBLIC_OPENAPI_SPEC_MD5SUM=${{ steps.generate-openapi-spec.outputs.PUBLIC_OPEN_SPEC_MD5SUM }}
+          PRIVATE_OPENAPI_SPEC_MD5SUM=${{ steps.generate-openapi-spec.outputs.PRIVATE_OPEN_SPEC_MD5SUM }}
+        images: ${{ env.BACKEND_IMAGE_NAME }}
+
+    - name: Build and push Backend, baking in OpenAPI spec md5sum
+      id: push-backend
+      uses: docker/build-push-action@v6
+      with:
+        context: services/backend
+        push: ${{ inputs.PUSH_TO_REGISTRY }}
+        tags: ${{ steps.meta-backend.outputs.tags }}
+        labels: ${{ steps.meta-backend.outputs.labels }}
+        annotations: ${{ steps.meta-backend.outputs.annotations }}
+
 
     # Only download images if we're deploying the image, they're not needed to
     # check the build is passing.
