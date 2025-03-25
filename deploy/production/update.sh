@@ -8,3 +8,4 @@ cd $SCRIPT_DIR
 docker compose pull
 docker compose build
 docker compose up -d --remove-orphans
+docker image prune -f
