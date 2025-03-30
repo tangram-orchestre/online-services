@@ -23,6 +23,9 @@ services:
       - APP_CORS_ORIGINS=https://localhost,https://api.localhost,https://portal.localhost
       - APP_ALTCHA_SECRET=super-secret
       - APP_SMTP_HOST=maildev
+      - APP_POSTGRES_PASSWORD=portal
+      - APP_POSTGRES_USER=portal
+      - APP_POSTGRES_DB=portal
     command: watchexec --restart -- ./dev/dev.sh
     labels:
       - traefik.enable=true
@@ -77,9 +80,8 @@ services:
       - traefik.http.services.portal.loadbalancer.server.port=3000
       - traefik.http.routers.portal.tls=true
 
-  postgresql:
+  postgres:
     image: docker.io/library/postgres:17.4-alpine
-    restart: unless-stopped
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -d $${POSTGRES_DB} -U $${POSTGRES_USER}"]
       start_period: 20s
@@ -92,6 +94,17 @@ services:
       POSTGRES_PASSWORD: portal
       POSTGRES_USER: portal
       POSTGRES_DB: portal
+
+  pgweb:
+    image: sosedoff/pgweb:0.16.2
+    depends_on:
+      - postgres
+    environment:
+      - DATABASE_URL=postgres://portal:portal@postgres:5432/portal?sslmode=disable
+    labels:
+      - traefik.enable=true
+      - traefik.http.routers.pgweb.rule=Host(`pgweb.localhost`)
+      - traefik.http.routers.pgweb.tls=true
 
   traefik:
     image: traefik:v3.0
