@@ -1,5 +1,8 @@
+mod auth;
+mod models;
 mod private;
 mod public;
+mod schema;
 mod settings;
 
 use std::{
@@ -16,6 +19,10 @@ use tracing_subscriber::{
 };
 
 use chrono::Utc;
+use diesel_async::{
+    AsyncPgConnection,
+    pooled_connection::{AsyncDieselConnectionManager, deadpool::Pool},
+};
 use lettre::{
     AsyncSmtpTransport, Tokio1Executor,
     transport::smtp::{authentication::Credentials, extension::ClientId},
@@ -26,25 +33,23 @@ use poem::{
     middleware::{AddData, Cors},
 };
 use poem_openapi::OpenApiService;
-use private::PrivateApi;
 use public::PublicApi;
 
-pub(crate) struct AppState {
+pub struct AppStateInner {
     altcha_secret: String,
     altcha_validated_challenges: Mutex<HashMap<String, chrono::DateTime<Utc>>>,
     mailer: AsyncSmtpTransport<Tokio1Executor>,
+    db_connection_pool: Pool<AsyncPgConnection>,
 }
+
+pub type AppState = Arc<AppStateInner>;
 
 #[tokio::main]
 async fn main() -> Result<(), std::io::Error> {
     let public_api =
         OpenApiService::new(PublicApi, "Tangram Orchestre Public", "1.0.0").url_prefix("/public");
-    let public_docs = public_api.swagger_ui();
-    let public_spec = public_api.spec_endpoint();
 
-    let private_api = OpenApiService::new(PrivateApi, "Tangram Orchestre Private", "1.0.0");
-    let private_docs = private_api.swagger_ui();
-    let private_spec = private_api.spec_endpoint();
+    let private_api = OpenApiService::new(private::api(), "Tangram Orchestre Private", "1.0.0");
 
     let mut should_exit = false;
     if let Ok(path) = std::env::var("PUBLIC_OPENAPI_SPEC_PATH") {
@@ -69,19 +74,31 @@ async fn main() -> Result<(), std::io::Error> {
 
     let mailer = make_mailer(&settings);
 
-    let state = Arc::new(AppState {
+    let db_config = AsyncDieselConnectionManager::<AsyncPgConnection>::new(&settings.postgres_url);
+    let db_connection_pool = Pool::builder(db_config)
+        .build()
+        .expect("failed to create connection pool");
+
+    let state = Arc::new(AppStateInner {
         altcha_secret: settings.altcha_secret,
         altcha_validated_challenges: Default::default(),
         mailer,
+        db_connection_pool,
     });
 
+    let public_endpoints = Route::new()
+        .nest("/docs", public_api.openapi_explorer())
+        .nest("/spec", public_api.spec_endpoint())
+        .nest("/", public_api);
+
+    let private_endpoints = Route::new()
+        .nest("/docs", private_api.openapi_explorer())
+        .nest("/spec", private_api.spec_endpoint())
+        .nest("/", private_api.around(auth::authenticate));
+
     let app = Route::new()
-        .nest("/public", public_api)
-        .nest("/public/docs", public_docs)
-        .nest("/public/spec", public_spec)
-        .nest("/", private_api)
-        .nest("/docs", private_docs)
-        .nest("/spec", private_spec)
+        .nest("/", private_endpoints)
+        .nest("/public", public_endpoints)
         .with(AddData::new(state))
         .with(
             Cors::new()
