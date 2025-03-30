@@ -1,8 +1,23 @@
 <script lang="ts" setup>
 import { NuxtPage } from "#components";
-import { client } from "./client/client.gen";
+import { client } from "#hey-api/client.gen";
 
-import { useTheme } from "vuetify";
+import i18next from "i18next";
+import { z } from "zod";
+import { zodI18nMap } from "zod-i18n-map";
+import translation from "zod-i18n-map/locales/fr/zod.json";
+import ConfirmDialog from "./components/ConfirmDialog.vue";
+
+import { VSonner } from "vuetify-sonner";
+import "vuetify-sonner/style.css";
+
+i18next.init({
+  lng: "fr",
+  resources: {
+    fr: { zod: translation },
+  },
+});
+z.setErrorMap(zodI18nMap);
 
 const runtimeConfig = useRuntimeConfig();
 
@@ -13,6 +28,12 @@ client.setConfig({
   credentials: "include",
 });
 
+useHead({
+  htmlAttrs: {
+    lang: "fr",
+  },
+});
+
 const user = await currentUser();
 
 const isDark = useDark();
@@ -20,7 +41,7 @@ const toggleDark = useToggle(isDark);
 const theme = useTheme();
 
 const setTheme = () => {
-  theme.global.name.value = isDark.value ? "dark" : "light";
+  theme.change(isDark.value ? "dark" : "light");
 };
 
 onMounted(() => {
@@ -32,10 +53,25 @@ watch(isDark, () => {
 });
 
 const drawer = ref(false);
+
+const confirmDialogRef =
+  useTemplateRef<InstanceType<typeof ConfirmDialog>>("confirm");
+
+onMounted(() => {
+  if (confirmDialogRef.value) {
+    setConfirmDialogInstance(confirmDialogRef.value);
+  } else {
+    console.error("ConfirmDialog component not found");
+  }
+});
 </script>
 
 <template>
   <v-app>
+    <confirm-dialog ref="confirm" />
+
+    <v-sonner position="top-right" :duration="3000" />
+
     <v-app-bar color="primary">
       <v-app-bar-nav-icon variant="text" @click.stop="drawer = !drawer" />
 
@@ -47,26 +83,23 @@ const drawer = ref(false);
         :icon="isDark ? 'mdi-weather-night' : 'mdi-brightness-5'"
         @click="toggleDark()"
       />
-      <v-btn icon="mdi-account" to="/" />
+      <v-btn class="ma-2" icon="mdi-account" to="/" />
     </v-app-bar>
 
     <v-navigation-drawer v-model="drawer">
       <v-list nav>
-        <v-list-item prepend-icon="mdi-view-dashboard" to="/dashboard">
-          Dashboard
-        </v-list-item>
-
         <template v-if="user.groups.includes('Orga')">
-          <v-divider />
-          <v-list-item prepend-icon="mdi-account-group" to="/members">
-            Membres
+          <v-list-item prepend-icon="mdi-calendar" to="/semesters">
+            Semestres
           </v-list-item>
         </template>
       </v-list>
     </v-navigation-drawer>
 
     <v-main>
-      <NuxtPage />
+      <v-container class="pa-4">
+        <NuxtPage />
+      </v-container>
     </v-main>
   </v-app>
 </template>
