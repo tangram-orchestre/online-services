@@ -4,7 +4,7 @@ version = "0.1.0"
 edition = "2021"
 
 [dependencies]
-altcha-lib-rs = "0.1.1"
+altcha-lib-rs = "0.1.2"
 chrono = "0.4.39"
 config = { version = "0.15.8", default-features = false, features = [] }
 poem = "3.1.6"
@@ -23,3 +23,6 @@ lettre = { version = "0.11", default-features = false, features = [
     "pool",
 ] }
 thiserror = "2.0.12"
+diesel = { version = "2.2.8", features = ["chrono"] }
+diesel-async = { version = "0.5.2", features = ["postgres", "deadpool"] }
+diesel-derive-enum = { version = "2.1.0", features = ["postgres"] }

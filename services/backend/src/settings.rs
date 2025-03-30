@@ -12,6 +12,7 @@ pub struct Settings {
     pub smtp_host: String,
     pub smtp_name: Option<String>,
     pub smtp_password: Option<String>,
+    pub postgres_url: String,
 }
 
 impl Settings {

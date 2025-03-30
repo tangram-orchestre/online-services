@@ -1,5 +1,7 @@
+mod models;
 mod private;
 mod public;
+mod schema;
 mod settings;
 
 use std::{
@@ -8,6 +10,10 @@ use std::{
 };
 
 use chrono::Utc;
+use diesel_async::{
+    pooled_connection::{deadpool::Pool, AsyncDieselConnectionManager},
+    AsyncPgConnection,
+};
 use lettre::{
     transport::smtp::{authentication::Credentials, extension::ClientId},
     AsyncSmtpTransport, Tokio1Executor,
@@ -21,11 +27,14 @@ use poem_openapi::OpenApiService;
 use private::PrivateApi;
 use public::PublicApi;
 
-pub(crate) struct AppState {
+pub struct AppStateInner {
     altcha_secret: String,
     altcha_validated_challenges: Mutex<HashMap<String, chrono::DateTime<Utc>>>,
     mailer: AsyncSmtpTransport<Tokio1Executor>,
+    db_connection_pool: Pool<AsyncPgConnection>,
 }
+
+pub type AppState = Arc<AppStateInner>;
 
 #[tokio::main]
 async fn main() -> Result<(), std::io::Error> {
@@ -58,10 +67,16 @@ async fn main() -> Result<(), std::io::Error> {
 
     let mailer = make_mailer(&settings);
 
-    let state = Arc::new(AppState {
+    let db_config = AsyncDieselConnectionManager::<AsyncPgConnection>::new(&settings.postgres_url);
+    let db_connection_pool = Pool::builder(db_config)
+        .build()
+        .expect("failed to create connection pool");
+
+    let state = Arc::new(AppStateInner {
         altcha_secret: settings.altcha_secret,
         altcha_validated_challenges: Default::default(),
         mailer,
+        db_connection_pool,
     });
 
     let app = Route::new()
