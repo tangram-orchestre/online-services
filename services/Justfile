@@ -67,7 +67,7 @@ generate-certs:
     mkcert \
         -cert-file ./dev/traefik/certs/localhost.pem \
         -key-file ./dev/traefik/certs/localhost-key.pem \
-        localhost api.localhost portal.localhost traefik.localhost maildev.localhost grafana.localhost
+        localhost api.localhost portal.localhost traefik.localhost maildev.localhost grafana.localhost pgweb.localhost
 
 # Ensure local dev certificates exist
 [group('certs')]
