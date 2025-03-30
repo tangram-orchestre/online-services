@@ -10,6 +10,9 @@ setup-env:
 
     docker compose build
 
+diesel *diesel_cmd:
+    docker compose run --rm backend diesel {{diesel_cmd}}
+
 ### Backend
 
 [group('lint')]
@@ -33,6 +36,9 @@ lint-fix-showcase-website: setup-env
     docker compose run --rm showcase-website yarn lint:fix
 
 ### Portal
+
+portal *cmd:
+    docker compose run --rm portal {{cmd}}
 
 [group('lint')]
 lint-portal: setup-env
@@ -67,7 +73,7 @@ generate-certs:
     mkcert \
         -cert-file ./dev/traefik/certs/localhost.pem \
         -key-file ./dev/traefik/certs/localhost-key.pem \
-        localhost api.localhost portal.localhost traefik.localhost maildev.localhost grafana.localhost
+        localhost api.localhost portal.localhost traefik.localhost maildev.localhost grafana.localhost pgweb.localhost
 
 # Ensure local dev certificates exist
 [group('certs')]
