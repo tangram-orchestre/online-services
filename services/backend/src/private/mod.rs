@@ -1,8 +1,18 @@
 use poem::{
     error::{ResponseError, Result},
     http::{HeaderMap, StatusCode},
+    web::Data,
 };
 use poem_openapi::{Object, OpenApi, Tags, payload::Json};
+
+use diesel::prelude::*;
+use diesel_async::RunQueryDsl;
+
+use crate::{
+    models::{self, NewSemester},
+    schema::semesters,
+    AppState,
+};
 
 pub struct PrivateApi;
 
@@ -30,6 +40,25 @@ struct User {
     email: String,
     phone_number: String,
     groups: Vec<String>,
+}
+
+#[derive(Object)]
+pub struct Semester {
+    pub id: i32,
+    pub name: String,
+    pub start_date: chrono::NaiveDate,
+    pub end_date: chrono::NaiveDate,
+}
+
+impl From<models::Semester> for Semester {
+    fn from(s: models::Semester) -> Self {
+        Semester {
+            id: s.id,
+            name: s.name(),
+            start_date: s.start_date,
+            end_date: s.end_date,
+        }
+    }
 }
 
 #[OpenApi]
@@ -60,5 +89,42 @@ impl PrivateApi {
         };
 
         Ok(Json(user))
+    }
+
+    /// Get the list of all semesters
+    #[oai(path = "/semesters", method = "get", tag = PublicApiTags::Placeholder)]
+    async fn semesters(&self, Data(state): Data<&AppState>) -> Result<Json<Vec<Semester>>> {
+        let mut conn = state.db_connection_pool.get().await.unwrap();
+
+        let semesters = semesters::table
+            .select(models::Semester::as_select())
+            .load(&mut conn)
+            .await
+            .map_err(|_| ApiError)?
+            .into_iter()
+            .map(|s| s.into())
+            .collect();
+
+        Ok(Json(semesters))
+    }
+
+    /// Add a semester
+    #[oai(path = "/semester", method = "post", tag = PublicApiTags::Placeholder)]
+    async fn create_semester(
+        &self,
+        Data(state): Data<&AppState>,
+        new_semester: Json<NewSemester>,
+    ) -> Result<Json<Semester>> {
+        let mut conn = state.db_connection_pool.get().await.unwrap();
+
+        Ok(Json(
+            diesel::insert_into(semesters::table)
+                .values(&new_semester.0)
+                .returning(models::Semester::as_returning())
+                .get_result(&mut conn)
+                .await
+                .map_err(|_| ApiError)?
+                .into(),
+        ))
     }
 }

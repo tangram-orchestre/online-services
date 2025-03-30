@@ -6,6 +6,9 @@ services:
       args:
         - UID=${UID-1000}
         - GID=${UID-1000}
+    depends_on:
+      - postgres
+      - fake-auth
     volumes:
       - ./scripts:/opt/scripts:ro
       - ./backend:/opt/backend
@@ -28,6 +31,9 @@ services:
       - APP_POSTGRES_PASSWORD=portal
       - APP_POSTGRES_USER=portal
       - APP_POSTGRES_DB=portal
+      - APP_POSTGRES_URL=postgres://portal:portal@postgres:5432/portal?sslmode=disable
+      # For diesel-cli
+      - DATABASE_URL=postgres://portal:portal@postgres:5432/portal?sslmode=disable
     command: watchexec --restart -- ./dev/dev.sh
     labels:
       - traefik.enable=true
@@ -69,6 +75,9 @@ services:
       args:
         - UID=${UID-1000}
         - GID=${UID-1000}
+    depends_on:
+      - backend
+      - fake-auth
     volumes:
       - ./scripts:/opt/scripts:ro
       - ./portal:/opt/portal
@@ -94,6 +103,8 @@ services:
       interval: 30s
       retries: 5
       timeout: 5s
+    ports:
+      - 5432:5432
     volumes:
       - ./docker-data/db:/var/lib/postgresql/data
     environment:
