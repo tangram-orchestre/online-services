@@ -3,15 +3,15 @@ use poem::{
     http::{HeaderMap, StatusCode},
     web::Data,
 };
-use poem_openapi::{Object, OpenApi, Tags, payload::Json};
+use poem_openapi::{Object, OpenApi, Tags, param::Path, payload::Json};
 
 use diesel::prelude::*;
 use diesel_async::RunQueryDsl;
 
 use crate::{
+    AppState,
     models::{self, NewSemester},
     schema::semesters,
-    AppState,
 };
 
 pub struct PrivateApi;
@@ -43,16 +43,16 @@ struct User {
 }
 
 #[derive(Object)]
-pub struct Semester {
+pub struct SemesterWithName {
     pub id: i32,
     pub name: String,
     pub start_date: chrono::NaiveDate,
     pub end_date: chrono::NaiveDate,
 }
 
-impl From<models::Semester> for Semester {
+impl From<models::Semester> for SemesterWithName {
     fn from(s: models::Semester) -> Self {
-        Semester {
+        SemesterWithName {
             id: s.id,
             name: s.name(),
             start_date: s.start_date,
@@ -93,7 +93,7 @@ impl PrivateApi {
 
     /// Get the list of all semesters
     #[oai(path = "/semesters", method = "get", tag = PublicApiTags::Placeholder)]
-    async fn semesters(&self, Data(state): Data<&AppState>) -> Result<Json<Vec<Semester>>> {
+    async fn semesters(&self, Data(state): Data<&AppState>) -> Result<Json<Vec<SemesterWithName>>> {
         let mut conn = state.db_connection_pool.get().await.unwrap();
 
         let semesters = semesters::table
@@ -108,13 +108,13 @@ impl PrivateApi {
         Ok(Json(semesters))
     }
 
-    /// Add a semester
+    /// Create a new semester
     #[oai(path = "/semester", method = "post", tag = PublicApiTags::Placeholder)]
     async fn create_semester(
         &self,
         Data(state): Data<&AppState>,
         new_semester: Json<NewSemester>,
-    ) -> Result<Json<Semester>> {
+    ) -> Result<Json<SemesterWithName>> {
         let mut conn = state.db_connection_pool.get().await.unwrap();
 
         Ok(Json(
@@ -126,5 +126,45 @@ impl PrivateApi {
                 .map_err(|_| ApiError)?
                 .into(),
         ))
+    }
+
+    /// Update a semester
+    #[oai(path = "/semester/:semester_id", method = "put", tag = PublicApiTags::Placeholder)]
+    async fn update_semester(
+        &self,
+        Data(state): Data<&AppState>,
+        Path(semester_id): Path<i32>,
+        Json(semester): Json<models::NewSemester>,
+    ) -> Result<()> {
+        let mut conn = state.db_connection_pool.get().await.unwrap();
+
+        let updated = diesel::update(semesters::table.find(semester_id))
+            .set(&semester)
+            .execute(&mut conn)
+            .await
+            .map_err(|_| ApiError)?;
+
+        if updated == 0 {
+            return Err(ApiError.into());
+        }
+
+        Ok(())
+    }
+
+    /// Delete a semester
+    #[oai(path = "/semester/:semester_id", method = "delete", tag = PublicApiTags::Placeholder)]
+    async fn delete_semester(
+        &self,
+        Data(state): Data<&AppState>,
+        Path(semester_id): Path<i32>,
+    ) -> Result<()> {
+        let mut conn = state.db_connection_pool.get().await.unwrap();
+
+        diesel::delete(semesters::table.find(semester_id))
+            .execute(&mut conn)
+            .await
+            .map_err(|_| ApiError)?;
+
+        Ok(())
     }
 }
