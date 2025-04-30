@@ -2,7 +2,7 @@ use chrono::Datelike;
 use diesel::prelude::*;
 use poem_openapi::Object;
 
-#[derive(Object, Queryable, Selectable)]
+#[derive(Object, Queryable, Selectable, Identifiable)]
 #[diesel(table_name = crate::schema::semesters)]
 #[diesel(check_for_backend(diesel::pg::Pg))]
 pub struct Semester {
@@ -23,7 +23,7 @@ impl Semester {
     }
 }
 
-#[derive(Insertable, Object)]
+#[derive(Object, Insertable, AsChangeset)]
 #[diesel(table_name = crate::schema::semesters)]
 pub struct NewSemester {
     pub start_date: chrono::NaiveDate,
