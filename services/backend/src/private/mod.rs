@@ -18,7 +18,8 @@ pub struct PrivateApi;
 
 #[derive(Tags)]
 enum PublicApiTags {
-    Placeholder,
+    User,
+    Semesters,
 }
 
 #[derive(Debug, thiserror::Error)]
@@ -64,7 +65,7 @@ impl From<models::Semester> for SemesterWithName {
 #[OpenApi]
 impl PrivateApi {
     /// Get the current logged in user.
-    #[oai(path = "/users/me", method = "get", tag = PublicApiTags::Placeholder)]
+    #[oai(path = "/users/me", method = "get", tag = PublicApiTags::User)]
     async fn users_me(&self, headers: &HeaderMap) -> Result<Json<User>> {
         let get_header = |key: &str| -> Result<String, ApiError> {
             Ok(headers
@@ -92,7 +93,7 @@ impl PrivateApi {
     }
 
     /// Get the list of all semesters
-    #[oai(path = "/semesters", method = "get", tag = PublicApiTags::Placeholder)]
+    #[oai(path = "/semesters", method = "get", tag = PublicApiTags::Semesters)]
     async fn semesters(&self, Data(state): Data<&AppState>) -> Result<Json<Vec<SemesterWithName>>> {
         let mut conn = state.db_connection_pool.get().await.unwrap();
 
@@ -109,7 +110,7 @@ impl PrivateApi {
     }
 
     /// Create a new semester
-    #[oai(path = "/semester", method = "post", tag = PublicApiTags::Placeholder)]
+    #[oai(path = "/semester", method = "post", tag = PublicApiTags::Semesters)]
     async fn create_semester(
         &self,
         Data(state): Data<&AppState>,
@@ -129,7 +130,7 @@ impl PrivateApi {
     }
 
     /// Update a semester
-    #[oai(path = "/semester/:semester_id", method = "put", tag = PublicApiTags::Placeholder)]
+    #[oai(path = "/semester/:semester_id", method = "put", tag = PublicApiTags::Semesters)]
     async fn update_semester(
         &self,
         Data(state): Data<&AppState>,
@@ -152,7 +153,7 @@ impl PrivateApi {
     }
 
     /// Delete a semester
-    #[oai(path = "/semester/:semester_id", method = "delete", tag = PublicApiTags::Placeholder)]
+    #[oai(path = "/semester/:semester_id", method = "delete", tag = PublicApiTags::Semesters)]
     async fn delete_semester(
         &self,
         Data(state): Data<&AppState>,
@@ -160,10 +161,14 @@ impl PrivateApi {
     ) -> Result<()> {
         let mut conn = state.db_connection_pool.get().await.unwrap();
 
-        diesel::delete(semesters::table.find(semester_id))
+        let deleted = diesel::delete(semesters::table.find(semester_id))
             .execute(&mut conn)
             .await
             .map_err(|_| ApiError)?;
+
+        if deleted == 0 {
+            return Err(ApiError.into());
+        }
 
         Ok(())
     }

@@ -40,11 +40,11 @@ pub type AppState = Arc<AppStateInner>;
 async fn main() -> Result<(), std::io::Error> {
     let public_api =
         OpenApiService::new(PublicApi, "Tangram Orchestre Public", "1.0.0").url_prefix("/public");
-    let public_docs = public_api.swagger_ui();
+    let public_docs = public_api.openapi_explorer();
     let public_spec = public_api.spec_endpoint();
 
     let private_api = OpenApiService::new(PrivateApi, "Tangram Orchestre Private", "1.0.0");
-    let private_docs = private_api.swagger_ui();
+    let private_docs = private_api.openapi_explorer();
     let private_spec = private_api.spec_endpoint();
 
     let mut should_exit = false;
