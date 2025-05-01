@@ -2,7 +2,18 @@
 import { NuxtPage } from "#components";
 import { client } from "./client/client.gen";
 
-import { useTheme } from "vuetify";
+import i18next from "i18next";
+import { z } from "zod";
+import { zodI18nMap } from "zod-i18n-map";
+import translation from "zod-i18n-map/locales/fr/zod.json";
+
+i18next.init({
+  lng: "fr",
+  resources: {
+    fr: { zod: translation },
+  },
+});
+z.setErrorMap(zodI18nMap);
 
 const runtimeConfig = useRuntimeConfig();
 
@@ -13,29 +24,22 @@ client.setConfig({
   credentials: "include",
 });
 
+useHead({
+  htmlAttrs: {
+    lang: "fr",
+  },
+});
+
 const user = await currentUser();
 
 const isDark = useDark();
-const toggleDark = useToggle(isDark);
-const theme = useTheme();
-
-const setTheme = () => {
-  theme.global.name.value = isDark.value ? "dark" : "light";
-};
-
-onMounted(() => {
-  setTheme();
-});
-
-watch(isDark, () => {
-  setTheme();
-});
 
 const drawer = ref(false);
 </script>
 
 <template>
-  <v-app>
+  <ToggleSwitch v-model="isDark" />
+  <!-- <v-app>
     <v-app-bar color="primary">
       <v-app-bar-nav-icon variant="text" @click.stop="drawer = !drawer" />
 
@@ -61,14 +65,17 @@ const drawer = ref(false);
           <v-list-item prepend-icon="mdi-account-group" to="/members">
             Membres
           </v-list-item>
+          <v-list-item prepend-icon="mdi-calendar" to="/semesters">
+            Semestres
+          </v-list-item>
         </template>
       </v-list>
     </v-navigation-drawer>
 
     <v-main>
-      <NuxtPage />
     </v-main>
-  </v-app>
+  </v-app> -->
+  <NuxtPage />
 </template>
 
 <style lang="scss">
