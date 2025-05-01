@@ -1,3 +1,6 @@
+import Aura from "@primeuix/themes/aura";
+import { fr } from "primelocale/js/fr.js";
+
 // https://nuxt.com/docs/api/configuration/nuxt-config
 export default defineNuxtConfig({
   compatibilityDate: "2024-11-01",
@@ -9,14 +12,18 @@ export default defineNuxtConfig({
     "@nuxt/eslint",
     "@nuxt/image",
     "@nuxt/fonts",
-    "vuetify-nuxt-module",
+    "@primevue/nuxt-module",
+    "@nuxtjs/tailwindcss",
   ],
-  vuetify: {
-    moduleOptions: {
-      /* module specific options */
-    },
-    vuetifyOptions: {
-      /* vuetify options */
+  primevue: {
+    options: {
+      theme: {
+        preset: Aura,
+        options: {
+          darkModeSelector: ".dark",
+        },
+      },
+      locale: fr,
     },
   },
   runtimeConfig: {
@@ -33,5 +40,8 @@ export default defineNuxtConfig({
       subsets: ["latin, latin-ext"],
     },
     families: [{ name: "Roboto", weights: [400] }],
+  },
+  typescript: {
+    typeCheck: true,
   },
 });

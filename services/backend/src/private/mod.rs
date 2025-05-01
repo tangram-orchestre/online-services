@@ -3,9 +3,13 @@ use poem::{
     http::{HeaderMap, StatusCode},
     web::Data,
 };
-use poem_openapi::{Object, OpenApi, Tags, param::Path, payload::Json};
+use poem_openapi::{
+    ApiResponse, Enum, Object, OpenApi, Tags,
+    param::Path,
+    payload::{Json, PlainText},
+};
 
-use diesel::prelude::*;
+use diesel::{prelude::*, result::DatabaseErrorKind};
 use diesel_async::RunQueryDsl;
 
 use crate::{
@@ -26,6 +30,53 @@ enum PublicApiTags {
 #[error("api error")]
 struct ApiError;
 
+fn bad_request_handler(err: poem::Error) -> MyError {
+    MyError::InternalError(PlainText(format!("error: {}", err.to_string())))
+}
+
+#[derive(Enum)]
+enum Reason {
+    UniqueViolation,
+}
+
+#[derive(ApiResponse)]
+#[oai(bad_request_handler = "bad_request_handler")]
+enum MyError {
+    /// Returns when the request parameters is incorrect.
+    #[oai(status = 400)]
+    BadRequest(Json<Reason>),
+    // #[oai(status = 404)]
+    // NotFound,
+    #[oai(status = 500)]
+    InternalError(PlainText<String>),
+}
+
+impl From<diesel::result::Error> for MyError {
+    fn from(value: diesel::result::Error) -> Self {
+        match &value {
+            e @ diesel::result::Error::DatabaseError(
+                database_error_kind,
+                _database_error_information,
+            ) => match database_error_kind {
+                DatabaseErrorKind::UniqueViolation => {
+                    MyError::BadRequest(Json(Reason::UniqueViolation))
+                }
+                DatabaseErrorKind::CheckViolation => todo!(),
+                DatabaseErrorKind::ForeignKeyViolation => todo!(),
+                DatabaseErrorKind::NotNullViolation => todo!(),
+                DatabaseErrorKind::ClosedConnection
+                | DatabaseErrorKind::ReadOnlyTransaction
+                | DatabaseErrorKind::SerializationFailure
+                | DatabaseErrorKind::UnableToSendCommand => {
+                    Self::InternalError(PlainText(e.to_string()))
+                }
+                _ => Self::InternalError(PlainText(e.to_string())),
+            },
+            e => Self::InternalError(PlainText(e.to_string())),
+        }
+    }
+}
+
 impl ResponseError for ApiError {
     fn status(&self) -> StatusCode {
         StatusCode::INTERNAL_SERVER_ERROR
@@ -43,27 +94,14 @@ struct User {
     groups: Vec<String>,
 }
 
-#[derive(Object)]
-pub struct SemesterWithName {
-    pub id: i32,
-    pub name: String,
-    pub start_date: chrono::NaiveDate,
-    pub end_date: chrono::NaiveDate,
-}
-
-impl From<models::Semester> for SemesterWithName {
-    fn from(s: models::Semester) -> Self {
-        SemesterWithName {
-            id: s.id,
-            name: s.name(),
-            start_date: s.start_date,
-            end_date: s.end_date,
-        }
-    }
-}
-
 #[OpenApi]
 impl PrivateApi {
+    /// Dummy route, useful as its return type is the same as all other APIs
+    #[oai(path = "/dummy", method = "get", tag = PublicApiTags::Semesters)]
+    async fn dummy(&self) -> Result<(), MyError> {
+        Ok(())
+    }
+
     /// Get the current logged in user.
     #[oai(path = "/users/me", method = "get", tag = PublicApiTags::User)]
     async fn users_me(&self, headers: &HeaderMap) -> Result<Json<User>> {
@@ -94,7 +132,7 @@ impl PrivateApi {
 
     /// Get the list of all semesters
     #[oai(path = "/semesters", method = "get", tag = PublicApiTags::Semesters)]
-    async fn semesters(&self, Data(state): Data<&AppState>) -> Result<Json<Vec<SemesterWithName>>> {
+    async fn semesters(&self, Data(state): Data<&AppState>) -> Result<Json<Vec<models::Semester>>> {
         let mut conn = state.db_connection_pool.get().await.unwrap();
 
         let semesters = semesters::table
@@ -103,7 +141,6 @@ impl PrivateApi {
             .await
             .map_err(|_| ApiError)?
             .into_iter()
-            .map(|s| s.into())
             .collect();
 
         Ok(Json(semesters))
@@ -115,7 +152,7 @@ impl PrivateApi {
         &self,
         Data(state): Data<&AppState>,
         new_semester: Json<NewSemester>,
-    ) -> Result<Json<SemesterWithName>> {
+    ) -> Result<Json<models::Semester>, MyError> {
         let mut conn = state.db_connection_pool.get().await.unwrap();
 
         Ok(Json(
@@ -123,31 +160,23 @@ impl PrivateApi {
                 .values(&new_semester.0)
                 .returning(models::Semester::as_returning())
                 .get_result(&mut conn)
-                .await
-                .map_err(|_| ApiError)?
-                .into(),
+                .await?,
         ))
     }
 
     /// Update a semester
-    #[oai(path = "/semester/:semester_id", method = "put", tag = PublicApiTags::Semesters)]
+    #[oai(path = "/semester", method = "put", tag = PublicApiTags::Semesters)]
     async fn update_semester(
         &self,
         Data(state): Data<&AppState>,
-        Path(semester_id): Path<i32>,
-        Json(semester): Json<models::NewSemester>,
-    ) -> Result<()> {
+        Json(semester): Json<models::Semester>,
+    ) -> Result<(), MyError> {
         let mut conn = state.db_connection_pool.get().await.unwrap();
 
-        let updated = diesel::update(semesters::table.find(semester_id))
+        diesel::update(semesters::table.find(semester.id))
             .set(&semester)
             .execute(&mut conn)
-            .await
-            .map_err(|_| ApiError)?;
-
-        if updated == 0 {
-            return Err(ApiError.into());
-        }
+            .await?;
 
         Ok(())
     }
