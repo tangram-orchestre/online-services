@@ -40,7 +40,7 @@ defineProps<{
         :text="
           match(concert.url.kind)
             .with('Video', () => 'Voir la vidéo')
-            .with('Tickets', () => 'Acheter mes billets')
+            .with('Tickets', () => 'Réserver mes billets')
             .with('Tickets Unavailable', () => 'Billets bientôt disponibles')
             .exhaustive()
         "
