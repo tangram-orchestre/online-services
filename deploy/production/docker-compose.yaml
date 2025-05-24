@@ -6,7 +6,7 @@ include:
   - ./kopia/docker-compose.yaml
   - ./backend/docker-compose.yaml
   - ./website/docker-compose.yaml
-  - ./observability/docker-compose.yaml
+  # - ./observability/docker-compose.yaml
 
 services:
   unhealthy_container_restarter:

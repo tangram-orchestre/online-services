@@ -81,6 +81,33 @@ useEventListener("resize", () => {
 
 const concerts: Array<Concert> = [
   {
+    date: "6 juillet 2025",
+    location: "Parc de Choisy",
+    image: "/images/concerts/parc-de-choisy.jpg",
+    url: {
+      kind: "Tickets Unavailable",
+      target: "",
+    },
+  },
+  {
+    date: "4 juillet 2025",
+    location: "Pavillon de la Sirène",
+    image: "/images/concerts/la-sirene.png",
+    url: {
+      kind: "Tickets Unavailable",
+      target: "",
+    },
+  },
+  {
+    date: "25 mai 2025",
+    location: "La Cité Fertile",
+    image: "/images/concerts/la-cite-fertile.jpg",
+    url: {
+      kind: "Tickets",
+      target: "https://my.weezevent.com/concert-tangram-a-la-cite-fertile-1",
+    },
+  },
+  {
     date: "25 janvier 2025",
     location: "Mairie du XIV<sup>ème</sup>",
     image: "/images/concerts/2025-01-25.png",
@@ -103,7 +130,7 @@ const concerts: Array<Concert> = [
   {
     date: "7 décembre 2024",
     location: "Pavillon de la Sirène",
-    image: "/images/concerts/2024-12-07.png",
+    image: "/images/concerts/la-sirene.png",
     program: [
       { name: "Triangle strategy", direction: "Intila" },
       {
