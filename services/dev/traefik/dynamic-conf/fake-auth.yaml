@@ -1,0 +1,15 @@
+http:
+  middlewares:
+    fake-auth:
+      forwardAuth:
+        address: "http://fake-auth:3000/auth"
+        trustForwardHeader: true
+        authResponseHeaders:
+          # App headers for portal
+          - X-App-UserId
+          - X-App-User
+          - X-App-Email
+          - X-App-Groups
+          - X-App-LastName
+          - X-App-FirstName
+          - X-App-PhoneNumber

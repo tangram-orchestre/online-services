@@ -31,13 +31,11 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v4
 
-      - name: Detect Changes
-        id: changes
-        uses: ./.github/actions/detect-changes
-
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
 
       - name: Build Containers
-        if: vars.FORCE_BUILD_CHECK_PR == 'true' || steps.changes.outputs.need-rebuild == 'true'
         uses: ./.github/actions/build-containers
+        with:
+          FORCE_BUILD: ${{ vars.FORCE_BUILD }}
+          TAG: ${{ github.event.pull_request.base.ref }}

@@ -1,6 +1,7 @@
 include:
   - ./website/docker-compose.yaml
   - ./backend/docker-compose.yaml
+  - ./portal/docker-compose.yaml
 
 services:
   maildev:
@@ -17,6 +18,17 @@ services:
       - traefik.http.routers.maildev.tls=true
       - traefik.http.routers.maildev.tls.certresolver=resolver
       - traefik.http.services.maildev.loadbalancer.server.port=1080
+      - traefik.http.routers.maildev.middlewares=authentik@file
+
+  whoami:
+    image: traefik/whoami:v1.11
+    restart: unless-stopped
+    labels:
+      - traefik.enable=true
+      - traefik.http.routers.whoami.rule=Host(`whoami.tangram-orchestre.fr`)
+      - traefik.http.routers.whoami.tls=true
+      - traefik.http.routers.whoami.tls.certresolver=resolver
+      - traefik.http.routers.whoami.middlewares=authentik@file
 
 networks:
   default:
