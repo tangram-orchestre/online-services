@@ -42,16 +42,20 @@ defineProps<{
             .with('Video', () => 'Voir la vidéo')
             .with('Tickets', () => 'Réserver mes billets')
             .with('Tickets Unavailable', () => 'Billets bientôt disponibles')
+            .with('No Tickets', () => 'Accès Gratuit')
             .exhaustive()
         "
         class="text-slate-950"
         :class="[
           {
-            'pointer-events-none': concert.url.kind === 'Tickets Unavailable',
+            'pointer-events-none':
+              concert.url.kind === 'Tickets Unavailable' ||
+              concert.url.kind === 'No Tickets',
           },
           ...match(concert.url.kind)
             .with('Video', () => ['bg-[#ff5b62]', 'hover:bg-[#f86168]'])
             .with('Tickets', () => ['bg-[#81ccb5]', 'hover:bg-[#8adac2]'])
+            .with('No Tickets', () => ['bg-[#81ccb5]', 'hover:bg-[#8adac2]'])
             .with('Tickets Unavailable', () => [
               'bg-[#81ccb5]',
               'brightness-75',

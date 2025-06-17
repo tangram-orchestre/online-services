@@ -1,6 +1,6 @@
 export interface Url {
   target: string | undefined;
-  kind: "Tickets Unavailable" | "Tickets" | "Video";
+  kind: "Tickets Unavailable" | "Tickets" | "No Tickets" | "Video";
 }
 
 export interface Piece {

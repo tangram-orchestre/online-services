@@ -81,31 +81,28 @@ useEventListener("resize", () => {
 
 const concerts: Array<Concert> = [
   {
-    date: "6 juillet 2025",
+    date: "6 juillet 2025 - 15h30",
     location: "Parc de Choisy",
     image: "/images/concerts/parc-de-choisy.jpg",
     url: {
-      kind: "Tickets Unavailable",
+      kind: "No Tickets",
       target: "",
     },
   },
   {
-    date: "4 juillet 2025",
+    date: "4 juillet 2025 - 20h00",
     location: "Pavillon de la Sirène",
     image: "/images/concerts/la-sirene.png",
     url: {
-      kind: "Tickets Unavailable",
-      target: "",
+      kind: "Tickets",
+      target:
+        "https://www.helloasso.com/associations/tangram/evenements/tangram-concert-au-pavillon-de-la-sirene-juillet-2025",
     },
   },
   {
     date: "25 mai 2025",
     location: "La Cité Fertile",
     image: "/images/concerts/la-cite-fertile.jpg",
-    url: {
-      kind: "Tickets",
-      target: "https://my.weezevent.com/concert-tangram-a-la-cite-fertile-1",
-    },
   },
   {
     date: "25 janvier 2025",
