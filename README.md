@@ -22,6 +22,7 @@ This repository contains source code for every online services deployed for the 
 - [/services](services): source code for all services made for Tangram.
   - [/showcase-website](services/showcase-website/): The site deployed at [www.tangram-orchestre.fr](https://www.tangram-orchestre.fr).
   - [/backend](services/backend): The backend for the members portal, deployed at [api.tangram-orchestre.fr](https://api.tangram-orchestre.fr).
+  - [/portal](services/portal): The frontend of the members portal, deployed at [api.tangram-orchestre.fr](https://api.tangram-orchestre.fr).
   - [/scripts](services/scripts): Common scripts useful for multiple services.
   - [/openapi](services/openapi): Folder mounted in docker containers that will hold OpenApi generated specs.
   - [/dev](services/dev): Development environment with integrated reverse proxy.

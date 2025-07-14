@@ -97,6 +97,9 @@ runs:
     - name: Determine if Showcase Website & Portal needs to be built
       shell:  bash
       run: |
+        echo "PRIVATE_SPEC_MD5SUM: '${{ env.PRIVATE_OPENAPI_SPEC_MD5SUM || 'none' }}' (ref: '${{ env.REFERENCE_PRIVATE_OPENAPI_SPEC_MD5SUM }}')"
+        echo "PUBLIC_SPEC_MD5SUM: '${{ env.PUBLIC_OPENAPI_SPEC_MD5SUM || 'none' }}' (ref: '${{ env.REFERENCE_PUBLIC_OPENAPI_SPEC_MD5SUM }}')"
+
         echo SHOWCASE_WEBSITE_NEEDS_BUILD=${{
           inputs.FORCE_BUILD == 'true' ||
           steps.changes.outputs.showcase-website == 'true' ||
