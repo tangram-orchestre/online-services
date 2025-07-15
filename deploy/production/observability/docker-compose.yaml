@@ -1,26 +1,7 @@
 services:
-  # lgtm:
-  #   image: grafana/otel-lgtm:0.8.6
-  #   restart: unless-stopped
-  #   security_opt:
-  #     - no-new-privileges:true
-  #   volumes:
-  #     - /opt/docker-volumes-no-backup/lgtm:/data
-  #   environment:
-  #     - GF_PATHS_DATA=/data/grafana
-  #   labels:
-  #     - traefik.enable=true
-  #     - "traefik.http.routers.lgtm.rule=Host(`grafana.tangram-orchestre.fr`)"
-  #     - traefik.http.services.lgtm.loadbalancer.server.port=3000
-  #     - traefik.http.routers.lgtm.tls=true
-  #     - traefik.http.routers.lgtm.tls.certresolver=resolver
-  #     - traefik.http.routers.lgtm.middlewares=authentik@file
-
   grafana:
     image: grafana/grafana-oss:11.3.4
     restart: unless-stopped
-    profiles:
-      - observability
     volumes:
       - ./grafana.ini:/etc/grafana/grafana.ini
       - /opt/docker-volumes/grafana:/var/lib/grafana
@@ -39,8 +20,6 @@ services:
   alloy:
     image: grafana/alloy:v1.6.1
     restart: unless-stopped
-    profiles:
-      - observability
     depends_on:
       - loki
       - prometheus
@@ -66,8 +45,6 @@ services:
   loki:
     image: grafana/loki:3.4.1
     restart: unless-stopped
-    profiles:
-      - observability
     security_opt:
       - no-new-privileges:true
     user: root:root
@@ -79,8 +56,6 @@ services:
   prometheus:
     image: prom/prometheus:v3.2.1
     restart: unless-stopped
-    profiles:
-      - observability
     security_opt:
       - no-new-privileges:true
     user: root:root
@@ -97,8 +72,6 @@ services:
   node-exporter:
     image: quay.io/prometheus/node-exporter:v1.9.0
     restart: unless-stopped
-    profiles:
-      - observability
     volumes:
       - /proc:/host/proc:ro
       - /sys:/host/sys:ro
@@ -123,8 +96,6 @@ services:
   cadvisor:
     image: gcr.io/cadvisor/cadvisor:v0.49.2
     restart: unless-stopped
-    profiles:
-      - observability
     volumes:
       - /:/rootfs:ro
       - /run/user/${UID}/docker.sock:/var/run/docker.sock:ro
