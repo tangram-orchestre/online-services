@@ -33,17 +33,7 @@ log:
 experimental:
   otlpLogs: true
 
-tracing:
-  otlp:
-    http:
-      endpoint: http://alloy:4318/v1/traces
-
 metrics:
   otlp:
     http:
       endpoint: http://alloy:4318/v1/metrics
-
-accesslog:
-  otlp:
-    http:
-      endpoint: http://alloy:4318/v1/logs
