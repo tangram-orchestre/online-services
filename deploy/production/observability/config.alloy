@@ -32,16 +32,23 @@ prometheus.scrape "docker" {
   scrape_interval = "60s"
 }
 
+prometheus.scrape "authentik" {
+  job_name   = "authentik"
+  targets    = [{ "__address__" = "authentik-server:9300" }]
+  forward_to = [prometheus.remote_write.default.receiver]
+  scrape_interval = "60s"
+}
+
 prometheus.scrape "cadvisor" {
   job_name   = "cadvisor"
   targets    = [{ "__address__" = "cadvisor:8080" }]
   forward_to = [prometheus.remote_write.default.receiver]
-  scrape_interval = "10s"
+  scrape_interval = "30s"
 }
 
 discovery.docker "logs_integrations_docker" {
   host = "unix:///var/run/docker.sock"
-  refresh_interval = "5s"
+  refresh_interval = "30s"
 }
 
 discovery.relabel "logs_integrations_docker" {

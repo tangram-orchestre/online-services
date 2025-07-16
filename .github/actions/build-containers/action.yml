@@ -47,9 +47,9 @@ runs:
       shell:  bash
       run: |
         echo REFERENCE_PRIVATE_OPENAPI_SPEC_MD5SUM=`docker manifest inspect -v ${{ env.PORTAL_IMAGE_NAME }}:${{ inputs.TAG }} \
-          | jq -r '.[0].OCIManifest.annotations.PRIVATE_OPENAPI_SPEC_MD5SUM'` >> $GITHUB_ENV
+          | jq -r '.[0].OCIManifest.annotations.PRIVATE_OPENAPI_SPEC_MD5SUM'` | tee -a $GITHUB_ENV
         echo REFERENCE_PUBLIC_OPENAPI_SPEC_MD5SUM=`docker manifest inspect -v ${{ env.SHOWCASE_WEBSITE_IMAGE_NAME }}:${{ inputs.TAG }} \
-          | jq -r '.[0].OCIManifest.annotations.PUBLIC_OPENAPI_SPEC_MD5SUM'` >> $GITHUB_ENV
+          | jq -r '.[0].OCIManifest.annotations.PUBLIC_OPENAPI_SPEC_MD5SUM'` | tee -a $GITHUB_ENV
 
     - name: Docker meta Backend
       if: env.BACKEND_NEEDS_BUILD == 'true'
@@ -90,15 +90,26 @@ runs:
         cp openapi/public-spec.json showcase-website/public-spec.json
         cp openapi/private-spec.json portal/private-spec.json
 
-        echo PUBLIC_OPENAPI_SPEC_MD5SUM=`md5sum openapi/public-spec.json | awk '{ print $1 }'` >> $GITHUB_ENV
-        echo PRIVATE_OPENAPI_SPEC_MD5SUM=`md5sum openapi/private-spec.json | awk '{ print $1 }'` >> $GITHUB_ENV
+        echo PUBLIC_OPENAPI_SPEC_MD5SUM=`md5sum openapi/public-spec.json | awk '{ print $1 }'` | tee -a $GITHUB_ENV
+        echo PRIVATE_OPENAPI_SPEC_MD5SUM=`md5sum openapi/private-spec.json | awk '{ print $1 }'` | tee -a $GITHUB_ENV
 
 
     - name: Determine if Showcase Website & Portal needs to be built
       shell:  bash
       run: |
-        echo SHOWCASE_WEBSITE_NEEDS_BUILD=${{ inputs.FORCE_BUILD == 'true' || steps.changes.outputs.showcase-website == 'true' || env.PUBLIC_OPENAPI_SPEC_MD5SUM != env.REFERENCE_PUBLIC_OPENAPI_SPEC_MD5SUM }} >> $GITHUB_ENV
-        echo PORTAL_NEEDS_BUILD=${{ inputs.FORCE_BUILD == 'true' || steps.changes.outputs.portal == 'true' || env.PRIVATE_OPENAPI_SPEC_MD5SUM != env.REFERENCE_PRIVATE_OPENAPI_SPEC_MD5SUM }} >> $GITHUB_ENV
+        echo "PRIVATE_SPEC_MD5SUM: '${{ env.PRIVATE_OPENAPI_SPEC_MD5SUM || 'none' }}' (ref: '${{ env.REFERENCE_PRIVATE_OPENAPI_SPEC_MD5SUM }}')"
+        echo "PUBLIC_SPEC_MD5SUM: '${{ env.PUBLIC_OPENAPI_SPEC_MD5SUM || 'none' }}' (ref: '${{ env.REFERENCE_PUBLIC_OPENAPI_SPEC_MD5SUM }}')"
+
+        echo SHOWCASE_WEBSITE_NEEDS_BUILD=${{
+          inputs.FORCE_BUILD == 'true' ||
+          steps.changes.outputs.showcase-website == 'true' ||
+          (env.BACKEND_NEEDS_BUILD == 'true' && env.PUBLIC_OPENAPI_SPEC_MD5SUM != env.REFERENCE_PUBLIC_OPENAPI_SPEC_MD5SUM)
+        }} >> $GITHUB_ENV
+        echo PORTAL_NEEDS_BUILD=${{
+          inputs.FORCE_BUILD == 'true' ||
+          steps.changes.outputs.portal == 'true' ||
+          (env.BACKEND_NEEDS_BUILD == 'true' && env.PRIVATE_OPENAPI_SPEC_MD5SUM != env.REFERENCE_PRIVATE_OPENAPI_SPEC_MD5SUM)
+        }} >> $GITHUB_ENV
 
 
     # Only download images if we're deploying the image, they're not needed to

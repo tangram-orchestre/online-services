@@ -1,26 +1,7 @@
 services:
-  # lgtm:
-  #   image: grafana/otel-lgtm:0.8.6
-  #   restart: unless-stopped
-  #   security_opt:
-  #     - no-new-privileges:true
-  #   volumes:
-  #     - /opt/docker-volumes-no-backup/lgtm:/data
-  #   environment:
-  #     - GF_PATHS_DATA=/data/grafana
-  #   labels:
-  #     - traefik.enable=true
-  #     - "traefik.http.routers.lgtm.rule=Host(`grafana.tangram-orchestre.fr`)"
-  #     - traefik.http.services.lgtm.loadbalancer.server.port=3000
-  #     - traefik.http.routers.lgtm.tls=true
-  #     - traefik.http.routers.lgtm.tls.certresolver=resolver
-  #     - traefik.http.routers.lgtm.middlewares=authentik@file
-
   grafana:
-    image: grafana/grafana-oss:11.3.4
+    image: grafana/grafana-oss:12.0.2
     restart: unless-stopped
-    profiles:
-      - observability
     volumes:
       - ./grafana.ini:/etc/grafana/grafana.ini
       - /opt/docker-volumes/grafana:/var/lib/grafana
@@ -30,17 +11,15 @@ services:
       - GF_SMTP_PASSWORD=${GF_SMTP_PASSWORD}
     labels:
       - traefik.enable=true
-      - "traefik.http.routers.lgtm.rule=Host(`grafana.tangram-orchestre.fr`)"
-      - traefik.http.services.lgtm.loadbalancer.server.port=3000
-      - traefik.http.routers.lgtm.tls=true
-      - traefik.http.routers.lgtm.tls.certresolver=resolver
+      - "traefik.http.routers.grafana.rule=Host(`grafana.tangram-orchestre.fr`)"
+      - traefik.http.services.grafana.loadbalancer.server.port=3000
+      - traefik.http.routers.grafana.tls=true
+      - traefik.http.routers.grafana.tls.certresolver=resolver
 
   # Collector
   alloy:
     image: grafana/alloy:v1.6.1
     restart: unless-stopped
-    profiles:
-      - observability
     depends_on:
       - loki
       - prometheus
@@ -66,8 +45,6 @@ services:
   loki:
     image: grafana/loki:3.4.1
     restart: unless-stopped
-    profiles:
-      - observability
     security_opt:
       - no-new-privileges:true
     user: root:root
@@ -79,8 +56,6 @@ services:
   prometheus:
     image: prom/prometheus:v3.2.1
     restart: unless-stopped
-    profiles:
-      - observability
     security_opt:
       - no-new-privileges:true
     user: root:root
@@ -95,10 +70,9 @@ services:
       - "--storage.tsdb.retention.size=2GB"
 
   node-exporter:
-    image: quay.io/prometheus/node-exporter:v1.9.0
+    image: quay.io/prometheus/node-exporter:v1.9.1
     restart: unless-stopped
-    profiles:
-      - observability
+    privileged: true
     volumes:
       - /proc:/host/proc:ro
       - /sys:/host/sys:ro
@@ -107,24 +81,16 @@ services:
       - "--path.procfs=/host/proc"
       - "--path.rootfs=/rootfs"
       - "--path.sysfs=/host/sys"
-      - "--collector.disable-defaults"
-      - "--collector.cpu"
-      - "--collector.cpufreq"
-      - "--collector.loadavg"
-      - "--collector.pressure"
-      - "--collector.netdev"
-      - "--collector.diskstats"
-      - "--collector.filesystem"
       - "--collector.filesystem.mount-points-exclude=^/(sys|proc|dev|host|etc)($$|/)"
-      - "--collector.meminfo"
-      - "--collector.ethtool"
       - "--collector.ethtool.device-include=^ens3$$"
 
   cadvisor:
     image: gcr.io/cadvisor/cadvisor:v0.49.2
     restart: unless-stopped
-    profiles:
-      - observability
+    privileged: true
+    command:
+      - "-housekeeping_interval=10s"
+      - "-docker_only=true"
     volumes:
       - /:/rootfs:ro
       - /run/user/${UID}/docker.sock:/var/run/docker.sock:ro
