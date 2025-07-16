@@ -23,6 +23,8 @@ services:
       - APP_CORS_ORIGINS=https://localhost,https://api.localhost,https://portal.localhost
       - APP_ALTCHA_SECRET=super-secret
       - APP_SMTP_HOST=maildev
+      - APP_OTLP_ENDPOINT=http://lgtm:4318/v1/logs
+      - APP_OTLP_SERVICE_NAME=backend
     command: watchexec --restart -- ./dev/dev.sh
     labels:
       - traefik.enable=true
@@ -112,6 +114,14 @@ services:
       - traefik.http.routers.maildev.rule=Host(`maildev.localhost`)
       - traefik.http.services.maildev.loadbalancer.server.port=1080
       - traefik.http.routers.maildev.tls=true
+
+  lgtm:
+    image: grafana/otel-lgtm:0.11.5
+    labels:
+      - traefik.enable=true
+      - traefik.http.routers.grafana.rule=Host(`grafana.localhost`)
+      - traefik.http.services.grafana.loadbalancer.server.port=3000
+      - traefik.http.routers.grafana.tls=true
 
 volumes:
   backend_cargo_target_dir:
