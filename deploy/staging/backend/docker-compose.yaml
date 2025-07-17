@@ -9,6 +9,8 @@ services:
       - APP_CORS_ORIGINS=https://www.staging.tangram-orchestre.fr,https://api.staging.tangram-orchestre.fr,https://portal.staging.tangram-orchestre.fr
       - APP_ALTCHA_SECRET=${APP_ALTCHA_SECRET}
       - APP_SMTP_HOST=maildev
+      - APP_OTLP_ENDPOINT=http://alloy:4318/v1/logs
+      - APP_OTLP_SERVICE_NAME=backend-staging
     labels:
       - traefik.enable=true
       - "traefik.http.routers.backend-staging.rule= \

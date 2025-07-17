@@ -1,16 +1,16 @@
 use std::sync::Arc;
 
-use altcha_lib_rs::{verify_solution, Challenge, ChallengeOptions};
+use altcha_lib_rs::{Challenge, ChallengeOptions, verify_solution};
 use chrono::Utc;
 use lettre::{
-    message::{header::ContentType, Mailbox},
     AsyncTransport, Message,
+    message::{Mailbox, header::ContentType},
 };
 use poem::web::Data;
 use poem_openapi::{
+    ApiResponse, Object, OpenApi, Tags,
     payload::{Json, PlainText},
     types::{Any, Email},
-    ApiResponse, Object, OpenApi, Tags,
 };
 
 use crate::AppState;
@@ -65,7 +65,7 @@ impl PublicApi {
         })
         .expect("should be ok");
 
-        eprintln!("Altcha challenge created: {:?}", challenge);
+        tracing::debug!("Altcha challenge created: {:?}", challenge);
 
         Json(Any(challenge))
     }
@@ -78,7 +78,7 @@ impl PublicApi {
         state: Data<&Arc<AppState>>,
     ) -> SendContactFormResponse {
         if let Err(e) = verify_solution(&contact_form.altcha.0, &state.altcha_secret, true) {
-            eprintln!("Altcha challenge could not be validated: {:?}", e);
+            tracing::error!("Altcha challenge could not be validated: {:?}", e);
             return SendContactFormResponse::BadRequest(PlainText(
                 "Altcha challenge could not be validated".to_string(),
             ));
@@ -88,7 +88,7 @@ impl PublicApi {
         {
             let mut validated_challenges = state.altcha_validated_challenges.lock().unwrap();
             if validated_challenges.contains_key(&contact_form.altcha.0.salt) {
-                eprintln!(
+                tracing::warn!(
                     "Altcha challenge already validated {:?}",
                     contact_form.email
                 );
@@ -128,7 +128,7 @@ impl PublicApi {
         {
             Ok(email) => email,
             e => {
-                eprintln!("Could not create email: {:?}", e);
+                tracing::error!("Could not create email: {:?}", e);
                 return SendContactFormResponse::BadRequest(PlainText(
                     "Could not create email".to_string(),
                 ));
@@ -138,7 +138,7 @@ impl PublicApi {
         // Send the email
         match state.mailer.send(email).await {
             Ok(_) => {
-                eprintln!(
+                tracing::info!(
                     "Email sent (sender: {:?}), alcha time: {:?}ms",
                     contact_form.email,
                     contact_form.altcha.0.took.unwrap_or(0)
@@ -146,7 +146,7 @@ impl PublicApi {
                 SendContactFormResponse::Success
             }
             Err(_e) => {
-                eprintln!("Could not send email: {:?}", _e);
+                tracing::error!("Could not send email: {:?}", _e);
                 SendContactFormResponse::BadRequest(PlainText("Could not send email".to_string()))
             }
         }

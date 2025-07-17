@@ -8,7 +8,7 @@ RUN apt-get update && apt-get install -y curl build-essential libpq-dev bash pkg
 # Install rust
 ENV RUSTUP_HOME /opt/rustup_home
 ENV CARGO_HOME /opt/cargo_home
-RUN curl https://sh.rustup.rs -sSf | sh -s -- --default-toolchain=1.84.1 -y
+RUN curl https://sh.rustup.rs -sSf | sh -s -- --default-toolchain=1.88.0 -y
 
 ENV PATH /opt/cargo_home/bin:$PATH
 
