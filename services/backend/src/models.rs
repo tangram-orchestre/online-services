@@ -1,4 +1,3 @@
-use chrono::Datelike;
 use diesel::prelude::*;
 use poem_openapi::Object;
 
@@ -10,18 +9,6 @@ pub struct Semester {
     pub name: String,
     pub start_date: chrono::NaiveDate,
     pub end_date: chrono::NaiveDate,
-}
-
-impl Semester {
-    pub fn name(&self) -> String {
-        let year = self.start_date.year() - 2000;
-        let semester = if self.start_date.month0() < 6 {
-            'P'
-        } else {
-            'A'
-        };
-        format!("{semester}{year}")
-    }
 }
 
 #[derive(Object, Insertable)]

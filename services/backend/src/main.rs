@@ -19,8 +19,8 @@ use tracing_subscriber::{
 
 use chrono::Utc;
 use diesel_async::{
-    pooled_connection::{deadpool::Pool, AsyncDieselConnectionManager},
     AsyncPgConnection,
+    pooled_connection::{AsyncDieselConnectionManager, deadpool::Pool},
 };
 use lettre::{
     AsyncSmtpTransport, Tokio1Executor,
@@ -32,7 +32,6 @@ use poem::{
     middleware::{AddData, Cors},
 };
 use poem_openapi::OpenApiService;
-use private::PrivateApi;
 use public::PublicApi;
 
 pub struct AppStateInner {
@@ -51,7 +50,7 @@ async fn main() -> Result<(), std::io::Error> {
     let public_docs = public_api.openapi_explorer();
     let public_spec = public_api.spec_endpoint();
 
-    let private_api = OpenApiService::new(PrivateApi, "Tangram Orchestre Private", "1.0.0");
+    let private_api = OpenApiService::new(private::api(), "Tangram Orchestre Private", "1.0.0");
     let private_docs = private_api.openapi_explorer();
     let private_spec = private_api.spec_endpoint();
 
