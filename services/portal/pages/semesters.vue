@@ -7,7 +7,7 @@ import {
   putSemester,
   type GetDummyErrors,
   type NewSemester,
-  type Reason,
+  type BadRequestReason,
   type Semester,
 } from "~/client";
 
@@ -94,12 +94,17 @@ const saveSemester = () => {
   isSavePending.value = true;
 
   const onResponseError = (e: {
-    response: { status: number; _data: Reason };
+    response: { status: number; _data: BadRequestReason };
   }) => {
+    console.log("Error while saving semester", e);
     if (e.response._data && e.response.status === 400) {
       const d = e.response._data as GetDummyErrors[400];
-      if (d === "UniqueViolation") {
+      if (d.type === "UniqueViolation") {
         saveSemesterError.value = "Un semestre avec ce nom existe déjà";
+      } else if (d.type === "CheckViolation") {
+        saveSemesterError.value = d.message;
+      } else {
+        saveSemesterError.value = "Erreur inconnue";
       }
     }
 
@@ -249,7 +254,7 @@ const deleteSemesters = () => {
       :resolver="semesterResolver"
       class="flex flex-col gap-4 w-full"
       @submit="
-        ({ valid }: { valid: boolean }) => {
+        ({ valid }) => {
           if (valid) {
             saveSemester();
           }
