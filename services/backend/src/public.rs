@@ -1,5 +1,3 @@
-use std::sync::Arc;
-
 use altcha_lib_rs::{Challenge, ChallengeOptions, verify_solution};
 use chrono::Utc;
 use lettre::{

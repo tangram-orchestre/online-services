@@ -249,7 +249,7 @@ const deleteSemesters = () => {
       :resolver="semesterResolver"
       class="flex flex-col gap-4 w-full"
       @submit="
-        ({ valid }) => {
+        ({ valid }: { valid: boolean }) => {
           if (valid) {
             saveSemester();
           }
