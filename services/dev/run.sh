@@ -17,4 +17,4 @@ if [ ! -f "$CERT_FILE" ]; then
 fi
 
 # Launch Docker Compose environment
-docker compose up --remove-orphans
+docker compose up --build --remove-orphans
