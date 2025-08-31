@@ -48,12 +48,12 @@ async fn main() -> Result<(), std::io::Error> {
 
     let mut should_exit = false;
     if let Ok(path) = std::env::var("PUBLIC_OPENAPI_SPEC_PATH") {
-        eprintln!("Writing Public OpenAPI JSON spec to {}", path);
+        eprintln!("Writing Public OpenAPI JSON spec to {path}");
         std::fs::write(path, public_api.spec())?;
         should_exit = true;
     }
     if let Ok(path) = std::env::var("PRIVATE_OPENAPI_SPEC_PATH") {
-        eprintln!("Writing Private OpenAPI JSON spec to {}", path);
+        eprintln!("Writing Private OpenAPI JSON spec to {path}");
         std::fs::write(path, private_api.spec())?;
         should_exit = true;
     }
