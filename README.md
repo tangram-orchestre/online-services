@@ -55,7 +55,7 @@ First step is to use [mkcert](https://github.com/FiloSottile/mkcert) to generate
 mkcert -install
 
 # Generate certificates for localhost
-./dev/generate-certs.sh
+./services/dev/generate-certs.sh
 ```
 
 **NOTE**: this must be done if new domain are added to the script, which should be pretty rare.
@@ -65,7 +65,7 @@ mkcert -install
 From the root of the repo simply run:
 
 ```bash
-./dev/run.sh
+./services/dev/run.sh
 ```
 
 Using this script ensures docker containers will run as your user. This will allow you to modify and remove work files such as `node_modules` or `.nuxt`.
