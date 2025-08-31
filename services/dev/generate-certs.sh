@@ -8,6 +8,8 @@ then
     exit 1
 fi
 
+mkcert -install
+
 mkcert \
     -cert-file ${SCRIPT_DIR}/traefik/certs/localhost.pem \
     -key-file ${SCRIPT_DIR}/traefik/certs/localhost-key.pem \
