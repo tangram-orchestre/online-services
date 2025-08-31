@@ -81,23 +81,24 @@ useEventListener("resize", () => {
 
 const concerts: Array<Concert> = [
   {
-    date: "6 juillet 2025 - 15h30",
-    location: "Parc de Choisy",
-    image: "/images/concerts/parc-de-choisy.jpg",
-    url: {
-      kind: "No Tickets",
-      target: "",
-    },
-  },
-  {
-    date: "4 juillet 2025 - 20h00",
+    date: "4 juillet 2025",
     location: "Pavillon de la Sirène",
     image: "/images/concerts/la-sirene.png",
-    url: {
-      kind: "Tickets",
-      target:
-        "https://www.helloasso.com/associations/tangram/evenements/tangram-concert-au-pavillon-de-la-sirene-juillet-2025",
-    },
+    program: [
+      { name: "Fantastic beasts", direction: "Cédric" },
+      { name: "Game Of Thrones - The winds of winter", direction: "Anaëlle" },
+      { name: "Final Fantasy VII", direction: "Théophile" },
+      { name: "Yentl - A piece of sky", direction: "Noémie" },
+      { name: "Star Wars", direction: "Ryadh" },
+      { name: "La La Land", direction: "Zélie" },
+      {
+        name: "The life and time of Scrooge - The Last Sled",
+        direction: "Alexis",
+      },
+      { name: "Wakfu - Le Chaos d'Ogrest", direction: "Tanguy" },
+      { name: "Mary Poppins", direction: "Jean-Victor" },
+      { name: "Ace Attorney", direction: "Guillaume" },
+    ],
   },
   {
     date: "25 mai 2025",
@@ -111,7 +112,7 @@ const concerts: Array<Concert> = [
     program: [
       { name: "Zelda - La vallée Gerudo", direction: "Thibaud" },
       { name: "Genshin Impact - Fontaine", direction: "Antoine" },
-      { name: "Mean Girls - Someone gets hurt", direction: "Anaelle" },
+      { name: "Mean Girls - Someone gets hurt", direction: "Anaëlle" },
       {
         name: "Encanto - Le tango dysfonctionnel",
         direction: "Cédric / Anice",
@@ -137,7 +138,7 @@ const concerts: Array<Concert> = [
       { name: "Genshin Impact - Fontaine", direction: "Antoine" },
       { name: "God Of War - Memory of mother", direction: "Ryadh" },
       { name: "Impossible", direction: "Benjamin" },
-      { name: "Mean Girls - Someone gets hurt", direction: "Anaelle" },
+      { name: "Mean Girls - Someone gets hurt", direction: "Anaëlle" },
       { name: "Aladdin - Prince Ali", direction: "Alix" },
       { name: "Zelda - La vallée Gerudo", direction: "Thibaud" },
     ],

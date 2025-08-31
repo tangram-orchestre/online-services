@@ -2,7 +2,7 @@ use poem::{
     error::{ResponseError, Result},
     http::{HeaderMap, StatusCode},
 };
-use poem_openapi::{payload::Json, Object, OpenApi, Tags};
+use poem_openapi::{Object, OpenApi, Tags, payload::Json};
 
 pub struct PrivateApi;
 

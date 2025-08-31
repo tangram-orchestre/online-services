@@ -1,0 +1,81 @@
+# Start development environment
+dev: ensure-certs setup-env
+    docker compose up --remove-orphans
+
+# Setup development environment
+setup-env:
+    #!/usr/bin/env bash
+    echo UID=$(id -u) > .env
+    echo GID=$(id -g) >> .env
+
+    docker compose build
+
+### Backend
+
+[group('lint')]
+lint-backend: setup-env
+    docker compose run --rm backend cargo fmt -- --check
+    docker compose run --rm backend cargo clippy -- -D warnings
+
+[group('lint-fix')]
+lint-fix-backend: setup-env
+    docker compose run --rm backend cargo fmt
+    docker compose run --rm backend cargo clippy --fix --allow-no-vcs
+
+### Showcase Website
+
+[group('lint')]
+lint-showcase-website: setup-env
+    docker compose run --rm showcase-website yarn lint
+
+[group('lint-fix')]
+lint-fix-showcase-website: setup-env
+    docker compose run --rm showcase-website yarn lint:fix
+
+### Portal
+
+[group('lint')]
+lint-portal: setup-env
+    docker compose run --rm portal yarn lint
+
+[group('lint-fix')]
+lint-fix-portal: setup-env
+    docker compose run --rm portal yarn lint:fix
+
+### Global
+
+[group('lint')]
+lint: lint-backend lint-showcase-website lint-portal
+
+[group('lint-fix')]
+lint-fix: lint-fix-backend lint-fix-showcase-website lint-fix-portal
+
+### Local dev certificates
+
+# Generate local dev certificates using mkcert
+[group('certs')]
+generate-certs:
+    #!/usr/bin/env bash
+    if ! command -v mkcert &> /dev/null
+    then
+        echo "mkcert could not be found, please install it."
+        exit 1
+    fi
+
+    mkcert -install
+
+    mkcert \
+        -cert-file ./dev/traefik/certs/localhost.pem \
+        -key-file ./dev/traefik/certs/localhost-key.pem \
+        localhost api.localhost portal.localhost traefik.localhost maildev.localhost grafana.localhost
+
+# Ensure local dev certificates exist
+[group('certs')]
+ensure-certs:
+    #!/usr/bin/env bash
+    set -e
+    # Ensure certificates exist
+    CERT_FILE="./dev/traefik/certs/localhost.pem"
+    if [ ! -f "$CERT_FILE" ]; then
+        just generate-certs
+    fi
