@@ -81,6 +81,33 @@ useEventListener("resize", () => {
 
 const concerts: Array<Concert> = [
   {
+    date: "23 janvier 2026",
+    location: "Pavillon de la Sirène",
+    image: "/images/concerts/la-sirene.png",
+    url: {
+      kind: "Tickets Unavailable",
+      target: "",
+    },
+  },
+  {
+    date: "17 janvier 2026",
+    location: "Temple Paris Batignolles",
+    image: "/images/concerts/2024-06-28.png",
+    url: {
+      kind: "Tickets Unavailable",
+      target: "",
+    },
+  },
+  {
+    date: "18 décembre 2025",
+    location: "Mairie du XIV<sup>ème</sup>",
+    image: "/images/concerts/2025-01-25.png",
+    url: {
+      kind: "Tickets Unavailable",
+      target: "",
+    },
+  },
+  {
     date: "4 juillet 2025",
     location: "Pavillon de la Sirène",
     image: "/images/concerts/la-sirene.png",
