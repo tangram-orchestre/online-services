@@ -41,6 +41,11 @@ services:
       AUTHENTIK_POSTGRESQL__PASSWORD: ${PG_PASS}
       AUTHENTIK_WEB__WORKERS: 1
       # AUTHENTIK_LOG_LEVEL: trace
+    deploy:
+      resources:
+        limits:
+          memory: 512M
+          cpus: 1
     labels:
       - traefik.enable=true
       - traefik.http.services.authentik.loadbalancer.server.port=9000
@@ -67,6 +72,12 @@ services:
       AUTHENTIK_POSTGRESQL__USER: authentik
       AUTHENTIK_POSTGRESQL__NAME: authentik
       AUTHENTIK_POSTGRESQL__PASSWORD: ${PG_PASS}
+      AUTHENTIK_WORKER__CONCURRENCY: 1
+    deploy:
+      resources:
+        limits:
+          memory: 512M
+          cpus: 1
 
     volumes:
       - /var/run/docker.sock:/var/run/docker.sock
