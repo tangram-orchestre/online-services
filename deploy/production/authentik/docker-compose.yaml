@@ -72,7 +72,7 @@ services:
       AUTHENTIK_POSTGRESQL__USER: authentik
       AUTHENTIK_POSTGRESQL__NAME: authentik
       AUTHENTIK_POSTGRESQL__PASSWORD: ${PG_PASS}
-      AUTHENTIK_WORKER__CONCURRENCY: 1
+      AUTHENTIK_WORKER__THREADS: 1
     deploy:
       resources:
         limits:
