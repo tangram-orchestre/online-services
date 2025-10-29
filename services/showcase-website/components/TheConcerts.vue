@@ -276,7 +276,7 @@ const concerts: Array<Concert> = [
 </script>
 
 <template>
-  <div ref="el" class="mx-auto max-w-screen-2xl px-8 py-16">
+  <div id="concerts" ref="el" class="mx-auto max-w-screen-2xl px-8 py-16">
     <h1 class="oswald text-center text-6xl tracking-wider sm:text-7xl">
       NOS CONCERTS
     </h1>
