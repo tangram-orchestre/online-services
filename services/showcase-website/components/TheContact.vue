@@ -101,7 +101,7 @@ const postForm = async () => {
 </script>
 
 <template>
-  <div class="bg-slate-900 px-4 pb-10 pt-20 text-white md:pb-16">
+  <div id="contact" class="bg-slate-900 px-4 pb-10 pt-20 text-white md:pb-16">
     <h1 class="oswald mb-6 text-center text-6xl tracking-wider sm:text-7xl">
       NOUS CONTACTER
     </h1>

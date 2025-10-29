@@ -2,7 +2,7 @@
 
 <!-- eslint-disable tailwindcss/no-custom-classname -->
 <template>
-  <div ref="el" class="mx-auto max-w-screen-2xl px-8 py-20">
+  <div id="cagnotte" ref="el" class="mx-auto max-w-screen-2xl px-8 py-20">
     <h1 class="oswald mb-8 text-center text-6xl tracking-wider sm:text-7xl">
       NOUS SOUTENIR
     </h1>
