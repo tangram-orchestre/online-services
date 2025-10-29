@@ -30,7 +30,7 @@ services:
       - /opt/docker-volumes/authentik/redis:/data
 
   authentik-server:
-    image: ghcr.io/goauthentik/server:2025.8.1
+    image: ghcr.io/goauthentik/server:2025.8.4
     restart: unless-stopped
     command: server
     environment:
@@ -41,6 +41,11 @@ services:
       AUTHENTIK_POSTGRESQL__PASSWORD: ${PG_PASS}
       AUTHENTIK_WEB__WORKERS: 1
       # AUTHENTIK_LOG_LEVEL: trace
+    deploy:
+      resources:
+        limits:
+          memory: 512M
+          cpus: 1
     labels:
       - traefik.enable=true
       - traefik.http.services.authentik.loadbalancer.server.port=9000
@@ -58,7 +63,7 @@ services:
       - authentik-redis
 
   authentik-worker:
-    image: ghcr.io/goauthentik/server:2025.8.1
+    image: ghcr.io/goauthentik/server:2025.8.4
     restart: unless-stopped
     command: worker
     environment:
@@ -67,6 +72,12 @@ services:
       AUTHENTIK_POSTGRESQL__USER: authentik
       AUTHENTIK_POSTGRESQL__NAME: authentik
       AUTHENTIK_POSTGRESQL__PASSWORD: ${PG_PASS}
+      AUTHENTIK_WORKER__THREADS: 1
+    deploy:
+      resources:
+        limits:
+          memory: 512M
+          cpus: 1
 
     volumes:
       - /var/run/docker.sock:/var/run/docker.sock
