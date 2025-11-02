@@ -1,5 +1,4 @@
-import Aura from "@primeuix/themes/aura";
-import { fr } from "primelocale/js/fr.js";
+import { fr } from "vuetify/locale";
 
 // https://nuxt.com/docs/api/configuration/nuxt-config
 export default defineNuxtConfig({
@@ -12,18 +11,18 @@ export default defineNuxtConfig({
     "@nuxt/eslint",
     "@nuxt/image",
     "@nuxt/fonts",
-    "@primevue/nuxt-module",
-    "@nuxtjs/tailwindcss",
+    "vuetify-nuxt-module",
   ],
-  primevue: {
-    options: {
-      theme: {
-        preset: Aura,
-        options: {
-          darkModeSelector: ".dark",
-        },
+  vuetify: {
+    moduleOptions: {
+      /* module specific options */
+    },
+    vuetifyOptions: {
+      locale: {
+        locale: "fr",
+        messages: { fr },
       },
-      locale: fr,
+      /* vuetify options */
     },
   },
   runtimeConfig: {

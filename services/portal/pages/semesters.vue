@@ -17,9 +17,9 @@ import {
   type Converted,
 } from "~/utils/date";
 import type { ElementOfRefArray } from "~/utils/utils";
-import { zodResolver } from "@primevue/forms/resolvers/zod";
 import { zNewSemester } from "~/client/zod.gen";
 import { z } from "zod";
+import { title } from "process";
 
 const formatDate = (value: Date) => {
   return value.toLocaleDateString("fr");
@@ -49,9 +49,16 @@ const semestersComputed = computed(() => {
         return 0;
       });
   } else {
-    return null;
+    return [];
   }
 });
+
+const headers = [
+  { title: "Nom", key: "name" },
+  { title: "Début", key: "start_date" },
+  { title: "Fin", key: "end_date" },
+  { title: "Actions", value: "actions" },
+];
 
 const defaultSemester = () => {
   return {
@@ -59,6 +66,12 @@ const defaultSemester = () => {
     start_date: new Date(),
     end_date: add(new Date(), { months: 5 }),
   };
+};
+
+const activator = ref<Element | null>(null);
+
+const registerActivator = (event: MouseEvent) => {
+  activator.value = event.currentTarget as Element;
 };
 
 const newSemester: Ref<
@@ -77,8 +90,6 @@ const zSemester = zNewSemester
     path: ["end_date"],
     message: "La date de fin doit être postérieure à la date de début",
   });
-
-const semesterResolver = ref(zodResolver(zSemester));
 
 const semesterDialogState = ref<"hidden" | "post" | "put">("hidden");
 const isSavePending = ref(false);
@@ -135,16 +146,14 @@ const saveSemester = () => {
   promise.then(saveSemesterReset).finally(() => (isSavePending.value = false));
 };
 
-type SemesterComputed = ElementOfRefArray<typeof semestersComputed>;
-
-const selectedSemesters = ref<SemesterComputed[]>([]);
+const selectedSemesterIds = ref<number[]>([]);
 const deleteSemestersDialog = ref(false);
 const deleteSemesters = () => {
   Promise.all(
-    selectedSemesters.value.map((s) => {
+    selectedSemesterIds.value.map((id) => {
       return deleteSemesterBySemesterId({
         composable: "$fetch",
-        path: { semester_id: s.id },
+        path: { semester_id: id },
       });
     }),
   )
@@ -152,11 +161,11 @@ const deleteSemesters = () => {
       console.log("success");
       if (semesters.value) {
         semesters.value = semesters.value.filter(
-          (s) => !selectedSemesters.value.some((o) => s.id == o.id),
+          (s) => !selectedSemesterIds.value.some((id) => s.id == id),
         );
       }
       deleteSemestersDialog.value = false;
-      selectedSemesters.value = [];
+      selectedSemesterIds.value = [];
     })
     .catch(() => {
       console.log("error");
@@ -166,79 +175,85 @@ const deleteSemesters = () => {
 </script>
 
 <template>
-  <DataTable
-    v-if="semestersComputed"
-    v-model:selection="selectedSemesters"
-    :value="semestersComputed"
-    edit-mode="row"
-    data-key="id"
+  <h1>Semestres</h1>
+
+  <p>Gestion des semestres.</p>
+
+  <v-btn @click="refresh">Rafraichir</v-btn>
+  <v-btn @click="deleteSemesters">Supprimer</v-btn>
+
+  <v-data-table
+    v-model="selectedSemesterIds"
+    :loading="status == 'pending'"
+    :items="semestersComputed"
+    :headers
+    :show-select="true"
+    item-value="id"
   >
-    <template #header>
-      <div class="flex flex-wrap items-center justify-between gap-2">
-        <span class="text-xl font-bold">Semestres</span>
-        <Button
-          icon="pi pi-refresh"
-          rounded
-          raised
-          :loading="status === 'pending'"
-          @click="() => refresh()"
-        />
-      </div>
-      <div>
-        <Button
-          label="Créer"
-          icon="pi pi-plus"
-          class="mr-2"
-          @click="semesterDialogState = 'post'"
-        />
-        <Button
-          label="Supprimer"
-          icon="pi pi-trash"
-          severity="danger"
-          outlined
-          :disabled="selectedSemesters.length == 0"
-          @click="deleteSemestersDialog = true"
-        />
-      </div>
+    <template #item.start_date="{ item }">
+      {{ formatDate(item.start_date) }}
+    </template>
+    <template #item.end_date="{ item }">
+      {{ formatDate(item.end_date) }}
     </template>
 
-    <Column selection-mode="multiple" class="w-10" :exportable="false" />
+    <template #item.actions="{ item }">
+      <v-btn
+        variant="text"
+        icon
+        @click="
+          () => {
+            newSemester = item;
+            semesterDialogState = 'put';
+          }
+        "
+        @mouseenter="registerActivator($event)"
+      >
+        <v-icon>mdi-pencil</v-icon>
+      </v-btn>
+    </template>
+  </v-data-table>
 
-    <Column class="w-12" field="name" header="Nom">
-      <template #body="{ data }">
-        {{ data.name }}
-      </template>
-    </Column>
-
-    <Column class="w-24" field="start_date" data-type="date" header="Début">
-      <template #body="{ data }">
-        {{ formatDate(data.start_date) }}
-      </template>
-    </Column>
-
-    <Column class="w-24" field="end_date" data-type="date" header="Fin">
-      <template #body="{ data }">
-        {{ formatDate(data.end_date) }}
-      </template>
-    </Column>
-
-    <Column class="!text-end">
-      <template #body="{ data }">
-        <Button
-          icon="pi pi-pencil"
-          severity="secondary"
-          rounded
-          @click="
-            () => {
-              newSemester = data;
-              semesterDialogState = 'put';
-            }
+  <v-dialog
+    v-if="activator"
+    :value="semesterDialogState != 'hidden'"
+    :activator="activator"
+    max-width="450"
+    :modal="true"
+  >
+    <v-confirm-edit
+      ref="confirm"
+      v-model="newSemester"
+      ok-text="save"
+      @cancel="semesterDialogState = 'hidden'"
+      @save="saveSemester"
+    >
+      <template #default="{ model: proxyModel, actions }">
+        <v-card
+          :title="
+            semesterDialogState == 'post'
+              ? 'Nouveau semestre'
+              : 'Modifier semestre'
           "
-        />
-      </template>
-    </Column>
-  </DataTable>
+        >
+          <v-card-text>
+            <v-text-field v-model="proxyModel.value.name" label="Nom" />
 
+            <v-date-picker
+              v-model="proxyModel.value.start_date"
+              label="Start Date"
+            />
+          </v-card-text>
+
+          <template #actions>
+            <component :is="actions" />
+          </template>
+        </v-card>
+      </template>
+    </v-confirm-edit>
+  </v-dialog>
+
+  <!--
   <Dialog
     :visible="semesterDialogState != 'hidden'"
     :style="{ width: '450px' }"
@@ -251,13 +266,10 @@ const deleteSemesters = () => {
     <Form
       v-slot="$form"
       :initial-values="newSemester"
-      :resolver="semesterResolver"
       class="flex flex-col gap-4 w-full"
       @submit="
-        ({ valid }) => {
-          if (valid) {
-            saveSemester();
-          }
+        () => {
+          saveSemester();
         }
       "
     >
@@ -358,5 +370,5 @@ const deleteSemesters = () => {
       />
       <Button label="Oui" icon="pi pi-check" @click="deleteSemesters" />
     </template>
-  </Dialog>
+  </Dialog> -->
 </template>

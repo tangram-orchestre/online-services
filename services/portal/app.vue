@@ -33,13 +33,26 @@ useHead({
 const user = await currentUser();
 
 const isDark = useDark();
+const toggleDark = useToggle(isDark);
+const theme = useTheme();
+
+const setTheme = () => {
+  theme.global.name.value = isDark.value ? "dark" : "light";
+};
+
+onMounted(() => {
+  setTheme();
+});
+
+watch(isDark, () => {
+  setTheme();
+});
 
 const drawer = ref(false);
 </script>
 
 <template>
-  <ToggleSwitch v-model="isDark" />
-  <!-- <v-app>
+  <v-app>
     <v-app-bar color="primary">
       <v-app-bar-nav-icon variant="text" @click.stop="drawer = !drawer" />
 
@@ -51,7 +64,7 @@ const drawer = ref(false);
         :icon="isDark ? 'mdi-weather-night' : 'mdi-brightness-5'"
         @click="toggleDark()"
       />
-      <v-btn icon="mdi-account" to="/" />
+      <v-btn class="ma-2" icon="mdi-account" to="/" />
     </v-app-bar>
 
     <v-navigation-drawer v-model="drawer">
@@ -73,9 +86,11 @@ const drawer = ref(false);
     </v-navigation-drawer>
 
     <v-main>
+      <v-container class="pa-4">
+        <NuxtPage />
+      </v-container>
     </v-main>
-  </v-app> -->
-  <NuxtPage />
+  </v-app>
 </template>
 
 <style lang="scss">
