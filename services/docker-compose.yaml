@@ -84,7 +84,7 @@ services:
       - ./openapi:/opt/openapi # dev.sh will write spec.json here.
     user: ${UID-1000}:${GID-1000}
     working_dir: /opt/portal
-    command: yarn run dev2
+    command: yarn run dev
     environment:
       - FORCE_COLOR=1
     tmpfs:

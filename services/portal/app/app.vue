@@ -1,11 +1,12 @@
 <script lang="ts" setup>
 import { NuxtPage } from "#components";
-import { client } from "./client/client.gen";
+import { client } from "#hey-api/client.gen";
 
 import i18next from "i18next";
 import { z } from "zod";
 import { zodI18nMap } from "zod-i18n-map";
 import translation from "zod-i18n-map/locales/fr/zod.json";
+import ConfirmDialog from "./components/ConfirmDialog.vue";
 
 i18next.init({
   lng: "fr",
@@ -37,7 +38,7 @@ const toggleDark = useToggle(isDark);
 const theme = useTheme();
 
 const setTheme = () => {
-  theme.global.name.value = isDark.value ? "dark" : "light";
+  theme.change(isDark.value ? "dark" : "light");
 };
 
 onMounted(() => {
@@ -49,10 +50,23 @@ watch(isDark, () => {
 });
 
 const drawer = ref(false);
+
+const confirmDialogRef =
+  useTemplateRef<InstanceType<typeof ConfirmDialog>>("confirm");
+
+onMounted(() => {
+  if (confirmDialogRef.value) {
+    setConfirmDialogInstance(confirmDialogRef.value);
+  } else {
+    console.error("ConfirmDialog component not found");
+  }
+});
 </script>
 
 <template>
   <v-app>
+    <confirm-dialog ref="confirm" />
+
     <v-app-bar color="primary">
       <v-app-bar-nav-icon variant="text" @click.stop="drawer = !drawer" />
 

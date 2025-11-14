@@ -13,5 +13,7 @@ bash /opt/scripts/wait-for-it.sh 127.0.0.1:3000 -t 0 -- \
     -o /opt/openapi/public-spec.json \
     -X 'GET' 'http://127.0.0.1:3000/public/spec'  \
     -H 'accept: application/json; charset=utf-8' && \
+    sed -i 's/naive-date/date/g' /opt/openapi/private-spec.json /opt/openapi/public-spec.json && \
+    echo "OpenAPI specs retrieved."
 
 wait
