@@ -37,6 +37,9 @@ lint-fix-showcase-website: setup-env
 
 ### Portal
 
+portal *cmd:
+    docker compose run --rm portal {{cmd}}
+
 [group('lint')]
 lint-portal: setup-env
     docker compose run --rm portal yarn lint

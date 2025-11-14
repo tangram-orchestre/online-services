@@ -1,25 +1,10 @@
 <script setup lang="ts">
 import { add } from "date-fns";
-import {
-  deleteSemesterBySemesterId,
-  getSemesters,
-  postSemester,
-  putSemester,
-  type GetDummyErrors,
-  type NewSemester,
-  type BadRequestReason,
-  type Semester,
-} from "~/client";
+import type { GetDummyErrors, BadRequestReason } from "#hey-api/types.gen";
+import { useForm } from "vee-validate";
+import { toTypedSchema } from "@vee-validate/zod";
 
-import {
-  convert_fields_from_dates,
-  convert_fields_to_dates,
-  type Converted,
-} from "~/utils/date";
-import type { ElementOfRefArray } from "~/utils/utils";
-import { zNewSemester } from "~/client/zod.gen";
-import { z } from "zod";
-import { title } from "process";
+import { zNewSemester } from "#hey-api/zod.gen";
 
 const formatDate = (value: Date) => {
   return value.toLocaleDateString("fr");
@@ -34,80 +19,61 @@ const {
   key: "getSemesters",
 });
 
-const semestersComputed = computed(() => {
-  if (semesters.value) {
-    console.log(semesters.value);
-    return semesters.value
-      .map((s) => convert_fields_to_dates(s, ["start_date", "end_date"]))
-      .sort((a, b) => {
-        if (a.start_date < b.start_date) {
-          return -1;
-        }
-        if (a.start_date > b.start_date) {
-          return 1;
-        }
-        return 0;
-      });
-  } else {
-    return [];
-  }
-});
-
-const headers = [
-  { title: "Nom", key: "name" },
-  { title: "Début", key: "start_date" },
-  { title: "Fin", key: "end_date" },
-  { title: "Actions", value: "actions" },
-];
+// const semestersComputed = computed(() => {
+//   if (semesters.value) {
+//     return semesters.value
+//       .sort((a, b) => {
+//         if (a.start_date < b.start_date) {
+//           return -1;
+//         }
+//         if (a.start_date > b.start_date) {
+//           return 1;
+//         }
+//         return 0;
+//       });
+//   } else {
+//     return [];
+//   }
+// });
 
 const defaultSemester = () => {
-  return {
-    name: "",
-    start_date: new Date(),
-    end_date: add(new Date(), { months: 5 }),
-  };
+  return {};
 };
 
-const activator = ref<Element | null>(null);
+const zSemester = zNewSemester.refine((obj) => obj.start_date < obj.end_date, {
+  path: ["end_date"],
+  message: "La date de fin doit être postérieure à la date de début",
+});
 
-const registerActivator = (event: MouseEvent) => {
-  activator.value = event.currentTarget as Element;
-};
-
-const newSemester: Ref<
-  Converted<Date, Semester | NewSemester, "start_date" | "end_date">
-> = ref(defaultSemester());
-
-const zSemester = zNewSemester
-  .merge(
-    z.object({
-      name: z.string().min(3),
-      start_date: z.date(),
-      end_date: z.date(),
-    }),
-  )
-  .refine((obj) => obj.start_date < obj.end_date, {
-    path: ["end_date"],
-    message: "La date de fin doit être postérieure à la date de début",
+const { handleSubmit, handleReset, defineField, errors, isSubmitting } =
+  useForm({
+    validationSchema: toTypedSchema(zSemester),
+    initialValues: {
+      name: "",
+      start_date: new Date().toISOString(),
+      end_date: add(new Date(), { months: 5 }).toISOString(),
+    },
   });
 
+const [name, nameProps] = defineField("name");
+const [start_date, start_dateProps] = defineField("start_date");
+const [end_date, end_dateProps] = defineField("end_date");
+
 const semesterDialogState = ref<"hidden" | "post" | "put">("hidden");
-const isSavePending = ref(false);
+const semesterDialogShown = computed({
+  get: () => semesterDialogState.value != "hidden",
+  set: (value: boolean) => {
+    if (!value) {
+      semesterDialogState.value = "hidden";
+    }
+  },
+});
 const saveSemesterError = ref<string | null>(null);
 
-const saveSemesterReset = () => {
-  semesterDialogState.value = "hidden";
-  newSemester.value = defaultSemester();
-  saveSemesterError.value = null;
-};
-
-const saveSemester = () => {
-  isSavePending.value = true;
-
+const saveSemester = (id: number | null) => {
   const onResponseError = (e: {
     response: { status: number; _data: BadRequestReason };
   }) => {
-    console.log("Error while saving semester", e);
     if (e.response._data && e.response.status === 400) {
       const d = e.response._data as GetDummyErrors[400];
       if (d.type === "UniqueViolation") {
@@ -122,15 +88,25 @@ const saveSemester = () => {
     refresh();
   };
 
-  const newValue = convert_fields_from_dates(newSemester.value);
+  if (!name.value || !start_date.value || !end_date.value) {
+    console.error("Invalid form");
+    return;
+  }
+
+  const newValue = {
+    name: name.value,
+    start_date: new Date(start_date.value),
+    end_date: new Date(end_date.value),
+  };
 
   let promise;
 
-  if ("id" in newValue) {
-    update_by_id(semesters.value, newValue);
+  if (id !== null) {
+    const body = { id, ...newValue };
+    update_by_id(semesters.value, body);
     promise = putSemester({
       composable: "$fetch",
-      body: newValue,
+      body: body,
       onResponseError: onResponseError,
     });
   } else {
@@ -143,29 +119,27 @@ const saveSemester = () => {
     });
   }
 
-  promise.then(saveSemesterReset).finally(() => (isSavePending.value = false));
+  promise.then(() => {
+    semesterDialogState.value = "hidden";
+  });
 };
 
-const selectedSemesterIds = ref<number[]>([]);
+const submit = handleSubmit((values) => {
+  console.log("Submitting", values);
+  alert(JSON.stringify(values, null, 2));
+});
+
 const deleteSemestersDialog = ref(false);
-const deleteSemesters = () => {
-  Promise.all(
-    selectedSemesterIds.value.map((id) => {
-      return deleteSemesterBySemesterId({
-        composable: "$fetch",
-        path: { semester_id: id },
-      });
-    }),
-  )
+const deleteSemester = (id: number) => {
+  deleteSemesterBySemesterId({
+    composable: "$fetch",
+    path: { semester_id: id },
+  })
     .then(() => {
-      console.log("success");
       if (semesters.value) {
-        semesters.value = semesters.value.filter(
-          (s) => !selectedSemesterIds.value.some((id) => s.id == id),
-        );
+        semesters.value = semesters.value.filter((s) => s.id == id);
       }
       deleteSemestersDialog.value = false;
-      selectedSemesterIds.value = [];
     })
     .catch(() => {
       console.log("error");
@@ -175,200 +149,130 @@ const deleteSemesters = () => {
 </script>
 
 <template>
-  <h1>Semestres</h1>
-
-  <p>Gestion des semestres.</p>
-
-  <v-btn @click="refresh">Rafraichir</v-btn>
-  <v-btn @click="deleteSemesters">Supprimer</v-btn>
-
-  <v-data-table
-    v-model="selectedSemesterIds"
-    :loading="status == 'pending'"
-    :items="semestersComputed"
-    :headers
-    :show-select="true"
-    item-value="id"
-  >
-    <template #item.start_date="{ item }">
-      {{ formatDate(item.start_date) }}
-    </template>
-    <template #item.end_date="{ item }">
-      {{ formatDate(item.end_date) }}
-    </template>
-
-    <template #item.actions="{ item }">
-      <v-btn
-        variant="text"
-        icon
-        @click="
-          () => {
-            newSemester = item;
-            semesterDialogState = 'put';
-          }
-        "
-        @mouseenter="registerActivator($event)"
-      >
-        <v-icon>mdi-pencil</v-icon>
-      </v-btn>
-    </template>
-  </v-data-table>
-
-  <v-dialog
-    v-if="activator"
-    :value="semesterDialogState != 'hidden'"
-    :activator="activator"
-    max-width="450"
-    :modal="true"
-  >
-    <v-confirm-edit
-      ref="confirm"
-      v-model="newSemester"
-      ok-text="save"
-      @cancel="semesterDialogState = 'hidden'"
-      @save="saveSemester"
+  <v-sheet border rounded>
+    <v-data-table
+      v-if="semesters"
+      :loading="status == 'pending'"
+      :items="semesters"
+      :headers="[
+        { title: 'Nom', key: 'name' },
+        { title: 'Début', key: 'start_date' },
+        { title: 'Fin', key: 'end_date' },
+        { title: 'Actions', value: 'actions', align: 'end' },
+      ]"
+      :hide-default-footer="semesters.length < 11"
+      item-value="id"
     >
-      <template #default="{ model: proxyModel, actions }">
-        <v-card
-          :title="
-            semesterDialogState == 'post'
-              ? 'Nouveau semestre'
-              : 'Modifier semestre'
-          "
-        >
-          <v-card-text>
-            <v-text-field v-model="proxyModel.value.name" label="Nom" />
-
-            <v-date-picker
-              v-model="proxyModel.value.start_date"
-              label="Start Date"
+      <template #top>
+        <v-toolbar flat>
+          <v-toolbar-title>
+            <v-icon
+              color="medium-emphasis"
+              icon="mdi-calendar-multiple"
+              size="x-small"
+              start
             />
-          </v-card-text>
 
-          <template #actions>
-            <component :is="actions" />
-          </template>
-        </v-card>
+            Semestres
+          </v-toolbar-title>
+
+          <v-btn
+            class="me-2"
+            prepend-icon="mdi-plus"
+            rounded="lg"
+            text="Nouveau semestre"
+            border
+            @click="
+              () => {
+                handleReset();
+                semesterDialogState = 'post';
+              }
+            "
+          />
+        </v-toolbar>
       </template>
-    </v-confirm-edit>
+      <template #item.start_date="{ item }">
+        {{ formatDate(item.start_date) }}
+      </template>
+      <template #item.end_date="{ item }">
+        {{ formatDate(item.end_date) }}
+      </template>
+
+      <template #item.actions="{ item }">
+        <div class="d-flex ga-2 justify-end">
+          <v-icon
+            color="medium-emphasis"
+            icon="mdi-pencil"
+            size="small"
+            @click="
+              () => {
+                name = item.name;
+                start_date = item.start_date;
+                end_date = item.end_date;
+                semesterDialogState = 'put';
+              }
+            "
+          />
+
+          <v-icon
+            color="medium-emphasis"
+            icon="mdi-delete"
+            size="small"
+            @click="deleteSemester(item.id)"
+          />
+        </div>
+      </template>
+    </v-data-table>
+  </v-sheet>
+
+  <v-dialog v-model="semesterDialogShown" max-width="450" :modal="true">
+    <v-form @submit.prevent="submit">
+      <v-card
+        :title="
+          semesterDialogState == 'post'
+            ? 'Nouveau semestre'
+            : 'Modifier semestre'
+        "
+      >
+        <v-card-text>
+          <v-text-field
+            v-model="name"
+            v-bind="nameProps"
+            label="Nom"
+            :error-messages="errors.name"
+            autofocus
+          />
+
+          <v-date-input
+            v-model="start_date"
+            v-bind="start_dateProps"
+            label="Début"
+            :error-messages="errors.start_date"
+            prepend-icon=""
+          />
+
+          <v-date-input
+            v-model="end_date"
+            v-bind="end_dateProps"
+            label="Fin"
+            :error-messages="errors.end_date"
+            prepend-icon=""
+          />
+          <div
+            v-if="saveSemesterError"
+            severity="error"
+            size="small"
+            variant="outline"
+          >
+            {{ saveSemesterError }}
+          </div>
+        </v-card-text>
+
+        <v-card-actions>
+          <v-btn @click="() => (semesterDialogState = 'hidden')">Annuler</v-btn>
+          <v-btn :loading="isSubmitting" type="submit">Enregistrer</v-btn>
+        </v-card-actions>
+      </v-card>
+    </v-form>
   </v-dialog>
-
-  <!--
-  <Dialog
-    :visible="semesterDialogState != 'hidden'"
-    :style="{ width: '450px' }"
-    :header="
-      semesterDialogState == 'post' ? 'Nouveau semestre' : 'Modifier semestre'
-    "
-    :modal="true"
-    @update:visible="semesterDialogState = 'hidden'"
-  >
-    <Form
-      v-slot="$form"
-      :initial-values="newSemester"
-      class="flex flex-col gap-4 w-full"
-      @submit="
-        () => {
-          saveSemester();
-        }
-      "
-    >
-      <div class="flex flex-col gap-4">
-        <div class="flex flex-col gap-1">
-          <div>Nom</div>
-          <InputText v-model="newSemester.name" name="name" />
-          <Message
-            v-if="$form.name?.invalid"
-            severity="error"
-            size="small"
-            variant="simple"
-          >
-            {{ $form.name.error?.message }}
-          </Message>
-        </div>
-        <div class="flex flex-col gap-1">
-          <div>Date de début</div>
-          <DatePicker
-            v-model="newSemester.start_date"
-            name="start_date"
-            show-icon
-            :manual-input="false"
-          />
-          <Message
-            v-if="$form.start_date?.invalid"
-            severity="error"
-            size="small"
-            variant="simple"
-          >
-            {{ $form.start_date.error?.message }}
-          </Message>
-        </div>
-        <div class="flex flex-col gap-1">
-          <div>Date de fin</div>
-          <DatePicker
-            v-model="newSemester.end_date"
-            name="end_date"
-            show-icon
-            :manual-input="false"
-          />
-          <Message
-            v-if="$form.end_date?.invalid"
-            severity="error"
-            size="small"
-            variant="simple"
-          >
-            {{ $form.end_date.error?.message }}
-          </Message>
-        </div>
-        <Message
-          v-if="saveSemesterError"
-          severity="error"
-          size="small"
-          variant="outline"
-        >
-          {{ saveSemesterError }}
-        </Message>
-      </div>
-      <div class="flex justify-end gap-2">
-        <Button
-          label="Annuler"
-          icon="pi pi-times"
-          text
-          @click="saveSemesterReset"
-        />
-        <Button
-          label="Valider"
-          type="submit"
-          icon="pi pi-check"
-          :loading="isSavePending"
-          :disabled="!$form.valid"
-        />
-      </div>
-    </Form>
-  </Dialog>
-
-  <Dialog
-    v-model:visible="deleteSemestersDialog"
-    :style="{ width: '450px' }"
-    header="Confirmation"
-    :modal="true"
-  >
-    <div class="flex items-center gap-4">
-      <i class="pi pi-exclamation-triangle !text-3xl" />
-      <span v-if="selectedSemesters">
-        Êtes-vous sûr de vouloir supprimer
-        <b>{{ selectedSemesters.length }}</b>
-        semestre{{ selectedSemesters.length > 1 ? "s" : "" }} ?
-      </span>
-    </div>
-    <template #footer>
-      <Button
-        label="Non"
-        icon="pi pi-times"
-        text
-        @click="deleteSemestersDialog = false"
-      />
-      <Button label="Oui" icon="pi pi-check" @click="deleteSemesters" />
-    </template>
-  </Dialog> -->
 </template>

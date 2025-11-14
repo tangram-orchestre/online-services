@@ -1,6 +1,6 @@
 <script lang="ts" setup>
 import { NuxtPage } from "#components";
-import { client } from "./client/client.gen";
+import { client } from "#hey-api/client.gen";
 
 import i18next from "i18next";
 import { z } from "zod";
