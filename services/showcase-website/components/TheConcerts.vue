@@ -103,8 +103,9 @@ const concerts: Array<Concert> = [
     location: "Mairie du XIV<sup>ème</sup>",
     image: "/images/concerts/2025-01-25.png",
     url: {
-      kind: "Tickets Unavailable",
-      target: "",
+      kind: "Tickets",
+      target:
+        "https://www.helloasso.com/associations/tangram/evenements/concert-tangram-decembre-2025",
     },
   },
   {
