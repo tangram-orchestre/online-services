@@ -17,6 +17,9 @@ entryPoints:
           to: websecure
   websecure:
     address: ":443"
+    http:
+      encodedCharacters:
+        allowEncodedSlash: true
 
 # log:
 #   level: TRACE
