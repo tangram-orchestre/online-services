@@ -85,8 +85,9 @@ const concerts: Array<Concert> = [
     location: "Pavillon de la Sirène",
     image: "/images/concerts/la-sirene.png",
     url: {
-      kind: "Tickets Unavailable",
-      target: "",
+      kind: "Tickets",
+      target:
+        "https://www.helloasso.com/associations/tangram/evenements/concert-tangram-pavillon-de-la-sirene-23-01-2026",
     },
   },
   {
@@ -94,19 +95,15 @@ const concerts: Array<Concert> = [
     location: "Temple Paris Batignolles",
     image: "/images/concerts/2024-06-28.png",
     url: {
-      kind: "Tickets Unavailable",
-      target: "",
+      kind: "Tickets",
+      target:
+        "https://www.helloasso.com/associations/tangram/evenements/concert-tangram-temple-des-batignolles-janvier-2026",
     },
   },
   {
     date: "18 décembre 2025",
     location: "Mairie du XIV<sup>ème</sup>",
     image: "/images/concerts/2025-01-25.png",
-    url: {
-      kind: "Tickets",
-      target:
-        "https://www.helloasso.com/associations/tangram/evenements/concert-tangram-decembre-2025",
-    },
   },
   {
     date: "4 juillet 2025",
