@@ -6,9 +6,9 @@ RUN yarn install --locked
 COPY . .
 
 RUN mkdir /opt/openapi && mv private-spec.json /opt/openapi
-RUN yarn run openapi-ts
 
-RUN yarn generate
+# Force re-install for heyapi deps
+RUN yarn install --locked && yarn generate
 RUN yarn lint
 
 FROM joseluisq/static-web-server:2.36.0
