@@ -6,6 +6,9 @@ services:
       args:
         - UID=${UID-1000}
         - GID=${UID-1000}
+    depends_on:
+      - postgres
+      - fake-auth
     volumes:
       - ./scripts:/opt/scripts:ro
       - ./backend:/opt/backend
@@ -25,6 +28,12 @@ services:
       - APP_SMTP_HOST=maildev
       - APP_OTLP_ENDPOINT=http://lgtm:4318/v1/logs
       - APP_OTLP_SERVICE_NAME=backend
+      - APP_POSTGRES_PASSWORD=portal
+      - APP_POSTGRES_USER=portal
+      - APP_POSTGRES_DB=portal
+      - APP_POSTGRES_URL=postgres://portal:portal@postgres:5432/portal?sslmode=disable
+      # For diesel-cli
+      - DATABASE_URL=postgres://portal:portal@postgres:5432/portal?sslmode=disable
     command: watchexec --restart -- ./dev/dev.sh
     labels:
       - traefik.enable=true
@@ -66,13 +75,16 @@ services:
       args:
         - UID=${UID-1000}
         - GID=${UID-1000}
+    depends_on:
+      - backend
+      - fake-auth
     volumes:
       - ./scripts:/opt/scripts:ro
       - ./portal:/opt/portal
       - ./openapi:/opt/openapi # dev.sh will write spec.json here.
     user: ${UID-1000}:${GID-1000}
     working_dir: /opt/portal
-    command: yarn run dev2
+    command: yarn run dev
     environment:
       - FORCE_COLOR=1
     tmpfs:
@@ -82,6 +94,34 @@ services:
       - traefik.http.routers.portal.rule=Host(`portal.localhost`)
       - traefik.http.services.portal.loadbalancer.server.port=3000
       - traefik.http.routers.portal.tls=true
+
+  postgres:
+    image: docker.io/library/postgres:17.4-alpine
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -d $${POSTGRES_DB} -U $${POSTGRES_USER}"]
+      start_period: 20s
+      interval: 30s
+      retries: 5
+      timeout: 5s
+    ports:
+      - 5432:5432
+    volumes:
+      - ./docker-data/db:/var/lib/postgresql/data
+    environment:
+      POSTGRES_PASSWORD: portal
+      POSTGRES_USER: portal
+      POSTGRES_DB: portal
+
+  pgweb:
+    image: sosedoff/pgweb:0.16.2
+    depends_on:
+      - postgres
+    environment:
+      - PGWEB_DATABASE_URL=postgres://portal:portal@postgres:5432/portal?sslmode=disable
+    labels:
+      - traefik.enable=true
+      - traefik.http.routers.pgweb.rule=Host(`pgweb.localhost`)
+      - traefik.http.routers.pgweb.tls=true
 
   traefik:
     image: traefik:v3.6

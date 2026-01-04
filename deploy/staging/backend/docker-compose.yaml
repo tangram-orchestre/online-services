@@ -1,6 +1,12 @@
 services:
   backend-staging:
     image: ghcr.io/tangram-orchestre/backend:staging
+    depends_on:
+      postgres-backend-staging:
+        condition: service_healthy
+        restart: true
+      maildev:
+        condition: service_healthy
     restart: unless-stopped
     security_opt:
       - no-new-privileges:true
@@ -11,6 +17,7 @@ services:
       - APP_SMTP_HOST=maildev
       - APP_OTLP_ENDPOINT=http://alloy:4318/v1/logs
       - APP_OTLP_SERVICE_NAME=backend-staging
+      - APP_POSTGRES_URL=postgres://portal:${APP_POSTGRES_PASSWORD}@postgres-backend-staging:5432/portal?sslmode=disable
     labels:
       - traefik.enable=true
       - "traefik.http.routers.backend-staging.rule= \
@@ -20,3 +27,18 @@ services:
       - traefik.http.routers.backend-staging.tls=true
       - traefik.http.routers.backend-staging.tls.certresolver=resolver
       - traefik.http.routers.backend-staging.middlewares=authentik@file,strip-api@file
+
+  postgres-backend-staging:
+    image: docker.io/library/postgres:17.4-alpine
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -d $${POSTGRES_DB} -U $${POSTGRES_USER}"]
+      start_period: 20s
+      interval: 30s
+      retries: 5
+      timeout: 5s
+    volumes:
+      - /opt/docker-volumes/backend-staging-db:/var/lib/postgresql/data
+    environment:
+      POSTGRES_PASSWORD: ${APP_POSTGRES_PASSWORD}
+      POSTGRES_USER: portal
+      POSTGRES_DB: portal

@@ -1,5 +1,8 @@
+mod auth;
+mod models;
 mod private;
 mod public;
+mod schema;
 mod settings;
 
 use std::{
@@ -7,6 +10,10 @@ use std::{
     sync::{Arc, Mutex},
 };
 
+use diesel::pg::Pg;
+use diesel_migrations::{
+    EmbeddedMigrations, HarnessWithOutput, MigrationHarness, embed_migrations,
+};
 use opentelemetry_otlp::WithExportConfig;
 use opentelemetry_sdk::{Resource, logs::SdkLoggerProvider};
 use tracing_subscriber::{
@@ -16,6 +23,11 @@ use tracing_subscriber::{
 };
 
 use chrono::Utc;
+use diesel_async::{
+    AsyncConnection, AsyncPgConnection,
+    async_connection_wrapper::AsyncConnectionWrapper,
+    pooled_connection::{AsyncDieselConnectionManager, deadpool::Pool},
+};
 use lettre::{
     AsyncSmtpTransport, Tokio1Executor,
     transport::smtp::{authentication::Credentials, extension::ClientId},
@@ -26,25 +38,23 @@ use poem::{
     middleware::{AddData, Cors},
 };
 use poem_openapi::OpenApiService;
-use private::PrivateApi;
 use public::PublicApi;
 
-pub(crate) struct AppState {
+pub struct AppStateInner {
     altcha_secret: String,
     altcha_validated_challenges: Mutex<HashMap<String, chrono::DateTime<Utc>>>,
     mailer: AsyncSmtpTransport<Tokio1Executor>,
+    db_connection_pool: Pool<AsyncPgConnection>,
 }
+
+pub type AppState = Arc<AppStateInner>;
 
 #[tokio::main]
 async fn main() -> Result<(), std::io::Error> {
     let public_api =
         OpenApiService::new(PublicApi, "Tangram Orchestre Public", "1.0.0").url_prefix("/public");
-    let public_docs = public_api.swagger_ui();
-    let public_spec = public_api.spec_endpoint();
 
-    let private_api = OpenApiService::new(PrivateApi, "Tangram Orchestre Private", "1.0.0");
-    let private_docs = private_api.swagger_ui();
-    let private_spec = private_api.spec_endpoint();
+    let private_api = OpenApiService::new(private::api(), "Tangram Orchestre Private", "1.0.0");
 
     let mut should_exit = false;
     if let Ok(path) = std::env::var("PUBLIC_OPENAPI_SPEC_PATH") {
@@ -69,19 +79,43 @@ async fn main() -> Result<(), std::io::Error> {
 
     let mailer = make_mailer(&settings);
 
-    let state = Arc::new(AppState {
+    let db_config = AsyncDieselConnectionManager::<AsyncPgConnection>::new(&settings.postgres_url);
+    let db_connection_pool = Pool::builder(db_config)
+        .build()
+        .expect("failed to create connection pool");
+
+    {
+        tracing::info!("Running database migrations...");
+
+        let connection = db_connection_pool
+            .get()
+            .await
+            .expect("failed to get connection for migrations");
+        run_migrations(connection)
+            .await
+            .expect("failed to run database migrations");
+    }
+
+    let state = Arc::new(AppStateInner {
         altcha_secret: settings.altcha_secret,
         altcha_validated_challenges: Default::default(),
         mailer,
+        db_connection_pool,
     });
 
+    let public_endpoints = Route::new()
+        .nest("/docs", public_api.openapi_explorer())
+        .nest("/spec", public_api.spec_endpoint())
+        .nest("/", public_api);
+
+    let private_endpoints = Route::new()
+        .nest("/docs", private_api.openapi_explorer())
+        .nest("/spec", private_api.spec_endpoint())
+        .nest("/", private_api.around(auth::authenticate));
+
     let app = Route::new()
-        .nest("/public", public_api)
-        .nest("/public/docs", public_docs)
-        .nest("/public/spec", public_spec)
-        .nest("/", private_api)
-        .nest("/docs", private_docs)
-        .nest("/spec", private_spec)
+        .nest("/", private_endpoints)
+        .nest("/public", public_endpoints)
         .with(AddData::new(state))
         .with(
             Cors::new()
@@ -165,4 +199,23 @@ fn make_mailer(settings: &settings::Settings) -> AsyncSmtpTransport<Tokio1Execut
         _ => panic!("SMTP name and password must be both set or both unset"),
     }
     .build()
+}
+
+async fn run_migrations<A>(async_connection: A) -> Result<(), Box<dyn std::error::Error>>
+where
+    A: AsyncConnection<Backend = Pg> + 'static,
+{
+    pub const MIGRATIONS: EmbeddedMigrations = embed_migrations!();
+
+    let mut async_wrapper: AsyncConnectionWrapper<A> =
+        AsyncConnectionWrapper::from(async_connection);
+
+    tokio::task::spawn_blocking(move || {
+        let mut harness = HarnessWithOutput::write_to_stdout(&mut async_wrapper);
+        harness.run_pending_migrations(MIGRATIONS).unwrap();
+    })
+    .await
+    .map_err(|e| Box::new(e) as Box<dyn std::error::Error>)?;
+
+    Ok(())
 }
