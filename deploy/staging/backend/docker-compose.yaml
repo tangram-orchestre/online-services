@@ -17,7 +17,7 @@ services:
       - APP_SMTP_HOST=maildev
       - APP_OTLP_ENDPOINT=http://alloy:4318/v1/logs
       - APP_OTLP_SERVICE_NAME=backend-staging
-      - APP_POSTGRES_URL=postgres://portal:${APP_POSTGRES_PASSWORD}@postgres:5432/portal?sslmode=disable
+      - APP_POSTGRES_URL=postgres://portal:${APP_POSTGRES_PASSWORD}@postgres-backend-staging:5432/portal?sslmode=disable
     labels:
       - traefik.enable=true
       - "traefik.http.routers.backend-staging.rule= \
