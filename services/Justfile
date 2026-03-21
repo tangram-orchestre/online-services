@@ -11,7 +11,7 @@ setup-env:
     docker compose build
 
 diesel *diesel_cmd:
-    docker compose run --rm backend diesel {{diesel_cmd}}
+    docker compose run --rm backend diesel {{ diesel_cmd }}
 
 ### Backend
 
@@ -38,7 +38,7 @@ lint-fix-showcase-website: setup-env
 ### Portal
 
 portal *cmd:
-    docker compose run --rm portal {{cmd}}
+    docker compose run --rm portal {{ cmd }}
 
 [group('lint')]
 lint-portal: setup-env
