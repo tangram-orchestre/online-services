@@ -2,14 +2,14 @@ use diesel::{QueryDsl, SelectableHelper};
 use diesel_async::RunQueryDsl;
 use poem_openapi::{OpenApi, param::Path};
 
+use crate::auth::policies::RequireRole;
+use crate::auth::{Principal, Role};
+use crate::error::{ApiError, Result};
 use crate::{
     AppState,
-    auth::User,
+    auth::policies::Policy,
     models::{self, NewSemester},
-    private::{
-        PrivateApiTags,
-        error::{ApiError, Result},
-    },
+    private::PrivateApiTags,
     schema::semesters,
 };
 
@@ -44,14 +44,12 @@ impl Api {
     pub(crate) async fn create_semester(
         &self,
         Data(state): Data<&AppState>,
-        Data(user): Data<&User>,
+        Data(principal): Data<&Principal>,
         new_semester: Json<NewSemester>,
     ) -> Result<Json<models::Semester>> {
-        let mut conn = state.db_connection_pool.get().await.unwrap();
+        RequireRole(Role::Bureau).check(principal)?;
 
-        if !user.groups.contains(&"Orga".to_string()) {
-            return Err(ApiError::Forbidden);
-        }
+        let mut conn = state.db_connection_pool.get().await.unwrap();
 
         Ok(Json(
             diesel::insert_into(semesters::table)
@@ -68,7 +66,10 @@ impl Api {
         &self,
         Data(state): Data<&AppState>,
         Json(semester): Json<models::Semester>,
+        principal: Principal,
     ) -> Result<()> {
+        RequireRole(Role::Bureau).check(&principal)?;
+
         let mut conn = state.db_connection_pool.get().await.unwrap();
 
         diesel::update(semesters::table.find(semester.id))
@@ -85,7 +86,10 @@ impl Api {
         &self,
         Data(state): Data<&AppState>,
         Path(semester_id): Path<i32>,
+        principal: Principal,
     ) -> Result<()> {
+        RequireRole(Role::Bureau).check(&principal)?;
+
         let mut conn = state.db_connection_pool.get().await.unwrap();
 
         let deleted = diesel::delete(semesters::table.find(semester_id))

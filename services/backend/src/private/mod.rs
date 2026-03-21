@@ -1,7 +1,5 @@
 use poem_openapi::{OpenApi, Tags};
 
-mod error;
-
 mod misc;
 mod semesters;
 mod users;

@@ -9,41 +9,41 @@ pub type Result<T> = std::result::Result<T, ApiError>;
 
 #[derive(ApiResponse)]
 #[oai(bad_request_handler = "bad_request_handler")]
-pub(super) enum ApiError {
+pub enum ApiError {
     /// Returns when the request parameters is incorrect.
     #[oai(status = 400)]
     BadRequest(Json<BadRequestReason>),
     #[oai(status = 404)]
     NotFound,
     #[oai(status = 500)]
-    InternalError(PlainText<String>),
+    Internal(PlainText<String>),
     #[oai(status = 403)]
     Forbidden,
 }
 
 #[derive(Object, Debug, PartialEq)]
-pub(super) struct UniqueViolation;
+pub struct UniqueViolation;
 
 #[derive(Object, Debug, PartialEq)]
-pub(super) struct CheckViolation {
+pub struct CheckViolation {
     message: String,
 }
 
 #[derive(Union, Debug, PartialEq)]
 #[oai(discriminator_name = "type")]
-pub(super) enum BadRequestReason {
+pub enum BadRequestReason {
     UniqueViolation(UniqueViolation),
     CheckViolation(CheckViolation),
 }
 
 fn bad_request_handler(err: poem::Error) -> ApiError {
-    ApiError::InternalError(PlainText(err.to_string()))
+    ApiError::Internal(PlainText(err.to_string()))
 }
 
 impl ApiError {
-    // pub(super) fn internal_error(text: impl Into<String>) -> Self {
-    //     Self::InternalError(PlainText(text.into()))
-    // }
+    pub(super) fn internal(text: impl Into<String>) -> Self {
+        Self::Internal(PlainText(text.into()))
+    }
 }
 
 impl From<diesel::result::Error> for ApiError {
@@ -67,11 +67,11 @@ impl From<diesel::result::Error> for ApiError {
                 | DatabaseErrorKind::ReadOnlyTransaction
                 | DatabaseErrorKind::SerializationFailure
                 | DatabaseErrorKind::UnableToSendCommand => {
-                    Self::InternalError(PlainText(e.to_string()))
+                    Self::Internal(PlainText(e.to_string()))
                 }
-                _ => Self::InternalError(PlainText(e.to_string())),
+                _ => Self::Internal(PlainText(e.to_string())),
             },
-            e => Self::InternalError(PlainText(e.to_string())),
+            e => Self::Internal(PlainText(e.to_string())),
         }
     }
 }

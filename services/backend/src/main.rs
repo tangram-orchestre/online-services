@@ -1,4 +1,5 @@
 mod auth;
+mod error;
 mod models;
 mod private;
 mod public;
@@ -26,25 +27,39 @@ use chrono::Utc;
 use diesel_async::{
     AsyncConnection, AsyncPgConnection,
     async_connection_wrapper::AsyncConnectionWrapper,
-    pooled_connection::{AsyncDieselConnectionManager, deadpool::Pool},
+    pooled_connection::{
+        AsyncDieselConnectionManager,
+        deadpool::{Object, Pool},
+    },
 };
 use lettre::{
     AsyncSmtpTransport, Tokio1Executor,
     transport::smtp::{authentication::Credentials, extension::ClientId},
 };
 use poem::{
-    EndpointExt, Route,
+    Endpoint, EndpointExt, IntoResponse, Request, Route,
     listener::TcpListener,
     middleware::{AddData, Cors},
 };
 use poem_openapi::OpenApiService;
 use public::PublicApi;
 
+use crate::error::ApiError;
+
 pub struct AppStateInner {
     altcha_secret: String,
     altcha_validated_challenges: Mutex<HashMap<String, chrono::DateTime<Utc>>>,
     mailer: AsyncSmtpTransport<Tokio1Executor>,
     db_connection_pool: Pool<AsyncPgConnection>,
+}
+
+impl AppStateInner {
+    pub async fn get_db_connection(&self) -> Result<Object<AsyncPgConnection>, ApiError> {
+        self.db_connection_pool
+            .get()
+            .await
+            .map_err(|_| ApiError::internal("Failed to get database connection"))
+    }
 }
 
 pub type AppState = Arc<AppStateInner>;
@@ -91,6 +106,7 @@ async fn main() -> Result<(), std::io::Error> {
             .get()
             .await
             .expect("failed to get connection for migrations");
+
         run_migrations(connection)
             .await
             .expect("failed to run database migrations");
@@ -111,7 +127,7 @@ async fn main() -> Result<(), std::io::Error> {
     let private_endpoints = Route::new()
         .nest("/docs", private_api.openapi_explorer())
         .nest("/spec", private_api.spec_endpoint())
-        .nest("/", private_api.around(auth::authenticate));
+        .nest("/", private_api.around(auth::require_authentication));
 
     let app = Route::new()
         .nest("/", private_endpoints)
@@ -121,7 +137,9 @@ async fn main() -> Result<(), std::io::Error> {
             Cors::new()
                 .allow_origins(settings.cors_origins.split(','))
                 .allow_credentials(true),
-        );
+        )
+        .around(log_errors)
+        .around(auth::authenticate);
 
     tracing::info!("Listening on port 3000");
     poem::Server::new(TcpListener::bind("0.0.0.0:3000"))
@@ -182,6 +200,46 @@ fn setup_logging(settings: &settings::Settings) {
         .with(otel_layer)
         .with(fmt_layer)
         .init();
+}
+
+async fn log_errors<E: Endpoint>(
+    endpoint: E,
+    req: Request,
+) -> Result<impl IntoResponse, poem::Error>
+where
+    E::Output: IntoResponse,
+{
+    let route = req.uri().clone();
+    let method = req.method().clone();
+    let principal = req.extensions().get::<auth::Principal>().cloned();
+
+    let res = endpoint.call(req).await;
+
+    let make_error_message = |prefix: &str, err: &dyn std::fmt::Display| {
+        format!("{} ({} {}): `{}`", prefix, method, route, err)
+    };
+
+    match res {
+        Err(err) => {
+            tracing::error!("{}", make_error_message("Error processing request", &err));
+            Err(err)
+        }
+        Ok(response) => {
+            let response = response.into_response();
+            if !response.status().is_success() {
+                tracing::error!(
+                    { principal = ?principal },
+                    "{}",
+                    make_error_message(
+                        "Request resulted in an error response",
+                        &format!("{:?}", response.status())
+                    )
+                );
+            }
+
+            Ok(response)
+        }
+    }
 }
 
 fn make_mailer(settings: &settings::Settings) -> AsyncSmtpTransport<Tokio1Executor> {

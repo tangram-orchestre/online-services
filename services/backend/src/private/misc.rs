@@ -2,7 +2,7 @@ use poem_openapi::OpenApi;
 
 use crate::private::PrivateApiTags;
 
-use super::error::Result;
+use crate::error::Result;
 
 pub(super) struct Api;
 
