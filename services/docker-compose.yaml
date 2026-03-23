@@ -32,6 +32,7 @@ services:
       - APP_POSTGRES_USER=portal
       - APP_POSTGRES_DB=portal
       - APP_POSTGRES_URL=postgres://portal:portal@postgres:5432/portal?sslmode=disable
+      - APP_SEED_FILE_PATH=/opt/backend/seeds/dev.sql
       # For diesel-cli
       - DATABASE_URL=postgres://portal:portal@postgres:5432/portal?sslmode=disable
     command: watchexec --restart -- ./dev/dev.sh

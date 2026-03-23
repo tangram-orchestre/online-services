@@ -25,7 +25,7 @@ use tracing_subscriber::{
 
 use chrono::Utc;
 use diesel_async::{
-    AsyncConnection, AsyncPgConnection,
+    AsyncConnection, AsyncPgConnection, RunQueryDsl,
     async_connection_wrapper::AsyncConnectionWrapper,
     pooled_connection::{
         AsyncDieselConnectionManager,
@@ -102,14 +102,33 @@ async fn main() -> Result<(), std::io::Error> {
     {
         tracing::info!("Running database migrations...");
 
-        let connection = db_connection_pool
+        let conn = db_connection_pool
             .get()
             .await
             .expect("failed to get connection for migrations");
 
-        run_migrations(connection)
+        run_migrations(conn)
             .await
             .expect("failed to run database migrations");
+
+        tracing::info!("Database migrations complete");
+    }
+
+    // If a seed file path is provided, run the seed script.
+    if let Some(seed_file_path) = settings.seed_file_path {
+        tracing::info!("Running seed script ({})...", seed_file_path);
+
+        let seed_sql = std::fs::read_to_string(seed_file_path).expect("failed to read seed file");
+
+        let mut conn = db_connection_pool
+            .get()
+            .await
+            .expect("failed to get connection for seeding");
+
+        match diesel::sql_query(seed_sql).execute(&mut conn).await {
+            Ok(_) => tracing::info!("Seed script complete"),
+            Err(err) => tracing::error!("Failed to execute seed SQL: {}", err),
+        }
     }
 
     let state = Arc::new(AppStateInner {
