@@ -56,6 +56,12 @@ const semesterDialogShown = ref(false);
 const saveSemesterId = ref<number | null>(null);
 const saveSemesterError = ref<string | null>(null);
 
+watch(semesterDialogShown, (shown) => {
+  if (shown) {
+    saveSemesterError.value = null;
+  }
+});
+
 const saveSemester = (id: number | null) => {
   const onResponseError = (e: {
     response: { status: number; _data: BadRequestReason };
@@ -65,7 +71,7 @@ const saveSemester = (id: number | null) => {
       if (d.type === "UniqueViolation") {
         saveSemesterError.value = "Un semestre avec ce nom existe déjà";
       } else if (d.type === "CheckViolation") {
-        saveSemesterError.value = d.message;
+        saveSemesterError.value = errorMessageFromCheckViolation(d);
       } else {
         saveSemesterError.value = "Erreur inconnue";
       }

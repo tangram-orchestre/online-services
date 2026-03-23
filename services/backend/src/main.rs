@@ -227,7 +227,7 @@ where
         Ok(response) => {
             let response = response.into_response();
             if !response.status().is_success() {
-                tracing::error!(
+                tracing::warn!(
                     { principal = ?principal },
                     "{}",
                     make_error_message(

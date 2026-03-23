@@ -17,7 +17,7 @@ BEGIN
     WHERE (NEW.start_date, NEW.end_date) OVERLAPS (start_date, end_date)
       AND id != NEW.id
   ) THEN
-    RAISE EXCEPTION check_violation USING MESSAGE = 'Semesters dates cannot overlap with existing semesters';
+    RAISE EXCEPTION check_violation USING MESSAGE = 'semesters_date_overlap', DETAIL = 'Semesters dates cannot overlap with existing semesters';
   END IF;
   RETURN NEW;
 END;

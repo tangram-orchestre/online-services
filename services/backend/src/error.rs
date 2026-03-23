@@ -1,5 +1,5 @@
 use poem_openapi::{
-    ApiResponse, Object, Union,
+    ApiResponse, Enum, Object, Union,
     payload::{Json, PlainText},
 };
 
@@ -24,9 +24,16 @@ pub enum ApiError {
 #[derive(Object, Debug, PartialEq)]
 pub struct UniqueViolation;
 
+#[derive(Enum, Debug, PartialEq)]
+pub enum CheckViolationKind {
+    SemestersDateOverlap,
+}
+
 #[derive(Object, Debug, PartialEq)]
 pub struct CheckViolation {
+    kind: Option<CheckViolationKind>,
     message: String,
+    details: Option<String>,
 }
 
 #[derive(Union, Debug, PartialEq)]
@@ -51,14 +58,24 @@ impl From<diesel::result::Error> for ApiError {
         match &value {
             e @ diesel::result::Error::DatabaseError(
                 database_error_kind,
-                _database_error_information,
+                database_error_information,
             ) => match database_error_kind {
                 DatabaseErrorKind::UniqueViolation => {
                     ApiError::BadRequest(Json(BadRequestReason::UniqueViolation(UniqueViolation)))
                 }
                 DatabaseErrorKind::CheckViolation => {
+                    let kind = match database_error_information.message() {
+                        "semesters_date_overlap" => Some(CheckViolationKind::SemestersDateOverlap),
+                        other => {
+                            tracing::warn!("Unknown check violation: {}", other);
+                            None
+                        }
+                    };
+
                     ApiError::BadRequest(Json(BadRequestReason::CheckViolation(CheckViolation {
-                        message: e.to_string(),
+                        kind,
+                        message: database_error_information.message().to_string(),
+                        details: database_error_information.details().map(|s| s.to_string()),
                     })))
                 }
                 DatabaseErrorKind::ForeignKeyViolation => todo!(),
