@@ -1,9 +1,9 @@
 # Start development environment
-dev: ensure-certs setup-env
+dev: ensure-certs build-env
     docker compose up --remove-orphans
 
-# Setup development environment
-setup-env:
+# Build development environment
+build-env:
     #!/usr/bin/env bash
     echo UID=$(id -u) > .env
     echo GID=$(id -g) >> .env
@@ -16,23 +16,23 @@ diesel *diesel_cmd:
 ### Backend
 
 [group('lint')]
-lint-backend: setup-env
+lint-backend: build-env
     docker compose run --rm backend cargo fmt -- --check
     docker compose run --rm backend cargo clippy -- -D warnings
 
 [group('lint-fix')]
-lint-fix-backend: setup-env
+lint-fix-backend: build-env
     docker compose run --rm backend cargo fmt
     docker compose run --rm backend cargo clippy --fix --allow-no-vcs
 
 ### Showcase Website
 
 [group('lint')]
-lint-showcase-website: setup-env
+lint-showcase-website: build-env
     docker compose run --rm showcase-website yarn lint
 
 [group('lint-fix')]
-lint-fix-showcase-website: setup-env
+lint-fix-showcase-website: build-env
     docker compose run --rm showcase-website yarn lint:fix
 
 ### Portal
@@ -41,11 +41,11 @@ portal *cmd:
     docker compose run --rm portal {{ cmd }}
 
 [group('lint')]
-lint-portal: setup-env
+lint-portal: build-env
     docker compose run --rm portal yarn lint
 
 [group('lint-fix')]
-lint-fix-portal: setup-env
+lint-fix-portal: build-env
     docker compose run --rm portal yarn lint:fix
 
 ### Global
