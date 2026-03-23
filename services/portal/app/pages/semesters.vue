@@ -160,6 +160,7 @@ const deleteSemester = (id: number) => {
         { title: 'Actions', value: 'actions', align: 'end' },
       ]"
       :hide-default-footer="semesters.length < 11"
+      :sort-by="[{ key: 'start_date', order: 'desc' }]"
       item-value="id"
     >
       <template #top>
