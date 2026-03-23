@@ -42,3 +42,18 @@ services:
       POSTGRES_PASSWORD: ${APP_POSTGRES_PASSWORD}
       POSTGRES_USER: portal
       POSTGRES_DB: portal
+
+  postgres-backend-staging-backup:
+    image: docker.io/library/postgres:17.4-alpine
+    depends_on:
+      postgres-backend-staging:
+        condition: service_healthy
+    volumes:
+      - /opt/db-backups/postgres-backend-staging-db:/opt/db-backups
+      - ./postgres-backup-crontab:/etc/crontabs/root:ro
+    environment:
+      PGPASSWORD: ${APP_POSTGRES_PASSWORD}
+      PGUSER: portal
+      PGDATABASE: portal
+      PGHOST: postgres-backend-staging
+    command: crond -f -l 8
