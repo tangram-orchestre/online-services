@@ -2,7 +2,7 @@ services:
   backend-staging:
     image: ghcr.io/tangram-orchestre/backend:staging
     depends_on:
-      postgres-backend-staging:
+      backend-postgres-staging:
         condition: service_healthy
         restart: true
       maildev:
@@ -17,7 +17,7 @@ services:
       - APP_SMTP_HOST=maildev
       - APP_OTLP_ENDPOINT=http://alloy:4318/v1/logs
       - APP_OTLP_SERVICE_NAME=backend-staging
-      - APP_POSTGRES_URL=postgres://portal:${APP_POSTGRES_PASSWORD}@postgres-backend-staging:5432/portal?sslmode=disable
+      - APP_POSTGRES_URL=postgres://portal:${APP_POSTGRES_PASSWORD}@backend-postgres-staging:5432/portal?sslmode=disable
     labels:
       - traefik.enable=true
       - "traefik.http.routers.backend-staging.rule= \
@@ -29,7 +29,7 @@ services:
       - traefik.http.routers.backend-staging.tls.certresolver=resolver
       - traefik.http.routers.backend-staging.middlewares=authentik@file,strip-api@file
 
-  postgres-backend-staging:
+  backend-postgres-staging:
     image: docker.io/library/postgres:17.4-alpine
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -d $${POSTGRES_DB} -U $${POSTGRES_USER}"]
@@ -44,17 +44,17 @@ services:
       POSTGRES_USER: portal
       POSTGRES_DB: portal
 
-  postgres-backend-staging-backup:
+  backend-postgres-staging-backup:
     image: docker.io/library/postgres:17.4-alpine
     depends_on:
-      postgres-backend-staging:
+      backend-postgres-staging:
         condition: service_healthy
     volumes:
-      - /opt/db-backups/postgres-backend-staging-db:/opt/db-backups
+      - /opt/db-backups/backend-postgres-staging:/opt/db-backups
       - ./postgres-backup-crontab:/etc/crontabs/root:ro
     environment:
       PGPASSWORD: ${APP_POSTGRES_PASSWORD}
       PGUSER: portal
       PGDATABASE: portal
-      PGHOST: postgres-backend-staging
+      PGHOST: backend-postgres-staging
     command: crond -f -l 8

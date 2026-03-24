@@ -5,7 +5,7 @@ services:
     security_opt:
       - no-new-privileges:true
     depends_on:
-      postgres-backend:
+      backend-postgres:
         condition: service_healthy
         restart: true
     environment:
@@ -17,7 +17,7 @@ services:
       - APP_SMTP_PASSWORD=${APP_SMTP_PASSWORD}
       - APP_OTLP_ENDPOINT=http://alloy:4318/v1/logs
       - APP_OTLP_SERVICE_NAME=backend
-      - APP_POSTGRES_URL=postgres://portal:${APP_POSTGRES_PASSWORD}@postgres-backend:5432/portal?sslmode=disable
+      - APP_POSTGRES_URL=postgres://portal:${APP_POSTGRES_PASSWORD}@backend-postgres:5432/portal?sslmode=disable
     labels:
       - traefik.enable=true
       # Public Router (for www.tangram-orchestre.fr)
@@ -35,7 +35,7 @@ services:
       - traefik.http.routers.backend-private.tls.certresolver=resolver
       - traefik.http.routers.backend-private.middlewares=authentik@file,strip-api@file
 
-  postgres-backend:
+  backend-postgres:
     image: docker.io/library/postgres:17.4-alpine
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -d $${POSTGRES_DB} -U $${POSTGRES_USER}"]
@@ -50,17 +50,17 @@ services:
       POSTGRES_USER: portal
       POSTGRES_DB: portal
 
-  postgres-backend-backup:
+  backend-postgres-backup:
     image: docker.io/library/postgres:17.4-alpine
     depends_on:
-      postgres-backend:
+      backend-postgres:
         condition: service_healthy
     volumes:
-      - /opt/db-backups/postgres-backend-db:/opt/db-backups
+      - /opt/db-backups/backend-postgres:/opt/db-backups
       - ./postgres-backup-crontab:/etc/crontabs/root:ro
     environment:
       PGPASSWORD: ${APP_POSTGRES_PASSWORD}
       PGUSER: portal
       PGDATABASE: portal
-      PGHOST: postgres-backend
+      PGHOST: backend-postgres
     command: crond -f -l 8
