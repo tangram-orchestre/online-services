@@ -8,13 +8,13 @@ RUN apt-get update && apt-get install -y curl build-essential libpq-dev bash pkg
 # Install rust
 ENV RUSTUP_HOME=/opt/rustup_home
 ENV CARGO_HOME=/opt/cargo_home
-RUN curl https://sh.rustup.rs -sSf | sh -s -- --default-toolchain=1.88.0 -y
+RUN curl https://sh.rustup.rs -sSf | sh -s -- --default-toolchain=1.94.0 -y
 
 ENV PATH=/opt/cargo_home/bin:$PATH
 
 # Install tools
-RUN cargo install diesel_cli --no-default-features --features "postgres"
-RUN cargo install watchexec-cli
+RUN cargo install diesel_cli@2.3.7 --no-default-features --features "postgres"
+RUN cargo install watchexec-cli@2.5.0
 
 # Set env variables
 ENV CARGO_TARGET_DIR=/opt/cargo_target_dir

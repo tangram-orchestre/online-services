@@ -1,5 +1,3 @@
-use std::sync::Arc;
-
 use altcha_lib_rs::{Challenge, ChallengeOptions, verify_solution};
 use chrono::Utc;
 use lettre::{
@@ -56,7 +54,7 @@ const ALTCHA_CHALLENGE_COMPLEXITY: u64 = 100_000;
 impl PublicApi {
     /// Retrieve an Altcha challenge that can be used to validate a contact form
     #[oai(path = "/altcha_challenge", method = "get", tag = PublicApiTags::Contact)]
-    async fn altcha_challenge(&self, state: Data<&Arc<AppState>>) -> Json<Any<Challenge>> {
+    async fn altcha_challenge(&self, state: Data<&AppState>) -> Json<Any<Challenge>> {
         let challenge = altcha_lib_rs::create_challenge(ChallengeOptions {
             hmac_key: &state.altcha_secret,
             expires: Some(Utc::now() + chrono::TimeDelta::minutes(ALTCHA_EXPIRATION_MINUTES)),
@@ -75,7 +73,7 @@ impl PublicApi {
     async fn send_contact_form(
         &self,
         contact_form: Json<ContactForm>,
-        state: Data<&Arc<AppState>>,
+        state: Data<&AppState>,
     ) -> SendContactFormResponse {
         if let Err(e) = verify_solution(&contact_form.altcha.0, &state.altcha_secret, true) {
             tracing::error!("Altcha challenge could not be validated: {:?}", e);

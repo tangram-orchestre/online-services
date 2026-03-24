@@ -21,6 +21,7 @@ services:
       # Mount local folders to snapshot
       - /opt/docker-volumes:/data/docker-volumes:ro
       - /opt/services:/data/services:ro
+      - /opt/db-backups:/data/db-backups:ro
       # Mount path for browsing mounted snaphots
       # - /opt/snapshots:/tmp:shared
       # Mount rclone config

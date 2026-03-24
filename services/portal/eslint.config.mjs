@@ -19,5 +19,11 @@ export default withNuxt(eslintPluginPrettierRecommended, {
         math: "always",
       },
     ],
+    "vue/valid-v-slot": [
+      "error",
+      {
+        allowModifiers: true,
+      },
+    ],
   },
 });

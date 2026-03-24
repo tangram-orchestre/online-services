@@ -42,7 +42,6 @@ function getUser(id) {
 
 // Create an HTTP server
 const server = http.createServer((req, res) => {
-  console.log(`Request received: ${req.method} ${req.url}`);
   try {
     if (req.url === "/auth" && req.method === "GET") {
       const userId = readFile(CURRENT_USER_FILE);
