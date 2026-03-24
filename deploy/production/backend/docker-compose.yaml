@@ -13,9 +13,48 @@ services:
       - APP_SMTP_PASSWORD=${APP_SMTP_PASSWORD}
       - APP_OTLP_ENDPOINT=http://alloy:4318/v1/logs
       - APP_OTLP_SERVICE_NAME=backend
+      - APP_POSTGRES_URL=postgres://portal:${APP_POSTGRES_PASSWORD}@postgres-backend:5432/portal?sslmode=disable
     labels:
       - traefik.enable=true
-      - "traefik.http.routers.backend.rule=Host(`api.tangram-orchestre.fr`) || Host(`www.tangram-orchestre.fr`) && PathPrefix(`/api/public`)"
-      - traefik.http.routers.backend.tls=true
-      - traefik.http.routers.backend.tls.certresolver=resolver
-      - traefik.http.routers.backend.middlewares=strip-api@file
+      # Public Router (for www.tangram-orchestre.fr)
+      - "traefik.http.routers.backend-public.rule=Host(`www.tangram-orchestre.fr`) && PathPrefix(`/api/public`)"
+      - traefik.http.routers.backend-public.tls=true
+      - traefik.http.routers.backend-public.tls.certresolver=resolver
+      - traefik.http.routers.backend-public.middlewares=strip-api@file
+      # Private Router (for portal.tangram-orchestre.fr and api.tangram-orchestre.fr)
+      - "traefik.http.routers.backend-private.rule= \
+        Host(`api.tangram-orchestre.fr`) || \
+        Host(`portal.tangram-orchestre.fr`) && PathPrefix(`/api`)"
+      - traefik.http.routers.backend-private.tls=true
+      - traefik.http.routers.backend-private.tls.certresolver=resolver
+      - traefik.http.routers.backend-private.middlewares=authentik@file,strip-api@file
+
+  postgres-backend:
+    image: docker.io/library/postgres:17.4-alpine
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -d $${POSTGRES_DB} -U $${POSTGRES_USER}"]
+      start_period: 20s
+      interval: 30s
+      retries: 5
+      timeout: 5s
+    volumes:
+      - /opt/docker-volumes/backend-db:/var/lib/postgresql/data
+    environment:
+      POSTGRES_PASSWORD: ${APP_POSTGRES_PASSWORD}
+      POSTGRES_USER: portal
+      POSTGRES_DB: portal
+
+  postgres-backend-backup:
+    image: docker.io/library/postgres:17.4-alpine
+    depends_on:
+      postgres-backend:
+        condition: service_healthy
+    volumes:
+      - /opt/db-backups/postgres-backend-db:/opt/db-backups
+      - ./postgres-backup-crontab:/etc/crontabs/root:ro
+    environment:
+      PGPASSWORD: ${APP_POSTGRES_PASSWORD}
+      PGUSER: portal
+      PGDATABASE: portal
+      PGHOST: postgres-backend
+    command: crond -f -l 8
