@@ -4,9 +4,13 @@ services:
     restart: unless-stopped
     security_opt:
       - no-new-privileges:true
+    depends_on:
+      postgres-backend:
+        condition: service_healthy
+        restart: true
     environment:
       - APP_HOST=tangram-orchestre.fr
-      - APP_CORS_ORIGINS=https://www.tangram-orchestre.fr,https://api.tangram-orchestre.fr
+      - APP_CORS_ORIGINS=https://www.tangram-orchestre.fr,https://portal.tangram-orchestre.fr,https://api.tangram-orchestre.fr
       - APP_ALTCHA_SECRET=${APP_ALTCHA_SECRET}
       - APP_SMTP_HOST=smtp-relay.gmail.com
       - APP_SMTP_NAME=${APP_SMTP_NAME}
@@ -18,6 +22,7 @@ services:
       - traefik.enable=true
       # Public Router (for www.tangram-orchestre.fr)
       - "traefik.http.routers.backend-public.rule=Host(`www.tangram-orchestre.fr`) && PathPrefix(`/api/public`)"
+      - traefik.http.routers.backend-public.priority=2
       - traefik.http.routers.backend-public.tls=true
       - traefik.http.routers.backend-public.tls.certresolver=resolver
       - traefik.http.routers.backend-public.middlewares=strip-api@file
@@ -25,6 +30,7 @@ services:
       - "traefik.http.routers.backend-private.rule= \
         Host(`api.tangram-orchestre.fr`) || \
         Host(`portal.tangram-orchestre.fr`) && PathPrefix(`/api`)"
+      - traefik.http.routers.backend-private.priority=2
       - traefik.http.routers.backend-private.tls=true
       - traefik.http.routers.backend-private.tls.certresolver=resolver
       - traefik.http.routers.backend-private.middlewares=authentik@file,strip-api@file

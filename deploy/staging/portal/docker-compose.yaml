@@ -7,6 +7,8 @@ services:
     labels:
       - traefik.enable=true
       - "traefik.http.routers.staging-portal.rule=Host(`portal.staging.tangram-orchestre.fr`)"
+      # Lesser priority than backend-staging to avoid conflicts on /api prefix
+      - traefik.http.routers.staging-portal.priority=1
       - traefik.http.routers.staging-portal.tls=true
       - traefik.http.routers.staging-portal.tls.certresolver=resolver
       - traefik.http.routers.staging-portal.middlewares=authentik@file

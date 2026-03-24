@@ -10,6 +10,8 @@ services:
     labels:
       - traefik.enable=true
       - "traefik.http.routers.website.rule=Host(`tangram-orchestre.fr`) || Host(`www.tangram-orchestre.fr`)"
+      # Lesser priority than backend-public to avoid conflicts on /api/public prefix
+      - traefik.http.routers.website.priority=1
       - "traefik.http.middlewares.redirect-none-to-www.redirectregex.regex=^https://tangram-orchestre\\.fr(.*)$$"
       - "traefik.http.middlewares.redirect-none-to-www.redirectregex.replacement=https://www.tangram-orchestre.fr$${1}"
       - traefik.http.routers.website.middlewares=redirect-none-to-www@docker

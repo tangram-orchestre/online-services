@@ -5,6 +5,7 @@ include:
   - ./watchtower/docker-compose.yaml
   - ./kopia/docker-compose.yaml
   - ./backend/docker-compose.yaml
+  - ./portal/docker-compose.yaml
   - ./website/docker-compose.yaml
   - ./observability/docker-compose.yaml
 

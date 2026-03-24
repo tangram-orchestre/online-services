@@ -26,6 +26,3 @@ http:
           - X-App-LastName
           - X-App-FirstName
           - X-App-PhoneNumber
-
-          # Generic Authorization header
-          - Authorization

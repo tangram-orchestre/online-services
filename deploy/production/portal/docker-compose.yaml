@@ -1,0 +1,14 @@
+services:
+  portal:
+    image: ghcr.io/tangram-orchestre/portal:production
+    restart: unless-stopped
+    security_opt:
+      - no-new-privileges:true
+    labels:
+      - traefik.enable=true
+      - "traefik.http.routers.portal.rule=Host(`portal.tangram-orchestre.fr`)"
+      # Lesser priority than backend-private to avoid conflicts on /api prefix
+      - traefik.http.routers.portal.priority=1
+      - traefik.http.routers.portal.tls=true
+      - traefik.http.routers.portal.tls.certresolver=resolver
+      - traefik.http.routers.portal.middlewares=authentik@file
