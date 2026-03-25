@@ -1,0 +1,37 @@
+services:
+  postgres:
+    image: docker.io/library/postgres:17.4-alpine
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -d $${POSTGRES_DB} -U $${POSTGRES_USER}"]
+      start_period: 20s
+      interval: 30s
+      retries: 5
+      timeout: 5s
+    environment:
+      POSTGRES_PASSWORD: portal
+      POSTGRES_USER: portal
+      POSTGRES_DB: portal
+
+  postgres-backup-restore:
+    image: docker.io/library/postgres:17.4-alpine
+    depends_on:
+      postgres:
+        condition: service_healthy
+    volumes:
+      - ${BACKUP_LOCATION}:/opt/backup.dump
+    environment:
+      PGPASSWORD: portal
+      PGUSER: portal
+      PGDATABASE: portal
+      PGHOST: postgres
+    command: sh -c "pg_restore --verbose --clean --no-acl --no-owner -h $${PGHOST} -U $${PGUSER} -d $${PGDATABASE} /opt/backup.dump"
+
+  pgweb:
+    image: sosedoff/pgweb:0.16.2
+    depends_on:
+      postgres:
+        condition: service_healthy
+    environment:
+      - PGWEB_DATABASE_URL=postgres://portal:portal@postgres:5432/portal?sslmode=disable
+    ports:
+      - "8081:8081"
