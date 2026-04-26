@@ -1,6 +1,6 @@
 DO $$
 BEGIN
-    IF EXISTS (SELECT 1 FROM semesters WHERE name = 'A26') THEN
+    IF EXISTS (SELECT 1 FROM semesters WHERE name = 'P26') THEN
         RETURN;
     END IF;
 
