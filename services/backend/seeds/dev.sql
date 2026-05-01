@@ -27,15 +27,15 @@ BEGIN
         SELECT id INTO loc2_id FROM locations WHERE city = 'Lyon'  AND street = '10 Place Bellecour';
 
         -- Concerts
-        INSERT INTO concerts (date, tickets_url, video_url, doors_open_at, starts_at, public, location_id) VALUES
-            ('2026-05-15', 'https://tickets.example.com/spring-concert', NULL, '19:30', '20:00', TRUE,  loc1_id),
-            ('2026-06-20', NULL,                                          NULL, NULL,   '18:00', FALSE, loc2_id);
+        SELECT id INTO semester_p26_id FROM semesters WHERE name = 'P26';
+        INSERT INTO concerts (date, tickets_url, video_url, doors_open_at, starts_at, public, location_id, semester_id) VALUES
+            ('2026-05-15', 'https://tickets.example.com/spring-concert', NULL, '19:30', '20:00', TRUE,  loc1_id, semester_p26_id),
+            ('2026-06-20', NULL,                                          NULL, NULL,   '18:00', FALSE, loc2_id, semester_p26_id);
 
         SELECT id INTO concert1_id FROM concerts WHERE date = '2026-05-15' AND location_id = loc1_id;
         SELECT id INTO concert2_id FROM concerts WHERE date = '2026-06-20' AND location_id = loc2_id;
 
         -- Pieces
-        SELECT id INTO semester_p26_id FROM semesters WHERE name = 'P26';
         INSERT INTO pieces (name, source, composer, arranger, semester_id) VALUES
             ('Symphony No. 5',    'Op. 67',         'Ludwig van Beethoven', NULL,         semester_p26_id),
             ('Bohemian Rhapsody', NULL,              'Freddie Mercury',      'John Smith', semester_p26_id),

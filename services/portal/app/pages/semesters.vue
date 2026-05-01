@@ -130,20 +130,39 @@ const submit = handleSubmit(() => {
 
 const deleteSemestersDialog = ref(false);
 const deleteSemester = (id: number) => {
+  const onResponseError = (e: {
+    response: { status: number; _data: BadRequestReason };
+  }) => {
+    let errorMsg = "Erreur inconnue";
+    if (e.response._data && e.response.status === 400) {
+      const d = e.response._data as GetDummyErrors[400];
+      if (d.type === "UniqueViolation") {
+        errorMsg = "Un semestre avec ce nom existe déjà";
+      } else if (d.type === "CheckViolation") {
+        errorMsg = errorMessageFromCheckViolation(d);
+      } else if (d.type === "NotNullViolation") {
+        errorMsg = "Un champ requis n'est pas rempli";
+      } else if (d.type === "ForeignKeyViolation") {
+        errorMsg = "Impossible de supprimer ce semestre car il est utilisé";
+      }
+    } else {
+      errorMsg = `Erreur ${e.response.status}`;
+    }
+    toast.error(errorMsg);
+    refresh();
+  };
+
   deleteSemesterBySemesterId({
     composable: "$fetch",
     path: { semester_id: id },
-  })
-    .then(() => {
-      if (semesters.value) {
-        semesters.value = semesters.value.filter((s) => s.id !== id);
-      }
-      deleteSemestersDialog.value = false;
-      toast.success("Semestre supprimé avec succès");
-    })
-    .catch(() => {
-      refresh();
-    });
+    onResponseError: onResponseError,
+  }).then(() => {
+    if (semesters.value) {
+      semesters.value = semesters.value.filter((s) => s.id !== id);
+    }
+    deleteSemestersDialog.value = false;
+    toast.success("Semestre supprimé avec succès");
+  });
 };
 </script>
 

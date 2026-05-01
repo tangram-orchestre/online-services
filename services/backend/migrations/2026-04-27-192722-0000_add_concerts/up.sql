@@ -16,7 +16,8 @@ CREATE TABLE concerts (
   doors_open_at TIME,
   starts_at TIME NOT NULL,
   public BOOLEAN NOT NULL DEFAULT FALSE,
-  location_id INTEGER NOT NULL REFERENCES locations(id)
+  location_id INTEGER NOT NULL REFERENCES locations(id),
+  semester_id INTEGER NOT NULL REFERENCES semesters(id)
 );
 
 CREATE TABLE pieces (
