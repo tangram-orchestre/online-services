@@ -6,6 +6,9 @@ const errorMessageFromCheckViolation = (reason: CheckViolation): string => {
       .with("SemestersDateOverlap", () => {
         return "Les dates des semestres ne peuvent pas se chevaucher.";
       })
+      .with("ConcertDateOutsideSemester", () => {
+        return "La date du concert n'est pas dans la période du semestre.";
+      })
       .exhaustive();
   }
 

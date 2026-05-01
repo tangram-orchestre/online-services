@@ -48,9 +48,18 @@ const locationName = (id: number) => {
   return l ? `${l.name}` : String(id);
 };
 
+const zConcert = zNewConcert.refine(
+  (obj) => !obj.doors_open_at || obj.doors_open_at < obj.starts_at,
+  {
+    path: ["doors_open_at"],
+    message:
+      "L'ouverture des portes doit être avant l'heure de début du concert",
+  },
+);
+
 const { handleSubmit, handleReset, defineField, errors, isSubmitting } =
   useForm({
-    validationSchema: toTypedSchema(zNewConcert),
+    validationSchema: toTypedSchema(zConcert),
   });
 
 const [date, dateProps] = defineField("date");
