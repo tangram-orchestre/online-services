@@ -125,7 +125,7 @@ services:
       - traefik.http.routers.pgweb.tls=true
 
   traefik:
-    image: traefik:v3.6
+    image: traefik:v3.6.15
     stop_signal: SIGKILL
     ports:
       # The HTTP port
