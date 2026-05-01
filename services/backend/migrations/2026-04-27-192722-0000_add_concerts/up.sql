@@ -23,7 +23,8 @@ CREATE TABLE pieces (
   name VARCHAR(256) NOT NULL,
   source VARCHAR(256),
   composer VARCHAR(128),
-  arranger VARCHAR(128)
+  arranger VARCHAR(128),
+  semester_id INTEGER NOT NULL REFERENCES semesters(id)
 );
 
 CREATE TABLE concert_pieces (

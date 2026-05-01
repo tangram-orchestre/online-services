@@ -54,6 +54,7 @@ pub struct Piece {
     pub source: Option<String>,
     pub composer: Option<String>,
     pub arranger: Option<String>,
+    pub semester_id: i32,
 }
 
 #[derive(Object, Insertable)]
@@ -63,6 +64,7 @@ pub struct NewPiece {
     pub source: Option<String>,
     pub composer: Option<String>,
     pub arranger: Option<String>,
+    pub semester_id: i32,
 }
 
 #[derive(Queryable, Selectable, Insertable)]

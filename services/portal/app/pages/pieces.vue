@@ -14,6 +14,18 @@ const {
   key: "getPieces",
 });
 
+const { data: semesters } = getSemesters({
+  composable: "useAsyncData",
+  key: "getSemesters",
+});
+
+const semesterItems = computed(
+  () => semesters.value?.map((s) => ({ title: s.name, value: s.id })) ?? [],
+);
+
+const semesterName = (id: number) =>
+  semesters.value?.find((s) => s.id === id)?.name ?? String(id);
+
 const { handleSubmit, handleReset, defineField, errors, isSubmitting } =
   useForm({
     validationSchema: toTypedSchema(zNewPiece),
@@ -23,6 +35,7 @@ const [name, nameProps] = defineField("name");
 const [source, sourceProps] = defineField("source");
 const [composer, composerProps] = defineField("composer");
 const [arranger, arrangerProps] = defineField("arranger");
+const [semester_id, semester_idProps] = defineField("semester_id");
 
 const pieceDialogShown = ref(false);
 const savePieceId = ref<number | null>(null);
@@ -51,13 +64,14 @@ const savePiece = (id: number | null) => {
     refresh();
   };
 
-  if (!name.value) return;
+  if (!name.value || !semester_id.value) return;
 
   const newValue = {
     name: name.value,
     source: source.value || undefined,
     composer: composer.value || undefined,
     arranger: arranger.value || undefined,
+    semester_id: semester_id.value,
   };
 
   let promise;
@@ -128,6 +142,7 @@ const deletePiece = (id: number, pieceName: string) => {
       :items="pieces"
       :headers="[
         { title: 'Nom', key: 'name' },
+        { title: 'Semestre', key: 'semester_id' },
         { title: 'Source', key: 'source' },
         { title: 'Compositeur', key: 'composer' },
         { title: 'Arrangeur', key: 'arranger' },
@@ -166,6 +181,10 @@ const deletePiece = (id: number, pieceName: string) => {
         </v-toolbar>
       </template>
 
+      <template #item.semester_id="{ item }">
+        {{ semesterName(item.semester_id) }}
+      </template>
+
       <template #item.actions="{ item }">
         <div class="d-flex ga-2 justify-end">
           <v-icon
@@ -178,6 +197,7 @@ const deletePiece = (id: number, pieceName: string) => {
                 source = item.source ?? undefined;
                 composer = item.composer ?? undefined;
                 arranger = item.arranger ?? undefined;
+                semester_id = item.semester_id;
                 savePieceId = item.id;
                 pieceDialogShown = true;
               }
@@ -206,6 +226,13 @@ const deletePiece = (id: number, pieceName: string) => {
             label="Nom"
             :error-messages="errors.name"
             autofocus
+          />
+          <v-select
+            v-model="semester_id"
+            v-bind="semester_idProps"
+            label="Semestre"
+            :items="semesterItems"
+            :error-messages="errors.semester_id"
           />
           <v-text-field
             v-model="source"
