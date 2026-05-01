@@ -6,6 +6,7 @@ use poem_openapi::Object;
 #[diesel(check_for_backend(diesel::pg::Pg))]
 pub struct Location {
     pub id: i32,
+    pub name: String,
     pub city: String,
     pub zipcode: String,
     pub street: String,
@@ -14,6 +15,7 @@ pub struct Location {
 #[derive(Object, Insertable)]
 #[diesel(table_name = crate::schema::locations)]
 pub struct NewLocation {
+    pub name: String,
     pub city: String,
     pub zipcode: String,
     pub street: String,

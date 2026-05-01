@@ -93,7 +93,10 @@ onMounted(() => {
             Semestres
           </v-list-item>
           <v-list-item prepend-icon="mdi-music-note" to="/pieces">
-            Morceaux
+            Pièces
+          </v-list-item>
+          <v-list-item prepend-icon="mdi-map-marker" to="/locations">
+            Lieux
           </v-list-item>
         </template>
       </v-list>

@@ -19,9 +19,9 @@ BEGIN
 
     -- Locations
     IF NOT EXISTS (SELECT 1 FROM locations WHERE city = 'Paris' AND street = '1 Rue de la Paix') THEN
-        INSERT INTO locations (city, zipcode, street) VALUES
-            ('Paris', '75001', '1 Rue de la Paix'),
-            ('Lyon', '69001', '10 Place Bellecour');
+        INSERT INTO locations (name, city, zipcode, street) VALUES
+            ('Salle Gaveau', 'Paris', '75001', '1 Rue de la Paix'),
+            ('Opéra de Lyon', 'Lyon', '69001', '10 Place Bellecour');
 
         SELECT id INTO loc1_id FROM locations WHERE city = 'Paris' AND street = '1 Rue de la Paix';
         SELECT id INTO loc2_id FROM locations WHERE city = 'Lyon'  AND street = '10 Place Bellecour';

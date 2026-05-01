@@ -24,6 +24,8 @@ diesel::table! {
     locations (id) {
         id -> Int4,
         #[max_length = 128]
+        name -> Varchar,
+        #[max_length = 128]
         city -> Varchar,
         #[max_length = 16]
         zipcode -> Varchar,

@@ -2,6 +2,7 @@
 
 CREATE TABLE locations (
   id SERIAL PRIMARY KEY,
+  name VARCHAR(128) NOT NULL,
   city VARCHAR(128) NOT NULL,
   zipcode VARCHAR(16) NOT NULL,
   street VARCHAR(256) NOT NULL
