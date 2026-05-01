@@ -43,6 +43,7 @@ diesel::table! {
         composer -> Nullable<Varchar>,
         #[max_length = 128]
         arranger -> Nullable<Varchar>,
+        semester_id -> Int4,
     }
 }
 
@@ -59,6 +60,7 @@ diesel::table! {
 diesel::joinable!(concert_pieces -> concerts (concert_id));
 diesel::joinable!(concert_pieces -> pieces (piece_id));
 diesel::joinable!(concerts -> locations (location_id));
+diesel::joinable!(pieces -> semesters (semester_id));
 
 diesel::allow_tables_to_appear_in_same_query!(
     concert_pieces,

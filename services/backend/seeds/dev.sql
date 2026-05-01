@@ -7,6 +7,7 @@ DECLARE
     piece1_id INTEGER;
     piece2_id INTEGER;
     piece3_id INTEGER;
+    semester_p26_id INTEGER;
 BEGIN
     -- Semesters
     IF NOT EXISTS (SELECT 1 FROM semesters WHERE name = 'P26') THEN
@@ -34,10 +35,11 @@ BEGIN
         SELECT id INTO concert2_id FROM concerts WHERE date = '2026-06-20' AND location_id = loc2_id;
 
         -- Pieces
-        INSERT INTO pieces (name, source, composer, arranger) VALUES
-            ('Symphony No. 5',    'Op. 67',         'Ludwig van Beethoven', NULL),
-            ('Bohemian Rhapsody', NULL,              'Freddie Mercury',      'John Smith'),
-            ('Carmen Suite',      'Bizet''s opera',  'Georges Bizet',        'Pierre Dupont');
+        SELECT id INTO semester_p26_id FROM semesters WHERE name = 'P26';
+        INSERT INTO pieces (name, source, composer, arranger, semester_id) VALUES
+            ('Symphony No. 5',    'Op. 67',         'Ludwig van Beethoven', NULL,         semester_p26_id),
+            ('Bohemian Rhapsody', NULL,              'Freddie Mercury',      'John Smith', semester_p26_id),
+            ('Carmen Suite',      'Bizet''s opera',  'Georges Bizet',        'Pierre Dupont', semester_p26_id);
 
         SELECT id INTO piece1_id FROM pieces WHERE name = 'Symphony No. 5';
         SELECT id INTO piece2_id FROM pieces WHERE name = 'Bohemian Rhapsody';
