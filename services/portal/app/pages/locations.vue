@@ -1,5 +1,4 @@
 <script setup lang="ts">
-import type { GetDummyErrors, BadRequestReason } from "#hey-api/types.gen";
 import { useForm } from "vee-validate";
 import { toTypedSchema } from "@vee-validate/zod";
 import { zNewLocation } from "#hey-api/zod.gen";
@@ -35,21 +34,9 @@ watch(locationDialogShown, (shown) => {
 });
 
 const saveLocation = (id: number | null) => {
-  const onResponseError = (e: {
-    response: { status: number; _data: BadRequestReason };
-  }) => {
-    if (e.response._data && e.response.status === 400) {
-      const d = e.response._data as GetDummyErrors[400];
-      if (d.type === "UniqueViolation") {
-        saveLocationError.value = "Un lieu avec ces informations existe déjà";
-      } else {
-        saveLocationError.value = "Erreur inconnue";
-      }
-    } else {
-      saveLocationError.value = `Erreur ${e.response.status}`;
-    }
-    refresh();
-  };
+  const onResponseError = onResponseErrorHandler("lieu", false, (errorMsg) => {
+    saveLocationError.value = errorMsg;
+  });
 
   const newValue = {
     name: name.value!,
@@ -103,16 +90,16 @@ const deleteLocation = (id: number, locationName: string) => {
       deleteLocationByLocationId({
         composable: "$fetch",
         path: { location_id: id },
-      })
-        .then(() => {
-          if (locations.value) {
-            locations.value = locations.value.filter((l) => l.id !== id);
-          }
-          toast.success("Lieu supprimé avec succès");
-        })
-        .catch(() => {
+        onResponseError: onResponseErrorHandler("lieu", false, (errorMsg) => {
+          toast.error(errorMsg);
           refresh();
-        });
+        }),
+      }).then(() => {
+        if (locations.value) {
+          locations.value = locations.value.filter((l) => l.id !== id);
+        }
+        toast.success("Lieu supprimé avec succès");
+      });
     }
   });
 };

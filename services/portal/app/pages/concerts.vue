@@ -1,5 +1,4 @@
 <script setup lang="ts">
-import type { GetDummyErrors, BadRequestReason } from "#hey-api/types.gen";
 import { useForm } from "vee-validate";
 import { toTypedSchema } from "@vee-validate/zod";
 import { zNewConcert } from "#hey-api/zod.gen";
@@ -74,21 +73,13 @@ watch(concertDialogShown, (shown) => {
 });
 
 const saveConcert = (id: number | null) => {
-  const onResponseError = (e: {
-    response: { status: number; _data: BadRequestReason };
-  }) => {
-    if (e.response._data && e.response.status === 400) {
-      const d = e.response._data as GetDummyErrors[400];
-      if (d.type === "UniqueViolation") {
-        saveConcertError.value = "Un concert avec ces informations existe déjà";
-      } else {
-        saveConcertError.value = "Erreur inconnue";
-      }
-    } else {
-      saveConcertError.value = `Erreur ${e.response.status}`;
-    }
-    refresh();
-  };
+  const onResponseError = onResponseErrorHandler(
+    "concert",
+    false,
+    (errorMsg) => {
+      saveConcertError.value = errorMsg;
+    },
+  );
 
   if (
     !date.value ||
@@ -157,16 +148,20 @@ const deleteConcert = (id: number, concertDate: string) => {
       deleteConcertByConcertId({
         composable: "$fetch",
         path: { concert_id: id },
-      })
-        .then(() => {
-          if (concerts.value) {
-            concerts.value = concerts.value.filter((c) => c.id !== id);
-          }
-          toast.success("Concert supprimé avec succès");
-        })
-        .catch(() => {
-          refresh();
-        });
+        onResponseError: onResponseErrorHandler(
+          "concert",
+          false,
+          (errorMsg) => {
+            toast.error(errorMsg);
+            refresh();
+          },
+        ),
+      }).then(() => {
+        if (concerts.value) {
+          concerts.value = concerts.value.filter((c) => c.id !== id);
+        }
+        toast.success("Concert supprimé avec succès");
+      });
     }
   });
 };

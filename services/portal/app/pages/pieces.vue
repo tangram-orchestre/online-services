@@ -1,5 +1,4 @@
 <script setup lang="ts">
-import type { GetDummyErrors, BadRequestReason } from "#hey-api/types.gen";
 import { useForm } from "vee-validate";
 import { toTypedSchema } from "@vee-validate/zod";
 import { zNewPiece } from "#hey-api/zod.gen";
@@ -48,21 +47,9 @@ watch(pieceDialogShown, (shown) => {
 });
 
 const savePiece = (id: number | null) => {
-  const onResponseError = (e: {
-    response: { status: number; _data: BadRequestReason };
-  }) => {
-    if (e.response._data && e.response.status === 400) {
-      const d = e.response._data as GetDummyErrors[400];
-      if (d.type === "UniqueViolation") {
-        savePieceError.value = "Une pièce avec ces informations existe déjà";
-      } else {
-        savePieceError.value = "Erreur inconnue";
-      }
-    } else {
-      savePieceError.value = `Erreur ${e.response.status}`;
-    }
-    refresh();
-  };
+  const onResponseError = onResponseErrorHandler("pièce", true, (errorMsg) => {
+    savePieceError.value = errorMsg;
+  });
 
   if (!name.value || !semester_id.value) return;
 
@@ -119,16 +106,16 @@ const deletePiece = (id: number, pieceName: string) => {
       deletePieceByPieceId({
         composable: "$fetch",
         path: { piece_id: id },
-      })
-        .then(() => {
-          if (pieces.value) {
-            pieces.value = pieces.value.filter((p) => p.id !== id);
-          }
-          toast.success("Pièce supprimée avec succès");
-        })
-        .catch(() => {
+        onResponseError: onResponseErrorHandler("pièce", true, (errorMsg) => {
+          toast.error(errorMsg);
           refresh();
-        });
+        }),
+      }).then(() => {
+        if (pieces.value) {
+          pieces.value = pieces.value.filter((p) => p.id !== id);
+        }
+        toast.success("Pièce supprimée avec succès");
+      });
     }
   });
 };
