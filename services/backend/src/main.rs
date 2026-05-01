@@ -167,19 +167,22 @@ async fn main() -> Result<(), std::io::Error> {
 }
 
 fn setup_logging(settings: &settings::Settings) {
-    let otlp_exporter = opentelemetry_otlp::LogExporter::builder()
-        .with_http()
-        .with_endpoint(&settings.otlp_endpoint)
-        .build()
-        .unwrap();
-    let provider: SdkLoggerProvider = SdkLoggerProvider::builder()
-        .with_resource(
-            Resource::builder()
-                .with_service_name(settings.otlp_service_name.clone())
-                .build(),
-        )
-        .with_batch_exporter(otlp_exporter)
-        .build();
+    // Build the optional OTLP provider first so it outlives the layer that borrows it.
+    let provider: Option<SdkLoggerProvider> = settings.otlp_endpoint.as_ref().map(|endpoint| {
+        let otlp_exporter = opentelemetry_otlp::LogExporter::builder()
+            .with_http()
+            .with_endpoint(endpoint)
+            .build()
+            .unwrap();
+        SdkLoggerProvider::builder()
+            .with_resource(
+                Resource::builder()
+                    .with_service_name(settings.otlp_service_name.clone())
+                    .build(),
+            )
+            .with_batch_exporter(otlp_exporter)
+            .build()
+    });
 
     // To prevent a telemetry-induced-telemetry loop, OpenTelemetry's own internal
     // logging is properly suppressed. However, logs emitted by external components
@@ -187,29 +190,21 @@ fn setup_logging(settings: &settings::Settings) {
     // OpenTelemetry context. Until this issue is addressed
     // (https://github.com/open-telemetry/opentelemetry-rust/issues/2877),
     // filtering like this is the best way to suppress such logs.
-    //
-    // The filter levels are set as follows:
-    // - Allow `info` level and above by default.
-    // - Completely restrict logs from `hyper`, `tonic`, `h2`, and `reqwest`.
-    //
-    // Note: This filtering will also drop logs from these components even when
-    // they are used outside of the OTLP Exporter.
-    let filter_otel = EnvFilter::new("info")
-        .add_directive("hyper=off".parse().unwrap())
-        .add_directive("opentelemetry=off".parse().unwrap())
-        .add_directive("tonic=off".parse().unwrap())
-        .add_directive("h2=off".parse().unwrap())
-        .add_directive("reqwest=off".parse().unwrap())
-        .or(FilterFn::new(|metadata| {
-            metadata.target().starts_with("backend") && metadata.level() <= &tracing::Level::DEBUG
-        }));
-    let otel_layer =
-        opentelemetry_appender_tracing::layer::OpenTelemetryTracingBridge::new(&provider)
-            .with_filter(filter_otel);
+    let otel_layer = provider.as_ref().map(|p| {
+        let filter_otel = EnvFilter::new("info")
+            .add_directive("hyper=off".parse().unwrap())
+            .add_directive("opentelemetry=off".parse().unwrap())
+            .add_directive("tonic=off".parse().unwrap())
+            .add_directive("h2=off".parse().unwrap())
+            .add_directive("reqwest=off".parse().unwrap())
+            .or(FilterFn::new(|metadata| {
+                metadata.target().starts_with("backend")
+                    && metadata.level() <= &tracing::Level::DEBUG
+            }));
+        opentelemetry_appender_tracing::layer::OpenTelemetryTracingBridge::new(p)
+            .with_filter(filter_otel)
+    });
 
-    // Create a new tracing::Fmt layer to print the logs to stdout. It has a
-    // default filter of `info` level and above, and `debug` and above for logs
-    // from OpenTelemetry crates. The filter levels can be customized as needed.
     let filter_fmt = EnvFilter::new("info");
     let fmt_layer = tracing_subscriber::fmt::layer()
         .with_thread_names(true)

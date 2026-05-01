@@ -8,7 +8,7 @@ use config::ConfigError;
 pub struct Settings {
     pub host: String,
 
-    pub otlp_endpoint: String,
+    pub otlp_endpoint: Option<String>,
     pub otlp_service_name: String,
 
     pub cors_origins: String,
