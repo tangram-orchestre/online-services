@@ -17,6 +17,7 @@ diesel::table! {
         starts_at -> Time,
         public -> Bool,
         location_id -> Int4,
+        semester_id -> Int4,
     }
 }
 
@@ -62,6 +63,7 @@ diesel::table! {
 diesel::joinable!(concert_pieces -> concerts (concert_id));
 diesel::joinable!(concert_pieces -> pieces (piece_id));
 diesel::joinable!(concerts -> locations (location_id));
+diesel::joinable!(concerts -> semesters (semester_id));
 diesel::joinable!(pieces -> semesters (semester_id));
 
 diesel::allow_tables_to_appear_in_same_query!(

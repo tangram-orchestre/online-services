@@ -24,6 +24,12 @@ pub enum ApiError {
 #[derive(Object, Debug, PartialEq)]
 pub struct UniqueViolation;
 
+#[derive(Object, Debug, PartialEq)]
+pub struct ForeignKeyViolation;
+
+#[derive(Object, Debug, PartialEq)]
+pub struct NotNullViolation;
+
 #[derive(Enum, Debug, PartialEq)]
 pub enum CheckViolationKind {
     SemestersDateOverlap,
@@ -40,6 +46,8 @@ pub struct CheckViolation {
 #[oai(discriminator_name = "type")]
 pub enum BadRequestReason {
     UniqueViolation(UniqueViolation),
+    ForeignKeyViolation(ForeignKeyViolation),
+    NotNullViolation(NotNullViolation),
     CheckViolation(CheckViolation),
 }
 
@@ -78,8 +86,12 @@ impl From<diesel::result::Error> for ApiError {
                         details: database_error_information.details().map(|s| s.to_string()),
                     })))
                 }
-                DatabaseErrorKind::ForeignKeyViolation => todo!(),
-                DatabaseErrorKind::NotNullViolation => todo!(),
+                DatabaseErrorKind::ForeignKeyViolation => ApiError::BadRequest(Json(
+                    BadRequestReason::ForeignKeyViolation(ForeignKeyViolation),
+                )),
+                DatabaseErrorKind::NotNullViolation => {
+                    ApiError::BadRequest(Json(BadRequestReason::NotNullViolation(NotNullViolation)))
+                }
                 DatabaseErrorKind::ClosedConnection
                 | DatabaseErrorKind::ReadOnlyTransaction
                 | DatabaseErrorKind::SerializationFailure

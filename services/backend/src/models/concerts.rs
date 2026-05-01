@@ -33,6 +33,7 @@ pub struct Concert {
     pub starts_at: chrono::NaiveTime,
     pub public: bool,
     pub location_id: i32,
+    pub semester_id: i32,
 }
 
 #[derive(Object, Insertable)]
@@ -45,6 +46,7 @@ pub struct NewConcert {
     pub starts_at: chrono::NaiveTime,
     pub public: bool,
     pub location_id: i32,
+    pub semester_id: i32,
 }
 
 #[derive(Object, Queryable, Selectable, Identifiable, AsChangeset)]
