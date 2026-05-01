@@ -1,6 +1,5 @@
 <script setup lang="ts">
 import { add } from "date-fns";
-import type { GetDummyErrors, BadRequestReason } from "#hey-api/types.gen";
 import { useForm } from "vee-validate";
 import { toTypedSchema } from "@vee-validate/zod";
 
@@ -63,23 +62,13 @@ watch(semesterDialogShown, (shown) => {
 });
 
 const saveSemester = (id: number | null) => {
-  const onResponseError = (e: {
-    response: { status: number; _data: BadRequestReason };
-  }) => {
-    if (e.response._data && e.response.status === 400) {
-      const d = e.response._data as GetDummyErrors[400];
-      if (d.type === "UniqueViolation") {
-        saveSemesterError.value = "Un semestre avec ce nom existe déjà";
-      } else if (d.type === "CheckViolation") {
-        saveSemesterError.value = errorMessageFromCheckViolation(d);
-      } else {
-        saveSemesterError.value = "Erreur inconnue";
-      }
-    } else {
-      saveSemesterError.value = `Erreur ${e.response.status}`;
-    }
-    refresh();
-  };
+  const onResponseError = onResponseErrorHandler(
+    "semestre",
+    false,
+    (errorMsg) => {
+      saveSemesterError.value = errorMsg;
+    },
+  );
 
   if (!name.value || !start_date.value || !end_date.value) {
     return;
@@ -130,27 +119,14 @@ const submit = handleSubmit(() => {
 
 const deleteSemestersDialog = ref(false);
 const deleteSemester = (id: number) => {
-  const onResponseError = (e: {
-    response: { status: number; _data: BadRequestReason };
-  }) => {
-    let errorMsg = "Erreur inconnue";
-    if (e.response._data && e.response.status === 400) {
-      const d = e.response._data as GetDummyErrors[400];
-      if (d.type === "UniqueViolation") {
-        errorMsg = "Un semestre avec ce nom existe déjà";
-      } else if (d.type === "CheckViolation") {
-        errorMsg = errorMessageFromCheckViolation(d);
-      } else if (d.type === "NotNullViolation") {
-        errorMsg = "Un champ requis n'est pas rempli";
-      } else if (d.type === "ForeignKeyViolation") {
-        errorMsg = "Impossible de supprimer ce semestre car il est utilisé";
-      }
-    } else {
-      errorMsg = `Erreur ${e.response.status}`;
-    }
-    toast.error(errorMsg);
-    refresh();
-  };
+  const onResponseError = onResponseErrorHandler(
+    "semestre",
+    false,
+    (errorMsg) => {
+      toast.error(errorMsg);
+      refresh();
+    },
+  );
 
   deleteSemesterBySemesterId({
     composable: "$fetch",
