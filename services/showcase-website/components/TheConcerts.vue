@@ -81,24 +81,34 @@ useEventListener("resize", () => {
 
 const concerts: Array<Concert> = [
   {
-    date: "23 janvier 2026",
+    date: "3 juillet 2026",
     location: "Pavillon de la Sirène",
     image: "/images/concerts/la-sirene.png",
     url: {
       kind: "Tickets",
       target:
-        "https://www.helloasso.com/associations/tangram/evenements/concert-tangram-pavillon-de-la-sirene-23-01-2026",
+        "https://www.helloasso.com/associations/tangram/evenements/concerts-tangram-pavillon-de-la-sirene-juillet-2026",
     },
+  },
+  {
+    date: "26 Juin 2026",
+    location: "Pavillon de la Sirène",
+    image: "/images/concerts/la-sirene.png",
+    url: {
+      kind: "Tickets",
+      target:
+        "https://www.helloasso.com/associations/tangram/evenements/concerts-tangram-pavillon-de-la-sirene-juin-juillet-2026",
+    },
+  },
+  {
+    date: "23 janvier 2026",
+    location: "Pavillon de la Sirène",
+    image: "/images/concerts/la-sirene.png",
   },
   {
     date: "17 janvier 2026",
     location: "Temple Paris Batignolles",
     image: "/images/concerts/2024-06-28.png",
-    url: {
-      kind: "Tickets",
-      target:
-        "https://www.helloasso.com/associations/tangram/evenements/concert-tangram-temple-des-batignolles-janvier-2026",
-    },
   },
   {
     date: "18 décembre 2025",
