@@ -8,6 +8,8 @@ services:
       - NUXT_PRIVATE_API_BASE_URL=http://backend-staging:3000
       - NUXT_PUBLIC_API_BASE_URL=https://www.staging.tangram-orchestre.fr/api
     labels:
+      - dev.dozzle.name=Showcase Website
+      - dev.dozzle.group=Staging
       - traefik.enable=true
       - "traefik.http.routers.staging-website.rule=Host(`www.staging.tangram-orchestre.fr`)"
       # Lesser priority than backend-staging to avoid conflicts on /api/public prefix

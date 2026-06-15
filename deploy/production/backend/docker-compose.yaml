@@ -17,6 +17,8 @@ services:
       - APP_SMTP_PASSWORD=${APP_SMTP_PASSWORD}
       - APP_POSTGRES_URL=postgres://portal:${APP_POSTGRES_PASSWORD}@backend-postgres:5432/portal?sslmode=disable
     labels:
+      - dev.dozzle.name=Backend
+      - dev.dozzle.group=Backend
       - traefik.enable=true
       # Public Router (for www.tangram-orchestre.fr)
       - "traefik.http.routers.backend-public.rule=Host(`www.tangram-orchestre.fr`) && PathPrefix(`/api/public`)"
@@ -35,6 +37,9 @@ services:
 
   backend-postgres:
     image: docker.io/library/postgres:17.4-alpine
+    labels:
+      - dev.dozzle.name=Backend PostgreSQL
+      - dev.dozzle.group=Backend
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -d $${POSTGRES_DB} -U $${POSTGRES_USER}"]
       start_period: 20s
@@ -50,6 +55,9 @@ services:
 
   backend-postgres-backup:
     image: docker.io/library/postgres:17.4-alpine
+    labels:
+      - dev.dozzle.name=Backend Postgres Backup
+      - dev.dozzle.group=Backend
     depends_on:
       backend-postgres:
         condition: service_healthy

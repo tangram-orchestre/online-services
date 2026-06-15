@@ -27,6 +27,8 @@ services:
       # Mount rclone config
       - /opt/rclone:/app/rclone:ro
     labels:
+      - dev.dozzle.name=Kopia
+      - dev.dozzle.group=Infrastructure
       - traefik.enable=true
       - traefik.http.services.kopia.loadbalancer.server.port=51515
       - traefik.http.routers.kopia.rule=Host(`kopia.tangram-orchestre.fr`)

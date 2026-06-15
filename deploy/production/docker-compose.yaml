@@ -16,6 +16,9 @@ services:
       - ALL
     volumes:
       - /run/user/${UID}/docker.sock:/var/run/docker.sock
+    labels:
+      - dev.dozzle.name=Unhealthy Container Restarter
+      - dev.dozzle.group=Infrastructure
     command:
       [
         "/bin/sh",
