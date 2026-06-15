@@ -15,6 +15,8 @@ services:
       - /opt/docker-volumes/traefik/acme.json:/etc/traefik/acme.json
     restart: unless-stopped
     labels:
+      - dev.dozzle.name=Traefik
+      - dev.dozzle.group=Infrastructure
       - traefik.enable=true
       - traefik.http.routers.dashboard.rule=Host(`traefik.tangram-orchestre.fr`)
       - traefik.http.routers.dashboard.service=api@internal

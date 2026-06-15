@@ -5,6 +5,8 @@ services:
     security_opt:
       - no-new-privileges:true
     labels:
+      - dev.dozzle.name=Portal
+      - dev.dozzle.group=Staging
       - traefik.enable=true
       - "traefik.http.routers.staging-portal.rule=Host(`portal.staging.tangram-orchestre.fr`)"
       # Lesser priority than backend-staging to avoid conflicts on /api prefix

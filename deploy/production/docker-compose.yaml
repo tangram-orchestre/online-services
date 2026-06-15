@@ -6,7 +6,7 @@ include:
   - ./backend/docker-compose.yaml
   - ./portal/docker-compose.yaml
   - ./website/docker-compose.yaml
-  - ./observability/docker-compose.yaml
+  - ./dozzle/docker-compose.yaml
 
 services:
   unhealthy_container_restarter:
@@ -16,6 +16,9 @@ services:
       - ALL
     volumes:
       - /run/user/${UID}/docker.sock:/var/run/docker.sock
+    labels:
+      - dev.dozzle.name=Unhealthy Container Restarter
+      - dev.dozzle.group=Infrastructure
     command:
       [
         "/bin/sh",

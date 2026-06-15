@@ -15,10 +15,10 @@ services:
       - APP_CORS_ORIGINS=https://www.staging.tangram-orchestre.fr,https://api.staging.tangram-orchestre.fr,https://portal.staging.tangram-orchestre.fr
       - APP_ALTCHA_SECRET=${APP_ALTCHA_SECRET}
       - APP_SMTP_HOST=maildev
-      - APP_OTLP_ENDPOINT=http://alloy:4318/v1/logs
-      - APP_OTLP_SERVICE_NAME=backend-staging
       - APP_POSTGRES_URL=postgres://portal:${APP_POSTGRES_PASSWORD}@backend-postgres-staging:5432/portal?sslmode=disable
     labels:
+      - dev.dozzle.name=Backend
+      - dev.dozzle.group=Staging
       - traefik.enable=true
       - "traefik.http.routers.backend-staging.rule= \
         Host(`api.staging.tangram-orchestre.fr`) || \
@@ -31,6 +31,9 @@ services:
 
   backend-postgres-staging:
     image: docker.io/library/postgres:17.4-alpine
+    labels:
+      - dev.dozzle.name=Backend PostgreSQL
+      - dev.dozzle.group=Staging
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -d $${POSTGRES_DB} -U $${POSTGRES_USER}"]
       start_period: 20s
@@ -46,6 +49,9 @@ services:
 
   backend-postgres-staging-backup:
     image: docker.io/library/postgres:17.4-alpine
+    labels:
+      - dev.dozzle.name=Backend Postgres Backup
+      - dev.dozzle.group=Staging
     depends_on:
       backend-postgres-staging:
         condition: service_healthy
