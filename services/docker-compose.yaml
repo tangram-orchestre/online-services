@@ -158,14 +158,6 @@ services:
       - traefik.http.services.maildev.loadbalancer.server.port=1080
       - traefik.http.routers.maildev.tls=true
 
-  lgtm:
-    image: grafana/otel-lgtm:0.11.5
-    labels:
-      - traefik.enable=true
-      - traefik.http.routers.grafana.rule=Host(`grafana.localhost`)
-      - traefik.http.services.grafana.loadbalancer.server.port=3000
-      - traefik.http.routers.grafana.tls=true
-
 volumes:
   backend_cargo_target_dir:
   backend_cargo_registry:

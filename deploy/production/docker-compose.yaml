@@ -6,7 +6,6 @@ include:
   - ./backend/docker-compose.yaml
   - ./portal/docker-compose.yaml
   - ./website/docker-compose.yaml
-  - ./observability/docker-compose.yaml
   - ./dozzle/docker-compose.yaml
 
 services:
