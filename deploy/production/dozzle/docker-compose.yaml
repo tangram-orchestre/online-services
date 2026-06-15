@@ -1,0 +1,13 @@
+services:
+  dozzle:
+    image: amir20/dozzle:v10.6.5
+    volumes:
+      - /run/user/${UID}/docker.sock:/var/run/docker.sock
+      - /opt/docker-volumes/dozzle:/data
+
+    labels:
+      - traefik.enable=true
+      - "traefik.http.routers.dozzle.rule=Host(`dozzle.tangram-orchestre.fr`)"
+      - traefik.http.routers.dozzle.tls=true
+      - traefik.http.routers.dozzle.tls.certresolver=resolver
+      - traefik.http.routers.dozzle.middlewares=authentik@file
