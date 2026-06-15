@@ -26,8 +26,6 @@ services:
       - APP_CORS_ORIGINS=https://localhost,https://api.localhost,https://portal.localhost
       - APP_ALTCHA_SECRET=super-secret
       - APP_SMTP_HOST=maildev
-      - APP_OTLP_ENDPOINT=http://lgtm:4318/v1/logs
-      - APP_OTLP_SERVICE_NAME=backend
       - APP_POSTGRES_PASSWORD=portal
       - APP_POSTGRES_USER=portal
       - APP_POSTGRES_DB=portal

@@ -30,10 +30,3 @@ certificatesResolvers:
 log:
   level: INFO
 
-experimental:
-  otlpLogs: true
-
-metrics:
-  otlp:
-    http:
-      endpoint: http://alloy:4318/v1/metrics
