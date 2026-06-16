@@ -380,11 +380,7 @@ const concerts: Array<Concert> = [
             displayedConcertManuallyChanged = true;
           "
         >
-          <div
-            v-for="i in [0, 1, 2]"
-            :key="i"
-            class="size-4 rounded-full bg-white"
-          />
+          +
         </button>
       </div>
     </div>
