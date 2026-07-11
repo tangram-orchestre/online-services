@@ -1,0 +1,5 @@
+webservers:
+  hosts:
+    vps-98427e6b.vps.ovh.net:
+      ansible_user: debian
+      ansible_host: 164.132.98.62
