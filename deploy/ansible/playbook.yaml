@@ -1,9 +1,58 @@
-- name: My first play
+- name: Server Setup
   hosts: webservers
+  become: true
+  any_errors_fatal: true
   tasks:
-   - name: Ping my hosts
-     ansible.builtin.ping:
+    - name: Create deploy user
+      ansible.builtin.user:
+        name: deploy
+        state: present
+        shell: /bin/bash
+      register: deploy_user_info
 
-   - name: Print message
-     ansible.builtin.debug:
-       msg: Hello world
+    - name: Create deploy folders
+      ansible.builtin.file:
+        path: "/opt/{{ item }}"
+        state: directory
+        owner: deploy
+        group: deploy
+        mode: '0755'
+      loop:
+        - containerd
+        - db-backups
+        - docker-volumes
+        - docker-volumes-no-backup
+        - rclone
+        - services
+        - services-staging
+
+    - name: Install required packages
+      ansible.builtin.package:
+        name:
+          - rsync
+        state: present
+
+    - name: Install Docker rootless
+      ansible.builtin.import_role:
+        name: konstruktoid.docker_rootless
+      vars:
+        docker_user: deploy
+        docker_rootful: true
+        docker_allow_privileged_ports: true
+        docker_compose: true
+
+    - name: Set DOCKER_HOST for deploy user
+      ansible.builtin.lineinfile:
+        path: "/home/deploy/.bashrc"
+        line: 'export DOCKER_HOST=unix:///run/user/{{ deploy_user_info.uid }}/docker.sock'
+        create: true
+        mode: '0644'
+
+    - name: Create .env file for services
+      ansible.builtin.copy:
+        dest: "/opt/services/.env"
+        content: |
+          UID={{ deploy_user_info.uid }}
+        owner: deploy
+        group: deploy
+        mode: '0600'
