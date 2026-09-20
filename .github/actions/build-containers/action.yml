@@ -47,6 +47,17 @@ runs:
         echo "SHOWCASE_WEBSITE_IMAGE_NAME=${{ env.DOCKER_REGISTRY }}/${{ github.repository_owner }}/showcase-website" >> $GITHUB_ENV
         echo "PORTAL_IMAGE_NAME=${{ env.DOCKER_REGISTRY }}/${{ github.repository_owner }}/portal" >> $GITHUB_ENV
 
+        # Use base branch name for PRs, otherwise use current ref name.
+        if [ "${{ github.event_name }}" = "pull_request" ]; then
+          ref="${{ github.event.pull_request.base.ref }}"
+        else
+          ref="${{ github.ref_name }}"
+        fi
+
+        # sanitize ref (replace slashes) and export
+        ref_sanitized=$(echo "$ref" | tr '/' '-')
+        echo "CACHE_TAG=cache-${ref_sanitized}" | tee -a $GITHUB_ENV
+
         echo BACKEND_NEEDS_BUILD=${{ inputs.FORCE_BUILD == 'true' || steps.changes.outputs.backend == 'true' }} >> $GITHUB_ENV
 
     - name: Retrieve reference OpenAPI spec md5sum
@@ -78,8 +89,10 @@ runs:
         tags: ${{ steps.meta-backend.outputs.tags }}
         labels: ${{ steps.meta-backend.outputs.labels }}
         annotations: ${{ steps.meta-backend.outputs.annotations }}
-        cache-from: type=gha
-        cache-to: type=gha,mode=max
+        cache-from: |
+          type=registry,ref=${{ env.BACKEND_IMAGE_NAME }}:${{ env.CACHE_TAG }}
+        cache-to: |
+          type=registry,ref=${{ env.BACKEND_IMAGE_NAME }}:${{ env.CACHE_TAG }},mode=max
 
     - name: Generate OpenAPI spec
       if: env.BACKEND_NEEDS_BUILD == 'true'
@@ -147,6 +160,10 @@ runs:
         tags: ${{ steps.meta-showcase-website.outputs.tags }}
         labels: ${{ steps.meta-showcase-website.outputs.labels }}
         annotations: ${{ steps.meta-showcase-website.outputs.annotations }}
+        cache-from: |
+          type=registry,ref=${{ env.SHOWCASE_WEBSITE_IMAGE_NAME }}:${{ env.CACHE_TAG }}
+        cache-to: |
+          type=registry,ref=${{ env.SHOWCASE_WEBSITE_IMAGE_NAME }}:${{ env.CACHE_TAG }},mode=max
 
 
     - name: Docker meta Portal
@@ -171,6 +188,10 @@ runs:
         tags: ${{ steps.meta-portal.outputs.tags }}
         labels: ${{ steps.meta-portal.outputs.labels }}
         annotations: ${{ steps.meta-portal.outputs.annotations }}
+        cache-from: |
+          type=registry,ref=${{ env.PORTAL_IMAGE_NAME }}:${{ env.CACHE_TAG }}
+        cache-to: |
+          type=registry,ref=${{ env.PORTAL_IMAGE_NAME }}:${{ env.CACHE_TAG }},mode=max
 
     - name: Collect pushed image digests
       id: collect-images
