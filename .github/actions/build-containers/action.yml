@@ -157,6 +157,8 @@ runs:
       with:
         context: services/showcase-website
         push: ${{ inputs.PUSH_TO_REGISTRY }}
+        # Load the image into the local Docker daemon if we're pushing to registry, so we can retag it later for the marker branch.
+        load: ${{ inputs.PUSH_TO_REGISTRY }}
         tags: ${{ steps.meta-showcase-website.outputs.tags }}
         labels: ${{ steps.meta-showcase-website.outputs.labels }}
         annotations: ${{ steps.meta-showcase-website.outputs.annotations }}
@@ -185,6 +187,8 @@ runs:
       with:
         context: services/portal
         push: ${{ inputs.PUSH_TO_REGISTRY }}
+        # Load the image into the local Docker daemon if we're pushing to registry, so we can retag it later for the marker branch.
+        load: ${{ inputs.PUSH_TO_REGISTRY }}
         tags: ${{ steps.meta-portal.outputs.tags }}
         labels: ${{ steps.meta-portal.outputs.labels }}
         annotations: ${{ steps.meta-portal.outputs.annotations }}
@@ -200,52 +204,31 @@ runs:
         set -eu
         images=""
 
-        # Helper: inspect manifest and extract digest robustly
-        get_digest() {
-          local img="$1" tag="$2"
-          # Try docker manifest --verbose and parse 'Digest: '
-          if docker manifest inspect --verbose "${img}:${tag}" >/tmp/manifest.out 2>/dev/null; then
-            if digest=$(awk '/Digest: /{print $2; exit}' /tmp/manifest.out); then
-              echo "$digest" && return 0
-            fi
-          fi
-          # Fallback to jq extraction
-          if docker manifest inspect "${img}:${tag}" 2>/dev/null | jq -r '.[0].Descriptor.digest // .[0].Digest // .config.digest // empty' >/tmp/digest.out 2>/dev/null; then
-            digest=$(cat /tmp/digest.out)
-            if [ -n "$digest" ]; then
-              echo "$digest" && return 0
-            fi
-          fi
-          return 1
-        }
-
         # For each image that was built and pushed, compute the digest and append as image@digest
         if [ "${{ inputs.PUSH_TO_REGISTRY }}" = "true" ]; then
           if [ "${{ env.BACKEND_NEEDS_BUILD }}" = "true" ]; then
-            tag="sha-${{ github.sha }}"
-            if d=$(get_digest "${BACKEND_IMAGE_NAME}" "$tag"); then
-              images+="${BACKEND_IMAGE_NAME}@${d}\n"
-            fi
+            images+="${BACKEND_IMAGE_NAME}:sha-${{ github.sha }}"$'\n'
           fi
           if [ "${{ env.SHOWCASE_WEBSITE_NEEDS_BUILD }}" = "true" ]; then
-            tag="sha-${{ github.sha }}"
-            if d=$(get_digest "${SHOWCASE_WEBSITE_IMAGE_NAME}" "$tag"); then
-              images+="${SHOWCASE_WEBSITE_IMAGE_NAME}@${d}\n"
-            fi
+            images+="${SHOWCASE_WEBSITE_IMAGE_NAME}:sha-${{ github.sha }}"$'\n'
           fi
           if [ "${{ env.PORTAL_NEEDS_BUILD }}" = "true" ]; then
-            tag="sha-${{ github.sha }}"
-            if d=$(get_digest "${PORTAL_IMAGE_NAME}" "$tag"); then
-              images+="${PORTAL_IMAGE_NAME}@${d}\n"
-            fi
+            images+="${PORTAL_IMAGE_NAME}:sha-${{ github.sha }}"$'\n'
           fi
         fi
 
-        # Trim trailing newline
-        images=$(printf "%s" "$images" | sed -e '$d' -e '$a\') || true
+        # Print images to stdout for debugging
+        echo "Pushed images:"
+        echo "$images"
 
-        # Emit output
-        echo "images<<EOF" >> $GITHUB_OUTPUT
-        printf "%s" "$images" >> $GITHUB_OUTPUT
-        echo "EOF" >> $GITHUB_OUTPUT
+        # Remove a single trailing newline if present so the output block stays valid.
+        if [ -n "$images" ]; then
+          images="${images%$'\n'}"
+        fi
+
+
+        # Emit output; keep a newline before the closing delimiter so GitHub Actions can parse it.
+        echo "images<<EOF" >> "$GITHUB_OUTPUT"
+        printf "%s\n" "$images" >> "$GITHUB_OUTPUT"
+        echo "EOF" >> "$GITHUB_OUTPUT"
 

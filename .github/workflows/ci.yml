@@ -70,7 +70,7 @@ jobs:
           key: ${{ secrets.DEPLOY_KEY }}
           script: ${{ env.DEPLOY_TARGET_DIR }}update.sh
 
-      - name: Retag pushed images to marker branch (registry-side, no pull)
+      - name: Retag pushed images to marker branch
         if: vars.SKIP_DEPLOY != 'true'
         env:
           MARKER_BRANCH: ${{ env.MARKER_BRANCH }}
@@ -84,18 +84,20 @@ jobs:
             exit 0
           fi
 
-          echo "Ensuring docker auth present (login)"
-          # Re-login to ensure ~/.docker/config.json is populated for the crane container
+          echo "Ensuring docker auth present"
           echo "Logging in to ${DOCKER_REGISTRY}"
           echo "${{ secrets.GITHUB_TOKEN }}" | docker login ${DOCKER_REGISTRY} -u "${{ github.actor }}" --password-stdin
 
-          echo "Retagging images to ${MARKER_BRANCH} using crane (containerized)"
+          echo "Retagging built images to ${MARKER_BRANCH}"
           while IFS= read -r src || [ -n "$src" ]; do
-            # src is like ghcr.io/owner/repo@sha256:...
-            repo=${src%@*}
+            # src is like ghcr.io/owner/repo:sha-<commit>
+            src_tag="$src"
+            repo="${src_tag%:*}"
             dst="${repo}:${MARKER_BRANCH}"
-            echo "Tagging $src -> $dst"
-            docker run --rm -v $HOME/.docker:/root/.docker gcr.io/go-containerregistry/crane:latest tag "$src" "$dst"
+
+            echo "Tagging $src_tag -> $dst"
+            docker tag "$src_tag" "$dst"
+            docker push "$dst"
           done < images_list.txt
 
       - uses: webfactory/ssh-agent@v0.9.0
