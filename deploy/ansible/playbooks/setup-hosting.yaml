@@ -48,6 +48,13 @@
         create: true
         mode: '0644'
 
+    - name: Create .docker_env file for deploy user
+      ansible.builtin.lineinfile:
+        path: "/home/deploy/.docker_env"
+        line: 'export DOCKER_HOST=unix:///run/user/{{ deploy_user_info.uid }}/docker.sock'
+        create: true
+        mode: '0644'
+
     - name: Create .env file for services
       ansible.builtin.copy:
         dest: "/opt/services/.env"

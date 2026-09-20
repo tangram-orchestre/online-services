@@ -68,7 +68,7 @@ jobs:
           host: tangram-orchestre.fr
           username: ${{ secrets.DEPLOY_USERNAME }}
           key: ${{ secrets.DEPLOY_KEY }}
-          script: ${{ env.DEPLOY_TARGET_DIR }}/update.sh
+          script: ${{ env.DEPLOY_TARGET_DIR }}update.sh
 
       - name: Retag pushed images to marker branch (registry-side, no pull)
         if: vars.SKIP_DEPLOY != 'true'
