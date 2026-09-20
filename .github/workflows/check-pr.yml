@@ -38,4 +38,4 @@ jobs:
         uses: ./.github/actions/build-containers
         with:
           FORCE_BUILD: ${{ vars.FORCE_BUILD }}
-          TAG: ${{ github.event.pull_request.base.ref }}
+          REFERENCE_BRANCH: ${{ github.event.pull_request.base.ref }}
