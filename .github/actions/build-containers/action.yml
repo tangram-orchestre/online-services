@@ -1,13 +1,19 @@
 name: Build Containers
 description: Build Containers
 
+outputs:
+  images:
+    description: "Newline-separated list of pushed image@sha references"
+    value: ${{ steps.collect-images.outputs.images }}
+
 inputs:
   PUSH_TO_REGISTRY:
     description: Push to registry
     required: false
     default: "false"
-  TAG:
-    description: Tag for docker
+  REFERENCE_BRANCH:
+    description: Reference branch for change detection
+    required: true
   FORCE_BUILD:
     description: Force build
     required: false
@@ -20,7 +26,7 @@ runs:
       uses: dorny/paths-filter@v3
       id: changes
       with:
-        base: ${{ inputs.TAG }}
+        base: ${{ inputs.REFERENCE_BRANCH }}
         filters: |
           backend:
             - 'services/backend/**'
@@ -46,9 +52,9 @@ runs:
     - name: Retrieve reference OpenAPI spec md5sum
       shell:  bash
       run: |
-        echo REFERENCE_PRIVATE_OPENAPI_SPEC_MD5SUM=`docker manifest inspect -v ${{ env.PORTAL_IMAGE_NAME }}:${{ inputs.TAG }} \
+        echo REFERENCE_PRIVATE_OPENAPI_SPEC_MD5SUM=`docker manifest inspect -v ${{ env.PORTAL_IMAGE_NAME }}:${{ inputs.REFERENCE_BRANCH }} \
           | jq -r '.[0].OCIManifest.annotations.PRIVATE_OPENAPI_SPEC_MD5SUM'` | tee -a $GITHUB_ENV
-        echo REFERENCE_PUBLIC_OPENAPI_SPEC_MD5SUM=`docker manifest inspect -v ${{ env.SHOWCASE_WEBSITE_IMAGE_NAME }}:${{ inputs.TAG }} \
+        echo REFERENCE_PUBLIC_OPENAPI_SPEC_MD5SUM=`docker manifest inspect -v ${{ env.SHOWCASE_WEBSITE_IMAGE_NAME }}:${{ inputs.REFERENCE_BRANCH }} \
           | jq -r '.[0].OCIManifest.annotations.PUBLIC_OPENAPI_SPEC_MD5SUM'` | tee -a $GITHUB_ENV
 
     - name: Docker meta Backend
@@ -57,7 +63,7 @@ runs:
       uses: docker/metadata-action@v5
       with:
         tags: |
-          type=raw,value=${{ inputs.TAG }}
+          type=raw,value=${{ github.ref_name }}
           type=sha,format=long
         images: ${{ env.BACKEND_IMAGE_NAME }}
 
@@ -125,7 +131,7 @@ runs:
       uses: docker/metadata-action@v5
       with:
         tags: |
-          type=raw,value=${{ inputs.TAG }}
+          type=raw,value=${{ github.ref_name }}
           type=sha,format=long
         annotations: |
           PUBLIC_OPENAPI_SPEC_MD5SUM=${{ env.PUBLIC_OPENAPI_SPEC_MD5SUM }}
@@ -149,7 +155,7 @@ runs:
       uses: docker/metadata-action@v5
       with:
         tags: |
-          type=raw,value=${{ inputs.TAG }}
+          type=raw,value=${{ github.ref_name }}
           type=sha,format=long
         annotations: |
           PRIVATE_OPENAPI_SPEC_MD5SUM=${{ env.PRIVATE_OPENAPI_SPEC_MD5SUM }}
@@ -165,3 +171,60 @@ runs:
         tags: ${{ steps.meta-portal.outputs.tags }}
         labels: ${{ steps.meta-portal.outputs.labels }}
         annotations: ${{ steps.meta-portal.outputs.annotations }}
+
+    - name: Collect pushed image digests
+      id: collect-images
+      shell: bash
+      run: |
+        set -eu
+        images=""
+
+        # Helper: inspect manifest and extract digest robustly
+        get_digest() {
+          local img="$1" tag="$2"
+          # Try docker manifest --verbose and parse 'Digest: '
+          if docker manifest inspect --verbose "${img}:${tag}" >/tmp/manifest.out 2>/dev/null; then
+            if digest=$(awk '/Digest: /{print $2; exit}' /tmp/manifest.out); then
+              echo "$digest" && return 0
+            fi
+          fi
+          # Fallback to jq extraction
+          if docker manifest inspect "${img}:${tag}" 2>/dev/null | jq -r '.[0].Descriptor.digest // .[0].Digest // .config.digest // empty' >/tmp/digest.out 2>/dev/null; then
+            digest=$(cat /tmp/digest.out)
+            if [ -n "$digest" ]; then
+              echo "$digest" && return 0
+            fi
+          fi
+          return 1
+        }
+
+        # For each image that was built and pushed, compute the digest and append as image@digest
+        if [ "${{ inputs.PUSH_TO_REGISTRY }}" = "true" ]; then
+          if [ "${{ env.BACKEND_NEEDS_BUILD }}" = "true" ]; then
+            tag="sha-${{ github.sha }}"
+            if d=$(get_digest "${BACKEND_IMAGE_NAME}" "$tag"); then
+              images+="${BACKEND_IMAGE_NAME}@${d}\n"
+            fi
+          fi
+          if [ "${{ env.SHOWCASE_WEBSITE_NEEDS_BUILD }}" = "true" ]; then
+            tag="sha-${{ github.sha }}"
+            if d=$(get_digest "${SHOWCASE_WEBSITE_IMAGE_NAME}" "$tag"); then
+              images+="${SHOWCASE_WEBSITE_IMAGE_NAME}@${d}\n"
+            fi
+          fi
+          if [ "${{ env.PORTAL_NEEDS_BUILD }}" = "true" ]; then
+            tag="sha-${{ github.sha }}"
+            if d=$(get_digest "${PORTAL_IMAGE_NAME}" "$tag"); then
+              images+="${PORTAL_IMAGE_NAME}@${d}\n"
+            fi
+          fi
+        fi
+
+        # Trim trailing newline
+        images=$(printf "%s" "$images" | sed -e '$d' -e '$a\') || true
+
+        # Emit output
+        echo "images<<EOF" >> $GITHUB_OUTPUT
+        printf "%s" "$images" >> $GITHUB_OUTPUT
+        echo "EOF" >> $GITHUB_OUTPUT
+
