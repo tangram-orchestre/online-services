@@ -1,6 +1,6 @@
 services:
   showcase-website:
-    image: ghcr.io/tangram-orchestre/showcase-website:production
+    image: ghcr.io/tangram-orchestre/showcase-website:master
     restart: unless-stopped
     security_opt:
       - no-new-privileges:true

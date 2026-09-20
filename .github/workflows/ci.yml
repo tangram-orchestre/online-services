@@ -13,9 +13,9 @@ concurrency:
 
 env:
   DOCKER_REGISTRY: ghcr.io
-  MARKER_BRANCH: ${{ github.ref == 'refs/heads/master' && 'production' || 'staging' }}
-  DEPLOY_SOURCE_DIR: ${{ github.ref == 'refs/heads/master' && 'deploy/production/' || 'deploy/staging/' }}
-  DEPLOY_TARGET_DIR: ${{ github.ref == 'refs/heads/master' && '/opt/services/' || '/opt/services-staging/' }}
+  MARKER_BRANCH: ${{ github.ref_name == 'master' && 'production' || 'staging' }}
+  DEPLOY_SOURCE_DIR: ${{ github.ref_name == 'master' && 'deploy/production/' || 'deploy/staging/' }}
+  DEPLOY_TARGET_DIR: ${{ github.ref_name == 'master' && '/opt/services/' || '/opt/services-staging/' }}
 
 jobs:
   deploy:
@@ -43,14 +43,16 @@ jobs:
           password: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Build & Push Containers
+        id: build-and-push
         uses: ./.github/actions/build-containers
         with:
           PUSH_TO_REGISTRY: "true"
           FORCE_BUILD: ${{ vars.FORCE_BUILD }}
-          TAG: ${{ env.MARKER_BRANCH }}
+          REFERENCE_BRANCH: ${{ env.MARKER_BRANCH }}
 
       - name: Sync dir to server
         uses: burnett01/rsync-deployments@7.0.1
+        if: vars.SKIP_DEPLOY != 'true'
         with:
           switches: -vzrp --chmod=u=rwx,g=rx,o-rwx --delete --exclude='.env'
           path: ${{ env.DEPLOY_SOURCE_DIR }}
@@ -66,12 +68,44 @@ jobs:
           host: tangram-orchestre.fr
           username: ${{ secrets.DEPLOY_USERNAME }}
           key: ${{ secrets.DEPLOY_KEY }}
-          script: ${{ env.DEPLOY_TARGET_DIR }}/update.sh
+          script: ${{ env.DEPLOY_TARGET_DIR }}update.sh
+
+      - name: Retag pushed images to marker branch
+        if: vars.SKIP_DEPLOY != 'true'
+        env:
+          MARKER_BRANCH: ${{ env.MARKER_BRANCH }}
+        shell: bash
+        run: |
+          set -eu
+          echo "Saving images output to file"
+          printf "%s" "${{ steps.build-and-push.outputs.images }}" > images_list.txt || true
+          if [ ! -s images_list.txt ]; then
+            echo "No images to retag, skipping"
+            exit 0
+          fi
+
+          echo "Ensuring docker auth present"
+          echo "Logging in to ${DOCKER_REGISTRY}"
+          echo "${{ secrets.GITHUB_TOKEN }}" | docker login ${DOCKER_REGISTRY} -u "${{ github.actor }}" --password-stdin
+
+          echo "Retagging built images to ${MARKER_BRANCH}"
+          while IFS= read -r src || [ -n "$src" ]; do
+            # src is like ghcr.io/owner/repo:sha-<commit>
+            src_tag="$src"
+            repo="${src_tag%:*}"
+            dst="${repo}:${MARKER_BRANCH}"
+
+            echo "Tagging $src_tag -> $dst"
+            docker tag "$src_tag" "$dst"
+            docker push "$dst"
+          done < images_list.txt
 
       - uses: webfactory/ssh-agent@v0.9.0
+        if: vars.SKIP_DEPLOY != 'true'
         with:
           ssh-private-key: ${{ secrets.UPDATE_BRANCH_KEY }}
 
       - name: Update marker branch
+        if: vars.SKIP_DEPLOY != 'true'
         run: |
           git push --force origin HEAD:${{ env.MARKER_BRANCH }}

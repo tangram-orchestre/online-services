@@ -1,0 +1,76 @@
+- name: Configure Swap File
+  hosts: webservers
+  become: true
+  any_errors_fatal: true
+  vars:
+    swap_file_path: /swapfile
+    # Size in MB. Common rule: equal to RAM for servers with <= 8GB,
+    # half of RAM for servers with > 8GB
+    swap_file_size_mb: "{{ (ansible_facts['memtotal_mb'] <= 8192) | ternary(ansible_facts['memtotal_mb'], (ansible_facts['memtotal_mb'] / 2) | int) }}"
+    swappiness: 60
+    vfs_cache_pressure: 50
+
+  tasks:
+    - name: Check if swap file already exists
+      ansible.builtin.stat:
+        path: "{{ swap_file_path }}"
+      register: swap_check
+
+    - name: Check current swap usage
+      ansible.builtin.command: swapon --show
+      register: current_swap
+      changed_when: false
+
+    - name: Display current swap status
+      ansible.builtin.debug:
+        msg: "Current swap: {{ current_swap.stdout | default('No swap configured') }}"
+
+    - name: Create swap file using dd
+      ansible.builtin.command:
+        cmd: "dd if=/dev/zero of={{ swap_file_path }} bs=1M count={{ swap_file_size_mb }}"
+      when: not swap_check.stat.exists
+      changed_when: true
+      register: dd_result
+
+    - name: Set correct permissions on swap file
+      ansible.builtin.file:
+        path: "{{ swap_file_path }}"
+        mode: '0600'
+        owner: root
+        group: root
+
+    - name: Format the file as swap space
+      ansible.builtin.command:
+        cmd: "mkswap {{ swap_file_path }}"
+      when: not swap_check.stat.exists
+      changed_when: true
+
+    - name: Enable the swap file
+      ansible.builtin.command:
+        cmd: "swapon {{ swap_file_path }}"
+      when: swap_file_path not in current_swap.stdout
+      changed_when: true
+
+    - name: Add swap file to fstab for persistence
+      ansible.posix.mount:
+        path: none
+        src: "{{ swap_file_path }}"
+        fstype: swap
+        opts: sw
+        state: present
+
+    - name: Set swappiness value
+      ansible.posix.sysctl:
+        name: vm.swappiness
+        value: "{{ swappiness }}"
+        sysctl_set: true
+        state: present
+        reload: true
+
+    - name: Set vfs_cache_pressure
+      ansible.posix.sysctl:
+        name: vm.vfs_cache_pressure
+        value: "{{ vfs_cache_pressure }}"
+        sysctl_set: true
+        state: present
+        reload: true
