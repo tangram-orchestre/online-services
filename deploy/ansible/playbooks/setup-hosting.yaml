@@ -1,4 +1,4 @@
-- name: Server Setup
+- name: Setup hosting environment with deploy user and Docker rootless
   hosts: webservers
   become: true
   any_errors_fatal: true

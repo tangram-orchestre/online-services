@@ -6,6 +6,7 @@ This directory contains Ansible playbooks and roles for setting up the server en
 
 - Ansible must be installed on the control machine.
 - The target servers must be accessible via SSH and have Python installed.
+  - In particular, you must be able to connect via SSH to servers defined in the `inventory.yaml` file at the **corresponding IP addresses**.
 - The user running the playbooks must have sudo privileges on the target servers.
 - The target servers should have a supported Linux distribution (Debian).
 
