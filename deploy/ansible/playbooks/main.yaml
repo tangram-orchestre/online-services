@@ -1,0 +1,6 @@
+---
+- name: Configure swap
+  ansible.builtin.import_playbook: configure-swap-file.yaml
+
+- name: Setup server
+  ansible.builtin.import_playbook: setup-hosting.yaml

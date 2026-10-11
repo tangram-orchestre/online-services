@@ -1,13 +1,19 @@
 name: Build Containers
 description: Build Containers
 
+outputs:
+  images:
+    description: "Newline-separated list of pushed image@sha references"
+    value: ${{ steps.collect-images.outputs.images }}
+
 inputs:
   PUSH_TO_REGISTRY:
     description: Push to registry
     required: false
     default: "false"
-  TAG:
-    description: Tag for docker
+  REFERENCE_BRANCH:
+    description: Reference branch for change detection
+    required: true
   FORCE_BUILD:
     description: Force build
     required: false
@@ -20,7 +26,7 @@ runs:
       uses: dorny/paths-filter@v3
       id: changes
       with:
-        base: ${{ inputs.TAG }}
+        base: ${{ inputs.REFERENCE_BRANCH }}
         filters: |
           backend:
             - 'services/backend/**'
@@ -41,14 +47,25 @@ runs:
         echo "SHOWCASE_WEBSITE_IMAGE_NAME=${{ env.DOCKER_REGISTRY }}/${{ github.repository_owner }}/showcase-website" >> $GITHUB_ENV
         echo "PORTAL_IMAGE_NAME=${{ env.DOCKER_REGISTRY }}/${{ github.repository_owner }}/portal" >> $GITHUB_ENV
 
+        # Use base branch name for PRs, otherwise use current ref name.
+        if [ "${{ github.event_name }}" = "pull_request" ]; then
+          ref="${{ github.event.pull_request.base.ref }}"
+        else
+          ref="${{ github.ref_name }}"
+        fi
+
+        # sanitize ref (replace slashes) and export
+        ref_sanitized=$(echo "$ref" | tr '/' '-')
+        echo "CACHE_TAG=cache-${ref_sanitized}" | tee -a $GITHUB_ENV
+
         echo BACKEND_NEEDS_BUILD=${{ inputs.FORCE_BUILD == 'true' || steps.changes.outputs.backend == 'true' }} >> $GITHUB_ENV
 
     - name: Retrieve reference OpenAPI spec md5sum
       shell:  bash
       run: |
-        echo REFERENCE_PRIVATE_OPENAPI_SPEC_MD5SUM=`docker manifest inspect -v ${{ env.PORTAL_IMAGE_NAME }}:${{ inputs.TAG }} \
+        echo REFERENCE_PRIVATE_OPENAPI_SPEC_MD5SUM=`docker manifest inspect -v ${{ env.PORTAL_IMAGE_NAME }}:${{ inputs.REFERENCE_BRANCH }} \
           | jq -r '.[0].OCIManifest.annotations.PRIVATE_OPENAPI_SPEC_MD5SUM'` | tee -a $GITHUB_ENV
-        echo REFERENCE_PUBLIC_OPENAPI_SPEC_MD5SUM=`docker manifest inspect -v ${{ env.SHOWCASE_WEBSITE_IMAGE_NAME }}:${{ inputs.TAG }} \
+        echo REFERENCE_PUBLIC_OPENAPI_SPEC_MD5SUM=`docker manifest inspect -v ${{ env.SHOWCASE_WEBSITE_IMAGE_NAME }}:${{ inputs.REFERENCE_BRANCH }} \
           | jq -r '.[0].OCIManifest.annotations.PUBLIC_OPENAPI_SPEC_MD5SUM'` | tee -a $GITHUB_ENV
 
     - name: Docker meta Backend
@@ -57,7 +74,7 @@ runs:
       uses: docker/metadata-action@v5
       with:
         tags: |
-          type=raw,value=${{ inputs.TAG }}
+          type=raw,value=${{ github.ref_name }}
           type=sha,format=long
         images: ${{ env.BACKEND_IMAGE_NAME }}
 
@@ -72,8 +89,10 @@ runs:
         tags: ${{ steps.meta-backend.outputs.tags }}
         labels: ${{ steps.meta-backend.outputs.labels }}
         annotations: ${{ steps.meta-backend.outputs.annotations }}
-        cache-from: type=gha
-        cache-to: type=gha,mode=max
+        cache-from: |
+          type=registry,ref=${{ env.BACKEND_IMAGE_NAME }}:${{ env.CACHE_TAG }}
+        cache-to: |
+          type=registry,ref=${{ env.BACKEND_IMAGE_NAME }}:${{ env.CACHE_TAG }},mode=max
 
     - name: Generate OpenAPI spec
       if: env.BACKEND_NEEDS_BUILD == 'true'
@@ -125,7 +144,7 @@ runs:
       uses: docker/metadata-action@v5
       with:
         tags: |
-          type=raw,value=${{ inputs.TAG }}
+          type=raw,value=${{ github.ref_name }}
           type=sha,format=long
         annotations: |
           PUBLIC_OPENAPI_SPEC_MD5SUM=${{ env.PUBLIC_OPENAPI_SPEC_MD5SUM }}
@@ -138,9 +157,15 @@ runs:
       with:
         context: services/showcase-website
         push: ${{ inputs.PUSH_TO_REGISTRY }}
+        # Load the image into the local Docker daemon if we're pushing to registry, so we can retag it later for the marker branch.
+        load: ${{ inputs.PUSH_TO_REGISTRY }}
         tags: ${{ steps.meta-showcase-website.outputs.tags }}
         labels: ${{ steps.meta-showcase-website.outputs.labels }}
         annotations: ${{ steps.meta-showcase-website.outputs.annotations }}
+        cache-from: |
+          type=registry,ref=${{ env.SHOWCASE_WEBSITE_IMAGE_NAME }}:${{ env.CACHE_TAG }}
+        cache-to: |
+          type=registry,ref=${{ env.SHOWCASE_WEBSITE_IMAGE_NAME }}:${{ env.CACHE_TAG }},mode=max
 
 
     - name: Docker meta Portal
@@ -149,7 +174,7 @@ runs:
       uses: docker/metadata-action@v5
       with:
         tags: |
-          type=raw,value=${{ inputs.TAG }}
+          type=raw,value=${{ github.ref_name }}
           type=sha,format=long
         annotations: |
           PRIVATE_OPENAPI_SPEC_MD5SUM=${{ env.PRIVATE_OPENAPI_SPEC_MD5SUM }}
@@ -162,6 +187,48 @@ runs:
       with:
         context: services/portal
         push: ${{ inputs.PUSH_TO_REGISTRY }}
+        # Load the image into the local Docker daemon if we're pushing to registry, so we can retag it later for the marker branch.
+        load: ${{ inputs.PUSH_TO_REGISTRY }}
         tags: ${{ steps.meta-portal.outputs.tags }}
         labels: ${{ steps.meta-portal.outputs.labels }}
         annotations: ${{ steps.meta-portal.outputs.annotations }}
+        cache-from: |
+          type=registry,ref=${{ env.PORTAL_IMAGE_NAME }}:${{ env.CACHE_TAG }}
+        cache-to: |
+          type=registry,ref=${{ env.PORTAL_IMAGE_NAME }}:${{ env.CACHE_TAG }},mode=max
+
+    - name: Collect pushed image digests
+      id: collect-images
+      shell: bash
+      run: |
+        set -eu
+        images=""
+
+        # For each image that was built and pushed, compute the digest and append as image@digest
+        if [ "${{ inputs.PUSH_TO_REGISTRY }}" = "true" ]; then
+          if [ "${{ env.BACKEND_NEEDS_BUILD }}" = "true" ]; then
+            images+="${BACKEND_IMAGE_NAME}:sha-${{ github.sha }}"$'\n'
+          fi
+          if [ "${{ env.SHOWCASE_WEBSITE_NEEDS_BUILD }}" = "true" ]; then
+            images+="${SHOWCASE_WEBSITE_IMAGE_NAME}:sha-${{ github.sha }}"$'\n'
+          fi
+          if [ "${{ env.PORTAL_NEEDS_BUILD }}" = "true" ]; then
+            images+="${PORTAL_IMAGE_NAME}:sha-${{ github.sha }}"$'\n'
+          fi
+        fi
+
+        # Print images to stdout for debugging
+        echo "Pushed images:"
+        echo "$images"
+
+        # Remove a single trailing newline if present so the output block stays valid.
+        if [ -n "$images" ]; then
+          images="${images%$'\n'}"
+        fi
+
+
+        # Emit output; keep a newline before the closing delimiter so GitHub Actions can parse it.
+        echo "images<<EOF" >> "$GITHUB_OUTPUT"
+        printf "%s\n" "$images" >> "$GITHUB_OUTPUT"
+        echo "EOF" >> "$GITHUB_OUTPUT"
+

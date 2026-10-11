@@ -1,6 +1,6 @@
 services:
   showcase-website-staging:
-    image: ghcr.io/tangram-orchestre/showcase-website:staging
+    image: ghcr.io/tangram-orchestre/showcase-website:develop
     restart: unless-stopped
     security_opt:
       - no-new-privileges:true

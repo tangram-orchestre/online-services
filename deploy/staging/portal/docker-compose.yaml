@@ -1,6 +1,6 @@
 services:
   portal-staging:
-    image: ghcr.io/tangram-orchestre/portal:staging
+    image: ghcr.io/tangram-orchestre/portal:develop
     restart: unless-stopped
     security_opt:
       - no-new-privileges:true

@@ -1,6 +1,6 @@
 services:
   portal:
-    image: ghcr.io/tangram-orchestre/portal:production
+    image: ghcr.io/tangram-orchestre/portal:master
     restart: unless-stopped
     security_opt:
       - no-new-privileges:true

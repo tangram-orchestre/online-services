@@ -1,0 +1,5 @@
+roles:
+  - name: konstruktoid.docker_rootless
+    version: v1.24.0
+    src: https://github.com/konstruktoid/ansible-role-docker-rootless.git
+    scm: git
