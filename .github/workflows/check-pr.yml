@@ -39,3 +39,19 @@ jobs:
         with:
           FORCE_BUILD: ${{ vars.FORCE_BUILD }}
           REFERENCE_BRANCH: ${{ github.event.pull_request.base.ref }}
+
+  lint-ansible:
+    name: Lint Ansible
+    runs-on: ubuntu-latest
+    if: github.event.pull_request.draft == false
+    permissions:
+      contents: read
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Run ansible-lint
+        uses: ansible/ansible-lint@v26.10.1
+        with:
+          working_directory: deploy/ansible
+          requirements_file: requirements.yml
