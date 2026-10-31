@@ -39,7 +39,10 @@ The [deploy workflow](../.github/workflows/deploy.yml) runs these steps:
    2. stops the apps: Traefik then serves a [maintenance page](infra/maintenance/maintenance.html) (`503`) on their domains
    3. snapshots the databases to `<server folder>/db-dumps/`
    4. starts the release and waits for every container to be healthy (database migrations run here)
-   5. if anything is not healthy, restores the snapshots and starts the previous release again, and the workflow fails
+   5. checks the main routes answer as expected through Traefik (`DEPLOY_SMOKE_TESTS` in the environment configuration), which catches broken routing that healthchecks cannot see
+   6. if anything is not healthy or a route is wrong, restores the snapshots and starts the previous release again, and the workflow fails
+
+Infrastructure updates (Traefik, Authentik…) go through the same steps: the Authentik database is part of the snapshots, and a broken Traefik fails its healthcheck or the route checks. Traefik serves the maintenance page itself, so the page is unavailable for the few seconds Traefik restarts; it only restarts when its image or configuration changes.
 4. **Promote**: only once the release is healthy, the `production` / `staging` image tags are moved to it. They therefore always point to what is running.
 
 On the server, `current` points to the running release. Secrets are kept in `shared/`, mirroring the release tree (e.g. `shared/apps/backend/.env`), and linked into each release; each `.env` has a committed `sample.env` listing its keys ([`scripts/check-env-file-coherency.py`](scripts/check-env-file-coherency.py) checks they match).

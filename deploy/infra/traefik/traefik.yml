@@ -8,6 +8,9 @@ providers:
 api:
   dashboard: true
 
+# Used by the container healthcheck (`traefik healthcheck --ping`)
+ping: {}
+
 entryPoints:
   web:
     address: ":80"

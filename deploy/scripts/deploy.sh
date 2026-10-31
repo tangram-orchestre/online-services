@@ -17,7 +17,8 @@
 #   2. stop the apps: Traefik serves the maintenance page meanwhile
 #   3. snapshot the databases
 #   4. start the target release and wait for every container to be healthy
-#   5. on failure: restore the snapshots and start the previous release again
+#   5. check the routes answer as expected through Traefik (DEPLOY_SMOKE_TESTS)
+#   6. on failure: restore the snapshots and start the previous release again
 #
 # --reset-db (staging only) recreates empty databases before starting.
 # --restore-db restores the snapshots taken right before the current release
@@ -203,6 +204,32 @@ start_release() {
     compose "$1" up -d --remove-orphans --wait --wait-timeout "$WAIT_TIMEOUT"
 }
 
+# Checks the routes listed in DEPLOY_SMOKE_TESTS answer as expected through the
+# local Traefik, which catches broken routing that healthchecks cannot see.
+# Each line is `<url> <status> [<redirect prefix>]`.
+smoke_test() {
+    local dir=$1 tests url status redirect host result deadline
+    tests=$(config "$dir" DEPLOY_SMOKE_TESTS)
+    [ -n "$tests" ] || return 0
+
+    log "Checking routes"
+    while read -r url status redirect; do
+        [ -n "$url" ] || continue
+        host=${url#https://}
+        host=${host%%/*}
+        # Routers are registered shortly after the containers become healthy
+        deadline=$((SECONDS + 60))
+        until result=$(curl -s -o /dev/null --max-time 10 --resolve "$host:443:127.0.0.1" \
+            -w '%{http_code} %{redirect_url}' "$url") && [[ $result == "$status $redirect"* ]]; do
+            if [ $SECONDS -ge $deadline ]; then
+                echo "$url answered '$result', expected '$status $redirect'" >&2
+                return 1
+            fi
+            sleep 2
+        done
+    done <<<"$tests"
+}
+
 cleanup() {
     local current dir
     current=$(current_release)
@@ -254,7 +281,7 @@ switch_release() {
     fi
 
     log "Starting release $sha"
-    if start_release "$target"; then
+    if start_release "$target" && smoke_test "$target"; then
         ln -sfn "releases/$sha" "$ROOT/current"
         cleanup
         log "$ENV_NAME is now running $sha"
