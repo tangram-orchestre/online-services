@@ -1,13 +1,16 @@
 services:
   watchtower:
     image: containrrr/watchtower
+    restart: unless-stopped
     volumes:
-      - /var/run/docker.sock:/var/run/docker.sock
+      - /run/user/${UID}/docker.sock:/var/run/docker.sock
     labels:
       - dev.dozzle.name=Watchtower
       - dev.dozzle.group=Infrastructure
     command: --monitor-only
     environment:
       TZ: Europe/Paris
+      # Watchtower defaults to an API version Docker 29+ no longer accepts
+      DOCKER_API_VERSION: "1.44"
       WATCHTOWER_NOTIFICATION_URL: ${WATCHTOWER_NOTIFICATION_URL}
       WATCHTOWER_NOTIFICATIONS_HOSTNAME: Tangram Server

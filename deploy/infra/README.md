@@ -1,24 +1,22 @@
 # Tangram's Production Environment
 
-This folder holds the production environment for Tangram's online services, deployed on `tangram-orchestre.fr`.
+This folder holds the production infrastructure for Tangram's online services, deployed on `tangram-orchestre.fr`. The apps it serves live in [`../apps`](../apps/) and are shared with the staging environment.
 
-For CI/CD pipeline details and the backup explorer tool, see the [deploy README](../README.md).
+For CI/CD pipeline details, rollbacks and the backup explorer tool, see the [deploy README](../README.md).
 
 ## Infrastructure
 
 ### Docker Compose
 
-We use [Docker Compose](https://docs.docker.com/compose/) to describe and deploy our services. Each service lives in its own subfolder with a dedicated `docker-compose.yaml`. The top-level [`docker-compose.yaml`](./docker-compose.yaml) includes all of them, providing grouped actions.
+We use [Docker Compose](https://docs.docker.com/compose/) to describe and deploy our services. Each service lives in its own subfolder with a dedicated `docker-compose.yaml`. The top-level [`production.yaml`](../production.yaml) includes all of them (infrastructure and apps), configured by [`production.env`](../production.env).
 
-- Start everything:
-    ```bash
-    docker compose up -d
-    ```
-- Update containers:
-    ```bash
-    docker compose pull
-    docker compose up -d
-    ```
+Deploys, rollbacks and restarts go through [`scripts/deploy.sh`](../scripts/deploy.sh), which sets the configuration and pinned image versions (see the [deploy README](../README.md#how-a-deploy-works)). To run another compose command by hand, on the server:
+
+```bash
+cd /opt/services/current
+set -a; source production.env; source release.env; set +a
+docker compose -f production.yaml ps
+```
 
 An `unhealthy_container_restarter` service runs alongside the stack and automatically restarts any container that enters an unhealthy state.
 
@@ -26,7 +24,9 @@ An `unhealthy_container_restarter` service runs alongside the stack and automati
 
 Secrets are stored in `.env` files that are **not tracked by git**. Each service that needs one has a committed `sample.env` listing the required keys.
 
-Run [`check-env-file-coherency.py`](scripts/check-env-file-coherency.py) to verify that `.env` and `sample.env` files stay in sync. Adding this script to your [pre-commit hooks](https://git-scm.com/book/en/v2/Customizing-Git-Git-Hooks) is recommended.
+On the server they live in `/opt/services/shared/`, mirroring the repository tree, and are linked into each release.
+
+Run [`check-env-file-coherency.py`](../scripts/check-env-file-coherency.py) to verify that `.env` and `sample.env` files stay in sync. Adding this script to your [pre-commit hooks](https://git-scm.com/book/en/v2/Customizing-Git-Git-Hooks) is recommended.
 
 ### Reverse Proxy
 
@@ -37,6 +37,8 @@ Traefik discovers routing rules from two sources:
 - Static YAML files in [`traefik/dynamic-conf/`](./traefik/dynamic-conf/)
 
 The dashboard is exposed at `traefik.tangram-orchestre.fr`, protected by Authentik.
+
+While the apps are stopped or not healthy yet (e.g. during a deploy), a lowest-priority [router](./traefik/dynamic-conf/maintenance.yaml) sends their domains to a [maintenance page](./maintenance/maintenance.html), answered with a `503` status.
 
 ### Authentication
 
@@ -103,7 +105,7 @@ Backups operate in two layers: **PostgreSQL daily dumps** and **Kopia snapshots 
 
 ### PostgreSQL cron backups
 
-Both the backend and Authentik databases are backed up daily at **2:00 AM** by dedicated sidecar containers that run `crond`. Each sidecar mounts the same [`postgres-backup-crontab`](./backend/postgres-backup-crontab) crontab:
+Both the backend and Authentik databases are backed up daily at **2:00 AM** by dedicated sidecar containers that run `crond`. Each sidecar mounts the same [`postgres-backup-crontab`](./authentik/postgres-backup-crontab) crontab:
 
 ```cron
 0 2 * * * pg_dump -Fc > /opt/db-backups/backup.dump
@@ -116,6 +118,10 @@ The dumps use PostgreSQL's **custom format** (`-Fc`), which supports selective r
 | Backend (`portal`) | `backend-postgres-backup` | `/opt/db-backups/backend-postgres/backup.dump` |
 | Authentik (`authentik`) | `authentik-postgres-backup` | `/opt/db-backups/authentik-db/backup.dump` |
 
+### Pre-deploy snapshots
+
+Every deploy also dumps both databases to `/opt/services/db-dumps/<service>/` before starting the new release, and restores them if it fails. The last 10 snapshots are kept.
+
 ### Kopia snapshots
 
 [Kopia](https://kopia.io/) runs as a server and takes a **daily snapshot at 5:00 AM** (after the database dumps have completed at 2 AM). It backs up the following directories to Google Drive via rclone:
@@ -123,7 +129,7 @@ The dumps use PostgreSQL's **custom format** (`-Fc`), which supports selective r
 | Source (read-only mount) | Contents |
 |---|---|
 | `/opt/docker-volumes` | All persistent service data (Authentik, Grafana, Traefik certs, etc.) |
-| `/opt/services` | The deployed compose files and configuration |
+| `/opt/services` | The deployed releases, their secrets and the pre-deploy database snapshots |
 | `/opt/db-backups` | The PostgreSQL dumps from both databases |
 
 The Kopia web UI is available at `kopia.tangram-orchestre.fr`, protected by Authentik.

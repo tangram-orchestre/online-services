@@ -1,0 +1,39 @@
+# Production stack: shared infrastructure + production apps.
+# Deployed with scripts/deploy.sh, which sets the variables from production.env.
+name: services
+
+include:
+  - ./infra/traefik/docker-compose.yaml
+  - ./infra/maintenance/docker-compose.yaml
+  - ./infra/authentik/docker-compose.yaml
+  - ./infra/watchtower/docker-compose.yaml
+  - ./infra/kopia/docker-compose.yaml
+  - ./infra/dozzle/docker-compose.yaml
+  - ./apps/backend/docker-compose.yaml
+  - ./apps/portal/docker-compose.yaml
+  - ./apps/website/docker-compose.yaml
+
+services:
+  unhealthy_container_restarter:
+    image: docker:cli
+    network_mode: none
+    cap_drop:
+      - ALL
+    volumes:
+      - /run/user/${UID}/docker.sock:/var/run/docker.sock
+    labels:
+      - dev.dozzle.name=Unhealthy Container Restarter
+      - dev.dozzle.group=Infrastructure
+    command:
+      [
+        "/bin/sh",
+        "-c",
+        "while true; do sleep 60; docker ps -q -f health=unhealthy | xargs --no-run-if-empty docker restart; done",
+      ]
+    restart: unless-stopped
+
+# Shared with the staging stack, created by scripts/deploy.sh
+networks:
+  default:
+    name: services
+    external: true
