@@ -58,13 +58,21 @@ From GitHub, **Actions → Deploy → Run workflow**, then pick:
 
 ## Rolling back
 
-A failed deploy rolls back automatically. To go back to an earlier release by hand, run on the server, as the `deploy` user:
+A failed deploy rolls back automatically. To go back to an earlier release by hand, from GitHub: **Actions → Deploy → Run workflow** on `master`, with:
+- `environment`: the environment to roll back
+- `action: rollback`
+- `release`: the commit to go back to. It must be one of the releases kept on the server (the last 5, listed in `<server folder>/releases/`).
+- `restore_db`: also restore the database snapshot taken right before the current release was deployed, i.e. the data matching the previous release. Anything written since is lost. Without it, the databases are kept as they are.
+
+The rollback goes through the same health checks, route checks and automatic recovery as a deploy. Once it succeeds, the environment's image tag is moved to the release, like after a deploy.
+
+Without GitHub, the same can be run on the server as the `deploy` user:
 
 ```bash
 /opt/services/current/scripts/deploy.sh production rollback <commit> [--restore-db]
 ```
 
-`<commit>` must be one of the releases kept in `/opt/services/releases/` (the last 5). The databases are kept as they are unless `--restore-db` is passed: it restores the snapshot taken right before the current release was deployed, i.e. the data matching the previous release (anything written since is lost). The rollback itself goes through the same health checks and automatic recovery as a deploy.
+Only the workflow moves the image tag, though: after a rollback from the server, `production` keeps pointing to the newer images until the next deploy.
 
 ## PR checks
 
