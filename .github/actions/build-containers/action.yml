@@ -29,7 +29,13 @@ runs:
           echo "SHOWCASE_WEBSITE_IMAGE_NAME=${image_prefix}/showcase-website"
           echo "PORTAL_IMAGE_NAME=${image_prefix}/portal"
           echo "IMAGE_TAG=sha-${{ github.sha }}"
-          echo "CACHE_TAG=cache-${{ inputs.REFERENCE_TAG }}"
+          # Each kind of build writes its own cache but reads all of them, so the
+          # production cache only holds merged code and new builds start warm
+          if [ "${{ github.event_name }}" = "pull_request" ]; then
+            echo "CACHE_TAG=cache-pr"
+          else
+            echo "CACHE_TAG=cache-${{ inputs.REFERENCE_TAG }}"
+          fi
         } | tee -a "$GITHUB_ENV"
 
     # An image is rebuilt when its sources changed since the commit it was built
@@ -112,7 +118,9 @@ runs:
         labels: ${{ steps.meta-backend.outputs.labels }}
         annotations: ${{ steps.meta-backend.outputs.annotations }}
         cache-from: |
-          type=registry,ref=${{ env.BACKEND_IMAGE_NAME }}:${{ env.CACHE_TAG }}
+          type=registry,ref=${{ env.BACKEND_IMAGE_NAME }}:cache-production
+          type=registry,ref=${{ env.BACKEND_IMAGE_NAME }}:cache-staging
+          type=registry,ref=${{ env.BACKEND_IMAGE_NAME }}:cache-pr
         cache-to: |
           type=registry,ref=${{ env.BACKEND_IMAGE_NAME }}:${{ env.CACHE_TAG }},mode=max
 
@@ -162,7 +170,9 @@ runs:
         labels: ${{ steps.meta-showcase-website.outputs.labels }}
         annotations: ${{ steps.meta-showcase-website.outputs.annotations }}
         cache-from: |
-          type=registry,ref=${{ env.SHOWCASE_WEBSITE_IMAGE_NAME }}:${{ env.CACHE_TAG }}
+          type=registry,ref=${{ env.SHOWCASE_WEBSITE_IMAGE_NAME }}:cache-production
+          type=registry,ref=${{ env.SHOWCASE_WEBSITE_IMAGE_NAME }}:cache-staging
+          type=registry,ref=${{ env.SHOWCASE_WEBSITE_IMAGE_NAME }}:cache-pr
         cache-to: |
           type=registry,ref=${{ env.SHOWCASE_WEBSITE_IMAGE_NAME }}:${{ env.CACHE_TAG }},mode=max
 
@@ -184,7 +194,9 @@ runs:
         labels: ${{ steps.meta-portal.outputs.labels }}
         annotations: ${{ steps.meta-portal.outputs.annotations }}
         cache-from: |
-          type=registry,ref=${{ env.PORTAL_IMAGE_NAME }}:${{ env.CACHE_TAG }}
+          type=registry,ref=${{ env.PORTAL_IMAGE_NAME }}:cache-production
+          type=registry,ref=${{ env.PORTAL_IMAGE_NAME }}:cache-staging
+          type=registry,ref=${{ env.PORTAL_IMAGE_NAME }}:cache-pr
         cache-to: |
           type=registry,ref=${{ env.PORTAL_IMAGE_NAME }}:${{ env.CACHE_TAG }},mode=max
 
