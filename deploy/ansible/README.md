@@ -20,5 +20,5 @@ This directory contains Ansible playbooks and roles for setting up the server en
    ```
 4. Run the playbook to set up the servers:
    ```bash
-   ansible-playbook -i inventory.yaml playbook.yaml
+   ansible-playbook -i inventory.yaml playbooks/main.yaml
    ```
