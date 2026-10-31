@@ -14,6 +14,7 @@ diesel::table! {
         tickets_url -> Nullable<Text>,
         video_url -> Nullable<Text>,
         doors_open_at -> Nullable<Time>,
+        meeting_at -> Nullable<Time>,
         starts_at -> Time,
         public -> Bool,
         location_id -> Int4,

@@ -48,14 +48,17 @@ const locationName = (id: number) => {
   return l ? `${l.name}` : String(id);
 };
 
-const zConcert = zNewConcert.refine(
-  (obj) => !obj.doors_open_at || obj.doors_open_at < obj.starts_at,
-  {
+const zConcert = zNewConcert
+  .refine((obj) => !obj.doors_open_at || obj.doors_open_at < obj.starts_at, {
     path: ["doors_open_at"],
     message:
       "L'ouverture des portes doit être avant l'heure de début du concert",
-  },
-);
+  })
+  .refine((obj) => !obj.meeting_at || obj.meeting_at < obj.starts_at, {
+    path: ["meeting_at"],
+    message:
+      "Le rendez-vous des musiciens doit être avant l'heure de début du concert",
+  });
 
 const { handleSubmit, handleReset, defineField, errors, isSubmitting } =
   useForm({
@@ -65,6 +68,7 @@ const { handleSubmit, handleReset, defineField, errors, isSubmitting } =
 const [date, dateProps] = defineField("date");
 const [starts_at] = defineField("starts_at");
 const [doors_open_at] = defineField("doors_open_at");
+const [meeting_at] = defineField("meeting_at");
 const [tickets_url, tickets_urlProps] = defineField("tickets_url");
 const [video_url, video_urlProps] = defineField("video_url");
 const [isPublic, isPublicProps] = defineField("public");
@@ -105,6 +109,7 @@ const saveConcert = (id: number | null) => {
     doors_open_at: doors_open_at.value
       ? normalizeTime(doors_open_at.value)
       : undefined,
+    meeting_at: meeting_at.value ? normalizeTime(meeting_at.value) : undefined,
     tickets_url: tickets_url.value || undefined,
     video_url: video_url.value || undefined,
     public: isPublic.value ?? false,
@@ -186,6 +191,7 @@ const deleteConcert = (id: number, concertDate: string) => {
         { title: 'Date', key: 'date' },
         { title: 'Semestre', key: 'semester_id' },
         { title: 'Lieu', key: 'location_id' },
+        { title: 'Rendez-vous', key: 'meeting_at' },
         { title: 'Début', key: 'starts_at' },
         { title: 'Public', key: 'public' },
         { title: 'Actions', value: 'actions', align: 'end' },
@@ -232,6 +238,9 @@ const deleteConcert = (id: number, concertDate: string) => {
       <template #item.location_id="{ item }">
         {{ locationName(item.location_id) }}
       </template>
+      <template #item.meeting_at="{ item }">
+        {{ item.meeting_at ? formatTime(item.meeting_at) : "—" }}
+      </template>
       <template #item.starts_at="{ item }">
         {{ formatTime(item.starts_at) }}
       </template>
@@ -254,6 +263,7 @@ const deleteConcert = (id: number, concertDate: string) => {
                 date = item.date;
                 starts_at = item.starts_at;
                 doors_open_at = item.doors_open_at ?? undefined;
+                meeting_at = item.meeting_at ?? undefined;
                 tickets_url = item.tickets_url ?? undefined;
                 video_url = item.video_url ?? undefined;
                 isPublic = item.public;
@@ -303,6 +313,22 @@ const deleteConcert = (id: number, concertDate: string) => {
             :error-messages="errors.location_id"
           />
 
+          <v-text-field
+            :model-value="meeting_at ? formatTime(meeting_at) : undefined"
+            label="Rendez-vous des musiciens"
+            :error-messages="errors.meeting_at"
+            :append-inner-icon="meeting_at ? 'mdi-close-circle' : undefined"
+            readonly
+            @click:append-inner.stop="meeting_at = undefined"
+          >
+            <v-menu
+              :close-on-content-click="false"
+              activator="parent"
+              min-width="0"
+            >
+              <v-time-picker v-model="meeting_at" format="24hr" />
+            </v-menu>
+          </v-text-field>
           <v-text-field
             :model-value="doors_open_at ? formatTime(doors_open_at) : undefined"
             label="Ouverture des portes"

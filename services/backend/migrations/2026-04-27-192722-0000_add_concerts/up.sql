@@ -14,11 +14,14 @@ CREATE TABLE concerts (
   tickets_url TEXT,
   video_url TEXT,
   doors_open_at TIME,
+  meeting_at TIME, -- Time at which orchestra members meet before the concert.
   starts_at TIME NOT NULL,
   public BOOLEAN NOT NULL DEFAULT FALSE,
   location_id INTEGER NOT NULL REFERENCES locations(id),
   semester_id INTEGER NOT NULL REFERENCES semesters(id),
-  CHECK (doors_open_at IS NULL OR doors_open_at < starts_at)
+  CHECK (doors_open_at IS NULL OR doors_open_at < starts_at),
+  CONSTRAINT concerts_meeting_at_before_starts_at
+    CHECK (meeting_at IS NULL OR meeting_at < starts_at)
 );
 
 CREATE TABLE pieces (

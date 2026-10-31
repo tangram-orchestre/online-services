@@ -28,9 +28,9 @@ BEGIN
 
         -- Concerts
         SELECT id INTO semester_p26_id FROM semesters WHERE name = 'P26';
-        INSERT INTO concerts (date, tickets_url, video_url, doors_open_at, starts_at, public, location_id, semester_id) VALUES
-            ('2026-05-15', 'https://tickets.example.com/spring-concert', NULL, '19:30', '20:00', TRUE,  loc1_id, semester_p26_id),
-            ('2026-06-20', NULL,                                          NULL, NULL,   '18:00', FALSE, loc2_id, semester_p26_id);
+        INSERT INTO concerts (date, tickets_url, video_url, meeting_at, doors_open_at, starts_at, public, location_id, semester_id) VALUES
+            ('2026-05-15', 'https://tickets.example.com/spring-concert', NULL, '18:00', '19:30', '20:00', TRUE,  loc1_id, semester_p26_id),
+            ('2026-06-20', NULL,                                          NULL, '16:30', NULL,   '18:00', FALSE, loc2_id, semester_p26_id);
 
         SELECT id INTO concert1_id FROM concerts WHERE date = '2026-05-15' AND location_id = loc1_id;
         SELECT id INTO concert2_id FROM concerts WHERE date = '2026-06-20' AND location_id = loc2_id;
