@@ -11,6 +11,10 @@ RUN mkdir /opt/openapi && mv private-spec.json /opt/openapi
 RUN yarn install --locked && yarn generate
 RUN yarn lint
 
-FROM joseluisq/static-web-server:2.36.0
+# Alpine variant so the compose healthcheck can use wget
+FROM joseluisq/static-web-server:2.36.0-alpine
+
+# Expose a /health endpoint for the healthcheck
+ENV SERVER_HEALTH=true
 
 COPY --from=build /app/.output/public /public
