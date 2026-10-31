@@ -33,11 +33,22 @@ runs:
         } | tee -a "$GITHUB_ENV"
 
     # An image is rebuilt when its sources changed since the commit it was built
-    # from (its revision label), or when that commit is unknown.
+    # from (its revision label), or when that commit is unknown. Images already
+    # pushed for this commit (e.g. deployed to the other environment) are reused
+    # as they are: a sha tag never changes.
     - name: Detect changes
       shell: bash
       run: |
         set -euo pipefail
+
+        exists() {
+          if [ "${{ inputs.PUSH_TO_REGISTRY }}" = "true" ] && [ "${{ inputs.FORCE_BUILD }}" != "true" ] \
+            && docker buildx imagetools inspect "$1:$IMAGE_TAG" >/dev/null 2>&1; then
+            echo "$1: already built for this commit" >&2; echo true
+          else
+            echo false
+          fi
+        }
 
         needs_build() {
           local image=$1; shift
@@ -57,17 +68,25 @@ runs:
           fi
         }
 
-        backend=$(needs_build "$BACKEND_IMAGE_NAME" services/backend)
-        website=$(needs_build "$SHOWCASE_WEBSITE_IMAGE_NAME" services/showcase-website)
-        portal=$(needs_build "$PORTAL_IMAGE_NAME" services/portal)
+        backend_exists=$(exists "$BACKEND_IMAGE_NAME")
+        website_exists=$(exists "$SHOWCASE_WEBSITE_IMAGE_NAME")
+        portal_exists=$(exists "$PORTAL_IMAGE_NAME")
+
+        backend=false website=false portal=false
+        [ "$backend_exists" = true ] || backend=$(needs_build "$BACKEND_IMAGE_NAME" services/backend)
+        [ "$website_exists" = true ] || website=$(needs_build "$SHOWCASE_WEBSITE_IMAGE_NAME" services/showcase-website)
+        [ "$portal_exists" = true ] || portal=$(needs_build "$PORTAL_IMAGE_NAME" services/portal)
 
         # The website and portal embed the backend OpenAPI spec
         if [ "$backend" = true ]; then
-          website=true
-          portal=true
+          [ "$website_exists" = true ] || website=true
+          [ "$portal_exists" = true ] || portal=true
         fi
 
         {
+          echo "BACKEND_EXISTS=$backend_exists"
+          echo "SHOWCASE_WEBSITE_EXISTS=$website_exists"
+          echo "PORTAL_EXISTS=$portal_exists"
           echo "BACKEND_NEEDS_BUILD=$backend"
           echo "SHOWCASE_WEBSITE_NEEDS_BUILD=$website"
           echo "PORTAL_NEEDS_BUILD=$portal"
@@ -102,7 +121,7 @@ runs:
       shell: bash
       run: |
         # When the backend did not change, the deployed one has the same spec
-        if [ "$BACKEND_NEEDS_BUILD" = "true" ]; then
+        if [ "$BACKEND_NEEDS_BUILD" = "true" ] || [ "$BACKEND_EXISTS" = "true" ]; then
           backend_image="$BACKEND_IMAGE_NAME:$IMAGE_TAG"
         else
           backend_image="$BACKEND_IMAGE_NAME:${{ inputs.REFERENCE_TAG }}"
@@ -179,6 +198,6 @@ runs:
           echo "Tagging unchanged $1:${{ inputs.REFERENCE_TAG }} as $1:$IMAGE_TAG"
           docker buildx imagetools create -t "$1:$IMAGE_TAG" "$1:${{ inputs.REFERENCE_TAG }}"
         }
-        [ "$BACKEND_NEEDS_BUILD" = "true" ] || alias_image "$BACKEND_IMAGE_NAME"
-        [ "$SHOWCASE_WEBSITE_NEEDS_BUILD" = "true" ] || alias_image "$SHOWCASE_WEBSITE_IMAGE_NAME"
-        [ "$PORTAL_NEEDS_BUILD" = "true" ] || alias_image "$PORTAL_IMAGE_NAME"
+        [ "$BACKEND_NEEDS_BUILD" = "true" ] || [ "$BACKEND_EXISTS" = "true" ] || alias_image "$BACKEND_IMAGE_NAME"
+        [ "$SHOWCASE_WEBSITE_NEEDS_BUILD" = "true" ] || [ "$SHOWCASE_WEBSITE_EXISTS" = "true" ] || alias_image "$SHOWCASE_WEBSITE_IMAGE_NAME"
+        [ "$PORTAL_NEEDS_BUILD" = "true" ] || [ "$PORTAL_EXISTS" = "true" ] || alias_image "$PORTAL_IMAGE_NAME"
