@@ -13,14 +13,22 @@ on:
           - production
         default: staging
       action:
-        description: "deploy: deploy the selected branch, stop: stop staging"
+        description: "deploy: deploy the selected branch, rollback: go back to a previous release, stop: stop staging"
         type: choice
         options:
           - deploy
+          - rollback
           - stop
         default: deploy
       reset_db:
-        description: "Staging only: start from an empty database (with dev seeds)"
+        description: "Deploy to staging only: start from an empty database (with dev seeds)"
+        type: boolean
+        default: false
+      release:
+        description: "Rollback only: commit of the release to go back to (one of the last 5 deployed)"
+        type: string
+      restore_db:
+        description: "Rollback only: also restore the database snapshot taken before the current release (data written since is lost)"
         type: boolean
         default: false
 
@@ -35,11 +43,12 @@ env:
   DOCKER_REGISTRY: ghcr.io
   ENVIRONMENT: ${{ inputs.environment || 'production' }}
   DEPLOY_ROOT: ${{ (inputs.environment || 'production') == 'production' && '/opt/services' || '/opt/services-staging' }}
+  ACTION: ${{ inputs.action || 'deploy' }}
   RELEASE: ${{ github.sha }}
 
 jobs:
   deploy:
-    name: ${{ inputs.action == 'stop' && 'Stop' || 'Build and Deploy' }} ${{ inputs.environment || 'production' }}
+    name: ${{ inputs.action == 'stop' && 'Stop' || inputs.action == 'rollback' && 'Roll back' || 'Build and Deploy' }} ${{ inputs.environment || 'production' }}
     runs-on: ubuntu-latest
 
     permissions:
@@ -79,15 +88,31 @@ jobs:
           EOF
 
       - name: Stop staging
-        if: inputs.action == 'stop'
+        if: env.ACTION == 'stop'
         run: ssh server "$DEPLOY_ROOT/current/scripts/deploy.sh $ENVIRONMENT stop"
 
+      - name: Resolve release to roll back to
+        if: env.ACTION == 'rollback'
+        env:
+          INPUT_RELEASE: ${{ inputs.release }}
+        run: |
+          # Releases are named after full commit hashes; short ones are resolved
+          # (a full hash is used as is, its branch may have been deleted)
+          if [[ $INPUT_RELEASE =~ ^[0-9a-f]{40}$ ]]; then
+            release=$INPUT_RELEASE
+          elif ! release=$(git rev-parse --verify --quiet "${INPUT_RELEASE}^{commit}"); then
+            echo "::error::Unknown commit '${INPUT_RELEASE}', use the full hash"
+            exit 1
+          fi
+          echo "Rolling back to $release"
+          echo "RELEASE=$release" >> "$GITHUB_ENV"
+
       - name: Set up Docker Buildx
-        if: inputs.action != 'stop'
+        if: env.ACTION != 'stop'
         uses: docker/setup-buildx-action@v3
 
       - name: Log in to the Container registry
-        if: inputs.action != 'stop'
+        if: env.ACTION != 'stop'
         uses: docker/login-action@65b78e6e13532edd9afa3aa52ac7964289d1a9c1
         with:
           registry: ${{ env.DOCKER_REGISTRY }}
@@ -95,7 +120,7 @@ jobs:
           password: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Build & Push Containers
-        if: inputs.action != 'stop'
+        if: env.ACTION == 'deploy'
         uses: ./.github/actions/build-containers
         with:
           PUSH_TO_REGISTRY: "true"
@@ -103,7 +128,7 @@ jobs:
           REFERENCE_TAG: ${{ env.ENVIRONMENT }}
 
       - name: Upload release
-        if: inputs.action != 'stop' && vars.SKIP_DEPLOY != 'true'
+        if: env.ACTION == 'deploy' && vars.SKIP_DEPLOY != 'true'
         run: |
           # Files unchanged since the current release are hard-linked, not copied
           rsync -rlptz --mkpath --delete --chmod=go-w,o-rwx \
@@ -112,14 +137,21 @@ jobs:
             deploy/ "server:$DEPLOY_ROOT/releases/$RELEASE/"
 
       - name: Deploy release
-        if: inputs.action != 'stop' && vars.SKIP_DEPLOY != 'true'
+        if: env.ACTION == 'deploy' && vars.SKIP_DEPLOY != 'true'
         run: |
           ssh server "$DEPLOY_ROOT/releases/$RELEASE/scripts/deploy.sh $ENVIRONMENT deploy $RELEASE ${{ inputs.reset_db && '--reset-db' || '' }}"
+
+      # Same health checks and automatic recovery as a deploy, run with the
+      # current release's script
+      - name: Roll back release
+        if: env.ACTION == 'rollback'
+        run: |
+          ssh server "$DEPLOY_ROOT/current/scripts/deploy.sh $ENVIRONMENT rollback $RELEASE ${{ inputs.restore_db && '--restore-db' || '' }}"
 
       # Only once the release is healthy, so the environment tag always points
       # to what is running
       - name: Promote images
-        if: inputs.action != 'stop' && vars.SKIP_DEPLOY != 'true'
+        if: env.ACTION == 'rollback' || (env.ACTION == 'deploy' && vars.SKIP_DEPLOY != 'true')
         run: |
           for image in backend showcase-website portal; do
             name="$DOCKER_REGISTRY/${{ github.repository_owner }}/$image"
