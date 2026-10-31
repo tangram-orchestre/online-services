@@ -16,15 +16,14 @@ This repository contains source code for every online services deployed for the 
 
 ## Repository Content
 
-- [/deploy](deploy): docker-compose files used on production server.
-  - [/production](deploy/production/): The production environment, hosts authentication server, showcase website, member portal and other services. Deployed automatically from `master` branch.
-  - [/staging](deploy/staging/): The staging environment to test services before releasing to production. Deployed automatically from `develop` branch.
+- [/deploy](deploy): docker-compose files and scripts used on the production server (see [deploy/README.md](deploy/README.md)).
+  - [/infra](deploy/infra/): The shared infrastructure: reverse proxy, authentication server, backups, monitoring.
+  - [/apps](deploy/apps/): The showcase website, member portal and backend, deployed identically to production and staging.
+  - [/staging](deploy/staging/): Debugging tools only available on staging.
 - [/services](services): source code for all services made for Tangram (see [services/README.md](services/README.md) for details).
 
 ## Development Flow
 
-We use the [Git Flow](https://www.atlassian.com/git/tutorials/comparing-workflows/gitflow-workflow) process to organize our work:
- - the `master` branch services are automatically deployed to production at `https://<service>.tangram-orchestre.fr`
-   - the `production` branch is updated to the currently deployed commit
- - the `develop` branch services are automatically deployed to staging environment at `https://<service>.staging.tangram-orchestre.fr`
-   - the `staging` branch is updated to the currently deployed commit
+Work happens on feature branches merged into `master` through pull requests:
+ - `master` is automatically deployed to production at `https://<service>.tangram-orchestre.fr`
+ - any branch can be deployed on demand to the staging environment at `https://<service>.staging.tangram-orchestre.fr` (see [deploy/README.md](deploy/README.md#staging))
