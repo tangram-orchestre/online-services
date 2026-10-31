@@ -20,6 +20,7 @@ just lint-showcase-website
 just lint-portal
 just diesel <cmd>             # Run Diesel CLI (e.g. migration run/revert/generate)
 just db-schema                # Regenerate DB schema docs (https://schema.localhost)
+just screenshot [opts] <path>  # Screenshot dev stack pages into dev/screenshots (--help)
 just generate-certs           # Regenerate mkcert HTTPS certificates
 ```
 
@@ -40,6 +41,8 @@ yarn openapi-ts               # Regenerate API client from OpenAPI spec
 ```
 
 There are no unit tests — linting is the primary code quality gate.
+
+After frontend changes, check them visually with `just screenshot` (dev stack must be running) and read the resulting PNGs. It also reports console errors, page errors and failed requests. Use `--click '<selector>'` to open dialogs or menus, `--dark` / `--mobile` / `--full` for variants.
 
 While `just dev` runs, run portal/showcase commands with `docker compose exec <service> ...` rather than `docker compose run`, to avoid disturbing the running Nuxt dev server.
 

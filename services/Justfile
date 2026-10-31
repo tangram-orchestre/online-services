@@ -17,6 +17,12 @@ diesel *diesel_cmd:
 db-schema:
     docker compose run --rm schemaspy
 
+# Screenshot dev stack pages into dev/screenshots (`just screenshot --help`)
+[positional-arguments]
+screenshot *args:
+    mkdir -p dev/screenshots
+    docker compose run --rm screenshot "$@"
+
 ### Backend
 
 [group('lint')]

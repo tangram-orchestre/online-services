@@ -154,6 +154,23 @@ services:
       - traefik.http.services.schema-viewer.loadbalancer.server.port=80
       - traefik.http.routers.schema-viewer.tls=true
 
+  # Headless browser capturing pages of the dev stack, see `just screenshot`.
+  # Not started by `just dev`, only run on demand.
+  screenshot:
+    build:
+      context: ./dev/screenshot
+    profiles:
+      - tools
+    user: ${UID-1000}:${GID-1000}
+    working_dir: /opt/screenshot
+    volumes:
+      - ./dev/screenshot/screenshot.mjs:/opt/screenshot/screenshot.mjs:ro
+      - ./dev/screenshots:/out
+    environment:
+      - HOME=/tmp
+      - SCREENSHOT_HOST_DIR=${PWD}/dev/screenshots
+    entrypoint: ["node", "screenshot.mjs"]
+
   traefik:
     image: traefik:v3.6.15
     stop_signal: SIGKILL
