@@ -83,20 +83,14 @@ onMounted(() => {
         :icon="isDark ? 'mdi-weather-night' : 'mdi-brightness-5'"
         @click="toggleDark()"
       />
-      <v-btn class="ma-2" icon="mdi-account" to="/" />
+      <v-btn class="ma-2" icon="mdi-account" to="/profile" />
     </v-app-bar>
 
     <v-navigation-drawer v-model="drawer">
       <v-list nav>
         <template v-if="user.groups.includes('Orga')">
-          <v-list-item prepend-icon="mdi-calendar" to="/semesters">
+          <v-list-item prepend-icon="mdi-calendar" to="/" exact>
             Semestres
-          </v-list-item>
-          <v-list-item prepend-icon="mdi-music" to="/concerts">
-            Concerts
-          </v-list-item>
-          <v-list-item prepend-icon="mdi-music-note" to="/pieces">
-            Pièces
           </v-list-item>
           <v-list-item prepend-icon="mdi-map-marker" to="/locations">
             Lieux
