@@ -4,6 +4,7 @@ diesel::table! {
     concert_pieces (concert_id, piece_id) {
         concert_id -> Int4,
         piece_id -> Int4,
+        position -> Int4,
     }
 }
 

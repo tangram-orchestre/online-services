@@ -33,10 +33,13 @@ CREATE TABLE pieces (
   semester_id INTEGER NOT NULL REFERENCES semesters(id)
 );
 
+-- Programme of a concert: ordered list of pieces, each played at most once.
 CREATE TABLE concert_pieces (
   concert_id INTEGER NOT NULL REFERENCES concerts(id),
   piece_id INTEGER NOT NULL REFERENCES pieces(id),
-  PRIMARY KEY (concert_id, piece_id)
+  position INTEGER NOT NULL CHECK (position >= 0),
+  PRIMARY KEY (concert_id, piece_id),
+  CONSTRAINT concert_pieces_position_unique UNIQUE (concert_id, position)
 );
 
 
@@ -59,3 +62,24 @@ CREATE TRIGGER check_concert_date_in_semester_trigger
 BEFORE INSERT OR UPDATE ON concerts
 FOR EACH ROW
 EXECUTE FUNCTION check_concert_date_in_semester();
+
+-- A concert can only play pieces of its own semester.
+CREATE OR REPLACE FUNCTION check_concert_piece_semester()
+RETURNS TRIGGER AS $$
+BEGIN
+  IF NOT EXISTS (
+    SELECT 1 FROM concerts c
+    JOIN pieces p ON p.semester_id = c.semester_id
+    WHERE c.id = NEW.concert_id
+      AND p.id = NEW.piece_id
+  ) THEN
+    RAISE EXCEPTION check_violation USING MESSAGE = 'concert_piece_outside_semester';
+  END IF;
+  RETURN NEW;
+END;
+$$ LANGUAGE plpgsql;
+
+CREATE TRIGGER check_concert_piece_semester_trigger
+BEFORE INSERT OR UPDATE ON concert_pieces
+FOR EACH ROW
+EXECUTE FUNCTION check_concert_piece_semester();

@@ -34,6 +34,7 @@ pub struct NotNullViolation;
 pub enum CheckViolationKind {
     SemestersDateOverlap,
     ConcertDateOutsideSemester,
+    ConcertPieceOutsideSemester,
 }
 
 #[derive(Object, Debug, PartialEq)]
@@ -76,6 +77,9 @@ impl From<diesel::result::Error> for ApiError {
                     let kind = match database_error_information.message() {
                         "semesters_date_overlap" => Some(CheckViolationKind::SemestersDateOverlap),
                         "concert_date_outside_semester" => Some(CheckViolationKind::ConcertDateOutsideSemester),
+                        "concert_piece_outside_semester" => {
+                            Some(CheckViolationKind::ConcertPieceOutsideSemester)
+                        }
                         other => {
                             tracing::warn!("Unknown check violation: {}", other);
                             None

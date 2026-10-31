@@ -79,4 +79,15 @@ pub struct NewPiece {
 pub struct ConcertPiece {
     pub concert_id: i32,
     pub piece_id: i32,
+    /// Position of the piece in the concert programme, starting at 0.
+    pub position: i32,
+}
+
+/// A concert along with its programme.
+#[derive(Object)]
+pub struct ConcertWithPieces {
+    #[oai(flatten)]
+    pub concert: Concert,
+    /// Pieces of the concert programme, in playing order.
+    pub piece_ids: Vec<i32>,
 }

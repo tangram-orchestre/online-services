@@ -45,10 +45,10 @@ BEGIN
         SELECT id INTO piece2_id FROM pieces WHERE name = 'Bohemian Rhapsody';
         SELECT id INTO piece3_id FROM pieces WHERE name = 'Carmen Suite';
 
-        INSERT INTO concert_pieces (concert_id, piece_id) VALUES
-            (concert1_id, piece1_id),
-            (concert1_id, piece3_id),
-            (concert2_id, piece2_id),
-            (concert2_id, piece3_id);
+        INSERT INTO concert_pieces (concert_id, piece_id, position) VALUES
+            (concert1_id, piece1_id, 0),
+            (concert1_id, piece3_id, 1),
+            (concert2_id, piece2_id, 0),
+            (concert2_id, piece3_id, 1);
     END IF;
 END $$;
