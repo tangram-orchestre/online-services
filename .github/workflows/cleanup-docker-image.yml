@@ -12,29 +12,14 @@ jobs:
     permissions:
       packages: write
     steps:
-      - name: Login to GitHub Container Registry
-        uses: docker/login-action@v3.0.0
-        with:
-          registry: ghcr.io
-          username: ${{ github.actor }}
-          password: ${{ secrets.GITHUB_TOKEN }}
-
-      - name: Fetch multi-platform package version SHAs
-        id: multi-arch-digests
-        run: |
-          SHOWCASE_WEBSITE_PROD=$(docker manifest inspect ghcr.io/tangram-orchestre/showcase-website:production | jq -r '.manifests.[] | .digest' | paste -s -d ' ' -)
-          SHOWCASE_WEBSITE_STAGING=$(docker manifest inspect ghcr.io/tangram-orchestre/showcase-website:staging | jq -r '.manifests.[] | .digest' | paste -s -d ' ' -)
-          BACKEND_PROD=$(docker manifest inspect ghcr.io/tangram-orchestre/backend:production | jq -r '.manifests.[] | .digest' | paste -s -d ' ' -)
-          BACKEND_STAGING=$(docker manifest inspect ghcr.io/tangram-orchestre/backend:staging | jq -r '.manifests.[] | .digest' | paste -s -d ' ' -)
-          PORTAL_PROD=$(docker manifest inspect ghcr.io/tangram-orchestre/portal:production | jq -r '.manifests.[] | .digest' | paste -s -d ' ' -)
-          PORTAL_STAGING=$(docker manifest inspect ghcr.io/tangram-orchestre/portal:staging | jq -r '.manifests.[] | .digest' | paste -s -d ' ' -)
-          echo "multi-arch-digests=${SHOWCASE_WEBSITE_PROD},${SHOWCASE_WEBSITE_STAGING},${BACKEND_PROD},${BACKEND_STAGING},${PORTAL_PROD},${PORTAL_STAGING}" >> $GITHUB_OUTPUT
-
+      # Only untagged versions (left behind when a tag moves) are deleted: tagged
+      # `sha-*` releases stay available to roll back to. Filtering tags with
+      # wildcards would need a personal access token instead of GITHUB_TOKEN.
+      # Children of multi-arch images are protected by the action since v3.1.0.
       - uses: snok/container-retention-policy@v3.1.0
         with:
           account: tangram-orchestre
           token: ${{ secrets.GITHUB_TOKEN }}
-          image-names: "showcase-website backend"
-          image-tags: "!production !staging"
+          image-names: "showcase-website backend portal"
+          tag-selection: untagged
           cut-off: 1d
-          skip-shas: ${{ steps.multi-arch-digests.outputs.multi-arch-digests }}

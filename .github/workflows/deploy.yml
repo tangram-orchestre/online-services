@@ -1,0 +1,127 @@
+name: Deploy
+on:
+  push:
+    branches:
+      - master
+  workflow_dispatch:
+    inputs:
+      environment:
+        description: Environment
+        type: choice
+        options:
+          - staging
+          - production
+        default: staging
+      action:
+        description: "deploy: deploy the selected branch, stop: stop staging"
+        type: choice
+        options:
+          - deploy
+          - stop
+        default: deploy
+      reset_db:
+        description: "Staging only: start from an empty database (with dev seeds)"
+        type: boolean
+        default: false
+
+# One deploy at a time per environment: a staging deploy replaces whatever
+# branch was deployed there before.
+concurrency:
+  group: deploy-${{ inputs.environment || 'production' }}
+  cancel-in-progress: false
+  queue: max
+
+env:
+  DOCKER_REGISTRY: ghcr.io
+  ENVIRONMENT: ${{ inputs.environment || 'production' }}
+  DEPLOY_ROOT: ${{ (inputs.environment || 'production') == 'production' && '/opt/services' || '/opt/services-staging' }}
+  RELEASE: ${{ github.sha }}
+
+jobs:
+  deploy:
+    name: ${{ inputs.action == 'stop' && 'Stop' || 'Build and Deploy' }} ${{ inputs.environment || 'production' }}
+    runs-on: ubuntu-latest
+
+    permissions:
+      contents: read
+      packages: write
+      attestations: write
+      id-token: write
+
+    steps:
+      - name: Check production is deployed from master
+        if: env.ENVIRONMENT == 'production' && github.ref != 'refs/heads/master'
+        run: |
+          echo "::error::Production can only be deployed from master"
+          exit 1
+
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          # Needed to compare with the commits the deployed images were built from
+          fetch-depth: 0
+
+      - name: Set up SSH
+        env:
+          DEPLOY_KEY: ${{ secrets.DEPLOY_KEY }}
+          DEPLOY_USERNAME: ${{ secrets.DEPLOY_USERNAME }}
+        run: |
+          mkdir -p ~/.ssh
+          echo "$DEPLOY_KEY" > ~/.ssh/deploy_key
+          chmod 600 ~/.ssh/deploy_key
+          cp .github/deploy_known_hosts ~/.ssh/known_hosts
+          cat > ~/.ssh/config <<EOF
+          Host server
+            HostName tangram-orchestre.fr
+            User ${DEPLOY_USERNAME}
+            IdentityFile ~/.ssh/deploy_key
+            StrictHostKeyChecking yes
+          EOF
+
+      - name: Stop staging
+        if: inputs.action == 'stop'
+        run: ssh server "$DEPLOY_ROOT/current/scripts/deploy.sh $ENVIRONMENT stop"
+
+      - name: Set up Docker Buildx
+        if: inputs.action != 'stop'
+        uses: docker/setup-buildx-action@v3
+
+      - name: Log in to the Container registry
+        if: inputs.action != 'stop'
+        uses: docker/login-action@65b78e6e13532edd9afa3aa52ac7964289d1a9c1
+        with:
+          registry: ${{ env.DOCKER_REGISTRY }}
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Build & Push Containers
+        if: inputs.action != 'stop'
+        uses: ./.github/actions/build-containers
+        with:
+          PUSH_TO_REGISTRY: "true"
+          FORCE_BUILD: ${{ vars.FORCE_BUILD }}
+          REFERENCE_TAG: ${{ env.ENVIRONMENT }}
+
+      - name: Upload release
+        if: inputs.action != 'stop' && vars.SKIP_DEPLOY != 'true'
+        run: |
+          # Files unchanged since the current release are hard-linked, not copied
+          rsync -rlptz --mkpath --delete --chmod=go-w,o-rwx \
+            --link-dest="$DEPLOY_ROOT/current/" \
+            --exclude ansible/ --exclude backup-explorer/ --exclude Justfile \
+            deploy/ "server:$DEPLOY_ROOT/releases/$RELEASE/"
+
+      - name: Deploy release
+        if: inputs.action != 'stop' && vars.SKIP_DEPLOY != 'true'
+        run: |
+          ssh server "$DEPLOY_ROOT/releases/$RELEASE/scripts/deploy.sh $ENVIRONMENT deploy $RELEASE ${{ inputs.reset_db && '--reset-db' || '' }}"
+
+      # Only once the release is healthy, so the environment tag always points
+      # to what is running
+      - name: Promote images
+        if: inputs.action != 'stop' && vars.SKIP_DEPLOY != 'true'
+        run: |
+          for image in backend showcase-website portal; do
+            name="$DOCKER_REGISTRY/${{ github.repository_owner }}/$image"
+            docker buildx imagetools create -t "$name:$ENVIRONMENT" "$name:sha-$RELEASE"
+          done

@@ -1,18 +1,16 @@
 name: Build Containers
-description: Build Containers
-
-outputs:
-  images:
-    description: "Newline-separated list of pushed image@sha references"
-    value: ${{ steps.collect-images.outputs.images }}
+description: >-
+  Builds the images that changed since the ones tagged REFERENCE_TAG and, when
+  pushing, tags every image `sha-<commit>` (unchanged images become aliases of
+  their REFERENCE_TAG image), so a release can always be deployed as a whole.
 
 inputs:
   PUSH_TO_REGISTRY:
     description: Push to registry
     required: false
     default: "false"
-  REFERENCE_BRANCH:
-    description: Reference branch for change detection
+  REFERENCE_TAG:
+    description: Tag of the deployed images to compare against (production or staging)
     required: true
   FORCE_BUILD:
     description: Force build
@@ -22,69 +20,74 @@ inputs:
 runs:
   using: "composite"
   steps:
-    - name: Detect Changes
-      uses: dorny/paths-filter@v3
-      id: changes
-      with:
-        base: ${{ inputs.REFERENCE_BRANCH }}
-        filters: |
-          backend:
-            - 'services/backend/**'
-            - 'services/showcase-website/**'
-            - 'services/portal/**'
-            - '.github/actions/build-containers/action.yml'
-          showcase-website:
-            - 'services/showcase-website/**'
-            - '.github/actions/build-containers/action.yml'
-          portal:
-            - 'services/portal/**'
-            - '.github/actions/build-containers/action.yml'
-
     - name: Configure env
-      shell:  bash
+      shell: bash
       run: |
-        echo "BACKEND_IMAGE_NAME=${{ env.DOCKER_REGISTRY }}/${{ github.repository_owner }}/backend" >> $GITHUB_ENV
-        echo "SHOWCASE_WEBSITE_IMAGE_NAME=${{ env.DOCKER_REGISTRY }}/${{ github.repository_owner }}/showcase-website" >> $GITHUB_ENV
-        echo "PORTAL_IMAGE_NAME=${{ env.DOCKER_REGISTRY }}/${{ github.repository_owner }}/portal" >> $GITHUB_ENV
+        image_prefix="${{ env.DOCKER_REGISTRY }}/${{ github.repository_owner }}"
+        {
+          echo "BACKEND_IMAGE_NAME=${image_prefix}/backend"
+          echo "SHOWCASE_WEBSITE_IMAGE_NAME=${image_prefix}/showcase-website"
+          echo "PORTAL_IMAGE_NAME=${image_prefix}/portal"
+          echo "IMAGE_TAG=sha-${{ github.sha }}"
+          echo "CACHE_TAG=cache-${{ inputs.REFERENCE_TAG }}"
+        } | tee -a "$GITHUB_ENV"
 
-        # Use base branch name for PRs, otherwise use current ref name.
-        if [ "${{ github.event_name }}" = "pull_request" ]; then
-          ref="${{ github.event.pull_request.base.ref }}"
-        else
-          ref="${{ github.ref_name }}"
+    # An image is rebuilt when its sources changed since the commit it was built
+    # from (its revision label), or when that commit is unknown.
+    - name: Detect changes
+      shell: bash
+      run: |
+        set -euo pipefail
+
+        needs_build() {
+          local image=$1; shift
+          local revision
+          if [ "${{ inputs.FORCE_BUILD }}" = "true" ]; then
+            echo "$image: forced build" >&2; echo true; return
+          fi
+          revision=$(docker buildx imagetools inspect "$image:${{ inputs.REFERENCE_TAG }}" --format '{{ json . }}' 2>/dev/null \
+            | jq -r '[.. | objects | .["org.opencontainers.image.revision"]? // empty] | first // empty' || true)
+          if [ -z "$revision" ] || ! git cat-file -e "$revision^{commit}" 2>/dev/null; then
+            echo "$image: unknown reference revision '${revision}', building" >&2; echo true; return
+          fi
+          if git diff --quiet "$revision" HEAD -- "$@" .github/actions/build-containers/action.yml; then
+            echo "$image: unchanged since $revision" >&2; echo false
+          else
+            echo "$image: changed since $revision" >&2; echo true
+          fi
+        }
+
+        backend=$(needs_build "$BACKEND_IMAGE_NAME" services/backend)
+        website=$(needs_build "$SHOWCASE_WEBSITE_IMAGE_NAME" services/showcase-website)
+        portal=$(needs_build "$PORTAL_IMAGE_NAME" services/portal)
+
+        # The website and portal embed the backend OpenAPI spec
+        if [ "$backend" = true ]; then
+          website=true
+          portal=true
         fi
 
-        # sanitize ref (replace slashes) and export
-        ref_sanitized=$(echo "$ref" | tr '/' '-')
-        echo "CACHE_TAG=cache-${ref_sanitized}" | tee -a $GITHUB_ENV
-
-        echo BACKEND_NEEDS_BUILD=${{ inputs.FORCE_BUILD == 'true' || steps.changes.outputs.backend == 'true' }} >> $GITHUB_ENV
-
-    - name: Retrieve reference OpenAPI spec md5sum
-      shell:  bash
-      run: |
-        echo REFERENCE_PRIVATE_OPENAPI_SPEC_MD5SUM=`docker manifest inspect -v ${{ env.PORTAL_IMAGE_NAME }}:${{ inputs.REFERENCE_BRANCH }} \
-          | jq -r '.[0].OCIManifest.annotations.PRIVATE_OPENAPI_SPEC_MD5SUM'` | tee -a $GITHUB_ENV
-        echo REFERENCE_PUBLIC_OPENAPI_SPEC_MD5SUM=`docker manifest inspect -v ${{ env.SHOWCASE_WEBSITE_IMAGE_NAME }}:${{ inputs.REFERENCE_BRANCH }} \
-          | jq -r '.[0].OCIManifest.annotations.PUBLIC_OPENAPI_SPEC_MD5SUM'` | tee -a $GITHUB_ENV
+        {
+          echo "BACKEND_NEEDS_BUILD=$backend"
+          echo "SHOWCASE_WEBSITE_NEEDS_BUILD=$website"
+          echo "PORTAL_NEEDS_BUILD=$portal"
+        } | tee -a "$GITHUB_ENV"
 
     - name: Docker meta Backend
       if: env.BACKEND_NEEDS_BUILD == 'true'
       id: meta-backend
       uses: docker/metadata-action@v5
       with:
-        tags: |
-          type=raw,value=${{ github.ref_name }}
-          type=sha,format=long
+        tags: type=sha,format=long
         images: ${{ env.BACKEND_IMAGE_NAME }}
 
-    - name: Build and push Backend, baking in OpenAPI spec md5sum
+    - name: Build and push Backend
       if: env.BACKEND_NEEDS_BUILD == 'true'
-      id: push-backend
       uses: docker/build-push-action@v6
       with:
         context: services/backend
         push: ${{ inputs.PUSH_TO_REGISTRY }}
+        # Loaded to generate the OpenAPI spec below
         load: true
         tags: ${{ steps.meta-backend.outputs.tags }}
         labels: ${{ steps.meta-backend.outputs.labels }}
@@ -95,41 +98,25 @@ runs:
           type=registry,ref=${{ env.BACKEND_IMAGE_NAME }}:${{ env.CACHE_TAG }},mode=max
 
     - name: Generate OpenAPI spec
-      if: env.BACKEND_NEEDS_BUILD == 'true'
-      id: generate-openapi-spec
+      if: env.SHOWCASE_WEBSITE_NEEDS_BUILD == 'true' || env.PORTAL_NEEDS_BUILD == 'true'
       shell: bash
       run: |
+        # When the backend did not change, the deployed one has the same spec
+        if [ "$BACKEND_NEEDS_BUILD" = "true" ]; then
+          backend_image="$BACKEND_IMAGE_NAME:$IMAGE_TAG"
+        else
+          backend_image="$BACKEND_IMAGE_NAME:${{ inputs.REFERENCE_TAG }}"
+        fi
+
         cd services
         docker run --rm \
           -v ./openapi:/opt/openapi \
           -e PUBLIC_OPENAPI_SPEC_PATH=/opt/openapi/public-spec.json \
           -e PRIVATE_OPENAPI_SPEC_PATH=/opt/openapi/private-spec.json \
-          ${{ env.BACKEND_IMAGE_NAME }}:sha-${{ github.sha }}
+          "$backend_image"
 
         cp openapi/public-spec.json showcase-website/public-spec.json
         cp openapi/private-spec.json portal/private-spec.json
-
-        echo PUBLIC_OPENAPI_SPEC_MD5SUM=`md5sum openapi/public-spec.json | awk '{ print $1 }'` | tee -a $GITHUB_ENV
-        echo PRIVATE_OPENAPI_SPEC_MD5SUM=`md5sum openapi/private-spec.json | awk '{ print $1 }'` | tee -a $GITHUB_ENV
-
-
-    - name: Determine if Showcase Website & Portal needs to be built
-      shell:  bash
-      run: |
-        echo "PRIVATE_SPEC_MD5SUM: '${{ env.PRIVATE_OPENAPI_SPEC_MD5SUM || 'none' }}' (ref: '${{ env.REFERENCE_PRIVATE_OPENAPI_SPEC_MD5SUM }}')"
-        echo "PUBLIC_SPEC_MD5SUM: '${{ env.PUBLIC_OPENAPI_SPEC_MD5SUM || 'none' }}' (ref: '${{ env.REFERENCE_PUBLIC_OPENAPI_SPEC_MD5SUM }}')"
-
-        echo SHOWCASE_WEBSITE_NEEDS_BUILD=${{
-          inputs.FORCE_BUILD == 'true' ||
-          steps.changes.outputs.showcase-website == 'true' ||
-          (env.BACKEND_NEEDS_BUILD == 'true' && env.PUBLIC_OPENAPI_SPEC_MD5SUM != env.REFERENCE_PUBLIC_OPENAPI_SPEC_MD5SUM)
-        }} >> $GITHUB_ENV
-        echo PORTAL_NEEDS_BUILD=${{
-          inputs.FORCE_BUILD == 'true' ||
-          steps.changes.outputs.portal == 'true' ||
-          (env.BACKEND_NEEDS_BUILD == 'true' && env.PRIVATE_OPENAPI_SPEC_MD5SUM != env.REFERENCE_PRIVATE_OPENAPI_SPEC_MD5SUM)
-        }} >> $GITHUB_ENV
-
 
     # Only download images if we're deploying the image, they're not needed to
     # check the build is passing and LFS bandwidth is limited.
@@ -143,22 +130,15 @@ runs:
       id: meta-showcase-website
       uses: docker/metadata-action@v5
       with:
-        tags: |
-          type=raw,value=${{ github.ref_name }}
-          type=sha,format=long
-        annotations: |
-          PUBLIC_OPENAPI_SPEC_MD5SUM=${{ env.PUBLIC_OPENAPI_SPEC_MD5SUM }}
+        tags: type=sha,format=long
         images: ${{ env.SHOWCASE_WEBSITE_IMAGE_NAME }}
 
     - name: Build and push Showcase Website
       if: env.SHOWCASE_WEBSITE_NEEDS_BUILD == 'true'
-      id: push-showcase-website
       uses: docker/build-push-action@v6
       with:
         context: services/showcase-website
         push: ${{ inputs.PUSH_TO_REGISTRY }}
-        # Load the image into the local Docker daemon if we're pushing to registry, so we can retag it later for the marker branch.
-        load: ${{ inputs.PUSH_TO_REGISTRY }}
         tags: ${{ steps.meta-showcase-website.outputs.tags }}
         labels: ${{ steps.meta-showcase-website.outputs.labels }}
         annotations: ${{ steps.meta-showcase-website.outputs.annotations }}
@@ -167,28 +147,20 @@ runs:
         cache-to: |
           type=registry,ref=${{ env.SHOWCASE_WEBSITE_IMAGE_NAME }}:${{ env.CACHE_TAG }},mode=max
 
-
     - name: Docker meta Portal
       if: env.PORTAL_NEEDS_BUILD == 'true'
       id: meta-portal
       uses: docker/metadata-action@v5
       with:
-        tags: |
-          type=raw,value=${{ github.ref_name }}
-          type=sha,format=long
-        annotations: |
-          PRIVATE_OPENAPI_SPEC_MD5SUM=${{ env.PRIVATE_OPENAPI_SPEC_MD5SUM }}
+        tags: type=sha,format=long
         images: ${{ env.PORTAL_IMAGE_NAME }}
 
     - name: Build and push Portal
       if: env.PORTAL_NEEDS_BUILD == 'true'
-      id: push-portal
       uses: docker/build-push-action@v6
       with:
         context: services/portal
         push: ${{ inputs.PUSH_TO_REGISTRY }}
-        # Load the image into the local Docker daemon if we're pushing to registry, so we can retag it later for the marker branch.
-        load: ${{ inputs.PUSH_TO_REGISTRY }}
         tags: ${{ steps.meta-portal.outputs.tags }}
         labels: ${{ steps.meta-portal.outputs.labels }}
         annotations: ${{ steps.meta-portal.outputs.annotations }}
@@ -197,38 +169,16 @@ runs:
         cache-to: |
           type=registry,ref=${{ env.PORTAL_IMAGE_NAME }}:${{ env.CACHE_TAG }},mode=max
 
-    - name: Collect pushed image digests
-      id: collect-images
+    # Registry-side copy, nothing is pulled or rebuilt
+    - name: Tag unchanged images for this commit
+      if: inputs.PUSH_TO_REGISTRY == 'true'
       shell: bash
       run: |
-        set -eu
-        images=""
-
-        # For each image that was built and pushed, compute the digest and append as image@digest
-        if [ "${{ inputs.PUSH_TO_REGISTRY }}" = "true" ]; then
-          if [ "${{ env.BACKEND_NEEDS_BUILD }}" = "true" ]; then
-            images+="${BACKEND_IMAGE_NAME}:sha-${{ github.sha }}"$'\n'
-          fi
-          if [ "${{ env.SHOWCASE_WEBSITE_NEEDS_BUILD }}" = "true" ]; then
-            images+="${SHOWCASE_WEBSITE_IMAGE_NAME}:sha-${{ github.sha }}"$'\n'
-          fi
-          if [ "${{ env.PORTAL_NEEDS_BUILD }}" = "true" ]; then
-            images+="${PORTAL_IMAGE_NAME}:sha-${{ github.sha }}"$'\n'
-          fi
-        fi
-
-        # Print images to stdout for debugging
-        echo "Pushed images:"
-        echo "$images"
-
-        # Remove a single trailing newline if present so the output block stays valid.
-        if [ -n "$images" ]; then
-          images="${images%$'\n'}"
-        fi
-
-
-        # Emit output; keep a newline before the closing delimiter so GitHub Actions can parse it.
-        echo "images<<EOF" >> "$GITHUB_OUTPUT"
-        printf "%s\n" "$images" >> "$GITHUB_OUTPUT"
-        echo "EOF" >> "$GITHUB_OUTPUT"
-
+        set -euo pipefail
+        alias_image() {
+          echo "Tagging unchanged $1:${{ inputs.REFERENCE_TAG }} as $1:$IMAGE_TAG"
+          docker buildx imagetools create -t "$1:$IMAGE_TAG" "$1:${{ inputs.REFERENCE_TAG }}"
+        }
+        [ "$BACKEND_NEEDS_BUILD" = "true" ] || alias_image "$BACKEND_IMAGE_NAME"
+        [ "$SHOWCASE_WEBSITE_NEEDS_BUILD" = "true" ] || alias_image "$SHOWCASE_WEBSITE_IMAGE_NAME"
+        [ "$PORTAL_NEEDS_BUILD" = "true" ] || alias_image "$PORTAL_IMAGE_NAME"

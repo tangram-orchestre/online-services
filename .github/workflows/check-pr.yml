@@ -8,7 +8,6 @@ on:
       - ready_for_review
     branches:
       - master
-      - develop
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
@@ -30,6 +29,9 @@ jobs:
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
+        with:
+          # Needed to compare with the commits the deployed images were built from
+          fetch-depth: 0
 
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
@@ -45,7 +47,7 @@ jobs:
         uses: ./.github/actions/build-containers
         with:
           FORCE_BUILD: ${{ vars.FORCE_BUILD }}
-          REFERENCE_BRANCH: ${{ github.event.pull_request.base.ref }}
+          REFERENCE_TAG: production
 
   lint-ansible:
     name: Lint Ansible
