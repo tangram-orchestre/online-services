@@ -45,7 +45,13 @@
         - docker-volumes-no-backup
         - rclone
         - services
+        - services/releases
+        - services/shared
+        - services/db-dumps
         - services-staging
+        - services-staging/releases
+        - services-staging/shared
+        - services-staging/db-dumps
 
     - name: Install required packages
       ansible.builtin.package:
