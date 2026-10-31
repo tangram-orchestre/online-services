@@ -24,6 +24,20 @@ const pieces = computed(
     allPieces.value?.filter((p) => p.semester_id === props.semester.id) ?? [],
 );
 
+const { data: allConcerts } = getConcerts({
+  composable: "useAsyncData",
+  key: "getConcerts",
+});
+
+const formatShortDate = (value: string) =>
+  new Date(value).toLocaleDateString("fr", { day: "numeric", month: "short" });
+
+/** Concerts whose programme contains the piece, by date. */
+const concertsOf = (pieceId: number) =>
+  (allConcerts.value ?? [])
+    .filter((c) => c.piece_ids.includes(pieceId))
+    .sort((a, b) => a.date.localeCompare(b.date));
+
 const { handleSubmit, handleReset, defineField, errors, isSubmitting } =
   useForm({
     validationSchema: toTypedSchema(zNewPiece.omit({ semester_id: true })),
@@ -203,8 +217,25 @@ const deletePiece = (id: number, pieceName: string) => {
               </template>
             </v-card-subtitle>
           </v-card-item>
-          <v-card-text v-if="piece.source" class="text-medium-emphasis">
-            {{ piece.source }}
+          <v-card-text
+            v-if="piece.source || concertsOf(piece.id).length"
+            class="d-flex flex-column ga-2"
+          >
+            <div v-if="piece.source" class="text-medium-emphasis">
+              {{ piece.source }}
+            </div>
+            <div
+              v-if="concertsOf(piece.id).length"
+              class="d-flex flex-wrap ga-1"
+            >
+              <v-chip
+                v-for="concert in concertsOf(piece.id)"
+                :key="concert.id"
+                size="x-small"
+                prepend-icon="mdi-music"
+                :text="formatShortDate(concert.date)"
+              />
+            </div>
           </v-card-text>
         </v-card>
       </div>
@@ -219,6 +250,7 @@ const deletePiece = (id: number, pieceName: string) => {
           { title: 'Source', key: 'source' },
           { title: 'Compositeur', key: 'composer' },
           { title: 'Arrangeur', key: 'arranger' },
+          { title: 'Concerts', key: 'concerts', sortable: false },
           { title: 'Actions', value: 'actions', align: 'end', sortable: false },
         ]"
         :hide-default-footer="pieces.length < 11"
@@ -226,6 +258,22 @@ const deletePiece = (id: number, pieceName: string) => {
         no-data-text="Aucune pièce pour ce semestre"
         item-value="id"
       >
+        <template #item.concerts="{ item }">
+          <div class="d-flex flex-wrap ga-1">
+            <v-chip
+              v-for="concert in concertsOf(item.id)"
+              :key="concert.id"
+              size="x-small"
+              :text="formatShortDate(concert.date)"
+            />
+            <span
+              v-if="concertsOf(item.id).length === 0"
+              class="text-medium-emphasis"
+              >—</span
+            >
+          </div>
+        </template>
+
         <template #item.actions="{ item }">
           <div class="d-flex ga-2 justify-end">
             <v-icon

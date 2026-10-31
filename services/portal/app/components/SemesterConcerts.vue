@@ -2,7 +2,8 @@
 import { useForm } from "vee-validate";
 import { toTypedSchema } from "@vee-validate/zod";
 import { zNewConcert } from "#hey-api/zod.gen";
-import type { Concert, Semester } from "#hey-api/types.gen";
+import type { Concert, ConcertWithPieces, Semester } from "#hey-api/types.gen";
+import type ConcertProgrammeDialogComponent from "~/components/ConcertProgrammeDialog.vue";
 import { toast } from "vuetify-sonner";
 
 const props = defineProps<{
@@ -51,6 +52,32 @@ const locationItems = computed(
 );
 
 const location = (id: number) => locations.value?.find((l) => l.id === id);
+
+const { data: allPieces } = getPieces({
+  composable: "useAsyncData",
+  key: "getPieces",
+});
+
+const semesterPieces = computed(
+  () =>
+    allPieces.value?.filter((p) => p.semester_id === props.semester.id) ?? [],
+);
+
+const pieceName = (id: number) =>
+  allPieces.value?.find((p) => p.id === id)?.name ?? "Pièce inconnue";
+
+const programmeDialog =
+  useTemplateRef<InstanceType<typeof ConcertProgrammeDialogComponent>>(
+    "programmeDialog",
+  );
+
+const onProgrammeSaved = (concertId: number, pieceIds: number[]) => {
+  if (allConcerts.value) {
+    allConcerts.value = allConcerts.value.map((c) =>
+      c.id === concertId ? { ...c, piece_ids: pieceIds } : c,
+    );
+  }
+};
 
 const zConcertForm = zNewConcert
   .omit({ semester_id: true })
@@ -158,7 +185,7 @@ const newConcert = () => {
   concertDialogShown.value = true;
 };
 
-const editConcert = (concert: Concert) => {
+const editConcert = (concert: Concert | ConcertWithPieces) => {
   date.value = concert.date;
   starts_at.value = concert.starts_at;
   doors_open_at.value = concert.doors_open_at ?? undefined;
@@ -306,6 +333,17 @@ const deleteConcert = (id: number, concertDate: string) => {
                 </span>
               </div>
             </div>
+
+            <v-divider class="my-3" />
+            <div class="text-overline text-medium-emphasis mb-1">Programme</div>
+            <ol v-if="concert.piece_ids.length" class="programme">
+              <li v-for="pieceId in concert.piece_ids" :key="pieceId">
+                {{ pieceName(pieceId) }}
+              </li>
+            </ol>
+            <div v-else class="text-body-2 text-medium-emphasis">
+              Programme vide
+            </div>
           </v-card-text>
 
           <v-card-actions>
@@ -332,11 +370,24 @@ const deleteConcert = (id: number, concertDate: string) => {
               size="small"
               title="Vidéo"
             />
+            <v-spacer />
+            <v-btn
+              icon="mdi-playlist-music"
+              size="small"
+              title="Modifier le programme"
+              @click="programmeDialog?.open(concert)"
+            />
           </v-card-actions>
         </v-card>
       </v-col>
     </v-row>
   </section>
+
+  <concert-programme-dialog
+    ref="programmeDialog"
+    :pieces="semesterPieces"
+    @saved="onProgrammeSaved"
+  />
 
   <v-dialog
     v-model="concertDialogShown"
@@ -469,5 +520,9 @@ const deleteConcert = (id: number, concertDate: string) => {
   position: absolute;
   top: 4px;
   right: 4px;
+}
+
+.programme {
+  padding-inline-start: 1.25rem;
 }
 </style>
