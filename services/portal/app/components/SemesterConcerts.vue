@@ -64,7 +64,7 @@ const semesterPieces = computed(
 );
 
 const pieceName = (id: number) =>
-  allPieces.value?.find((p) => p.id === id)?.name ?? "Pièce inconnue";
+  allPieces.value?.find((p) => p.id === id)?.name ?? "Morceau inconnu";
 
 const programmeDialog =
   useTemplateRef<InstanceType<typeof ConcertProgrammeDialogComponent>>(

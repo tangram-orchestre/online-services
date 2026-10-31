@@ -59,9 +59,13 @@ watch(pieceDialogShown, (shown) => {
 });
 
 const savePiece = (id: number | null) => {
-  const onResponseError = onResponseErrorHandler("pièce", true, (errorMsg) => {
-    savePieceError.value = errorMsg;
-  });
+  const onResponseError = onResponseErrorHandler(
+    "morceau",
+    false,
+    (errorMsg) => {
+      savePieceError.value = errorMsg;
+    },
+  );
 
   if (!name.value) return;
 
@@ -101,7 +105,7 @@ const savePiece = (id: number | null) => {
 
   promise.then(() => {
     pieceDialogShown.value = false;
-    toast.success("Pièce enregistrée avec succès");
+    toast.success("Morceau enregistré avec succès");
   });
 };
 
@@ -140,22 +144,26 @@ const deleteEditedPiece = () => {
 const deletePiece = (id: number, pieceName: string) => {
   confirmDialog(
     "Confirmer la suppression",
-    `Êtes-vous sûr de vouloir supprimer la pièce « ${pieceName} » ?`,
+    `Êtes-vous sûr de vouloir supprimer le morceau « ${pieceName} » ?`,
   ).then((confirmed) => {
     if (confirmed) {
       deletePieceByPieceId({
         composable: "$fetch",
         path: { piece_id: id },
-        onResponseError: onResponseErrorHandler("pièce", true, (errorMsg) => {
-          toast.error(errorMsg);
-          refresh();
-        }),
+        onResponseError: onResponseErrorHandler(
+          "morceau",
+          false,
+          (errorMsg) => {
+            toast.error(errorMsg);
+            refresh();
+          },
+        ),
       }).then(() => {
         if (allPieces.value) {
           allPieces.value = allPieces.value.filter((p) => p.id !== id);
         }
         pieceDialogShown.value = false;
-        toast.success("Pièce supprimée avec succès");
+        toast.success("Morceau supprimé avec succès");
       });
     }
   });
@@ -172,7 +180,7 @@ const deletePiece = (id: number, pieceName: string) => {
           size="small"
           start
         />
-        Pièces
+        Morceaux
       </h2>
       <v-btn
         class="ms-1"
@@ -180,7 +188,7 @@ const deletePiece = (id: number, pieceName: string) => {
         size="small"
         variant="text"
         color="medium-emphasis"
-        title="Nouvelle pièce"
+        title="Nouveau morceau"
         @click="newPiece()"
       />
     </div>
@@ -194,7 +202,7 @@ const deletePiece = (id: number, pieceName: string) => {
         v-else-if="pieces.length === 0"
         class="text-body-2 text-medium-emphasis py-4 text-center"
       >
-        Aucune pièce pour ce semestre
+        Aucun morceau pour ce semestre
       </div>
       <div v-else class="d-flex flex-column ga-2">
         <v-card v-for="piece in piecesByName" :key="piece.id" border flat>
@@ -204,7 +212,7 @@ const deletePiece = (id: number, pieceName: string) => {
             size="small"
             variant="text"
             color="medium-emphasis"
-            title="Modifier la pièce"
+            title="Modifier le morceau"
             @click="editPiece(piece)"
           />
           <v-card-item class="pe-12">
@@ -255,7 +263,7 @@ const deletePiece = (id: number, pieceName: string) => {
         ]"
         :hide-default-footer="pieces.length < 11"
         :sort-by="[{ key: 'name', order: 'asc' }]"
-        no-data-text="Aucune pièce pour ce semestre"
+        no-data-text="Aucun morceau pour ce semestre"
         item-value="id"
       >
         <template #item.concerts="{ item }">
@@ -291,7 +299,7 @@ const deletePiece = (id: number, pieceName: string) => {
   <v-dialog v-model="pieceDialogShown" max-width="450" :modal="true">
     <v-form @submit.prevent="submit">
       <v-card
-        :title="savePieceId === null ? 'Nouvelle pièce' : 'Modifier pièce'"
+        :title="savePieceId === null ? 'Nouveau morceau' : 'Modifier morceau'"
         :subtitle="`Semestre ${semester.name}`"
       >
         <v-card-text>

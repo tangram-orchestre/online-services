@@ -91,7 +91,7 @@ const save = () => {
           v-if="programme.length === 0"
           class="text-body-2 text-medium-emphasis text-center py-4"
         >
-          Aucune pièce au programme
+          Aucun morceau au programme
         </div>
         <v-list v-else density="compact" class="py-0">
           <VueDraggable
@@ -133,9 +133,9 @@ const save = () => {
           :items="availablePieces"
           item-title="name"
           item-value="id"
-          label="Ajouter une pièce"
+          label="Ajouter un morceau"
           prepend-inner-icon="mdi-plus"
-          no-data-text="Toutes les pièces du semestre sont au programme"
+          no-data-text="Tous les morceaux du semestre sont au programme"
           hide-details
         >
           <template #item="{ props: itemProps, item }">

@@ -10,7 +10,7 @@ const errorMessageFromCheckViolation = (reason: CheckViolation): string => {
         return "La date du concert n'est pas dans la période du semestre.";
       })
       .with("ConcertPieceOutsideSemester", () => {
-        return "Une pièce du programme n'appartient pas au semestre du concert.";
+        return "Un morceau du programme n'appartient pas au semestre du concert.";
       })
       .exhaustive();
   }

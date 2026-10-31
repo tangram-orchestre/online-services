@@ -169,7 +169,7 @@ const deleteSemester = (semester: Semester) => {
     v-else-if="status !== 'pending'"
     icon="mdi-calendar-blank"
     title="Aucun semestre"
-    text="Créez un semestre pour y ajouter des pièces et des concerts."
+    text="Créez un semestre pour y ajouter des morceaux et des concerts."
   >
     <template #actions>
       <v-btn
