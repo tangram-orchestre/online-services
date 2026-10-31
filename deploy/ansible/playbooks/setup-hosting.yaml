@@ -2,6 +2,9 @@
   hosts: webservers
   become: true
   any_errors_fatal: true
+  vars:
+    # Public counterpart of the DEPLOY_KEY GitHub Actions secret
+    deploy_ssh_public_key: "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIDSlRxA37xb3hWLFq5x/Lirr9XhQXhJBt8mLNm2te7VI github-actions-deploy"
   tasks:
     - name: Create deploy user
       ansible.builtin.user:
@@ -9,6 +12,24 @@
         state: present
         shell: /bin/bash
       register: deploy_user_info
+
+    # sshd StrictModes rejects group-writable key files as soon as the deploy
+    # group has other members, so keep these strictly owner-only.
+    - name: Create deploy user .ssh folder
+      ansible.builtin.file:
+        path: "/home/deploy/.ssh"
+        state: directory
+        owner: deploy
+        group: deploy
+        mode: '0700'
+
+    - name: Install deploy user authorized_keys
+      ansible.builtin.copy:
+        dest: "/home/deploy/.ssh/authorized_keys"
+        content: "{{ deploy_ssh_public_key }}\n"
+        owner: deploy
+        group: deploy
+        mode: '0600'
 
     - name: Create deploy folders
       ansible.builtin.file:
