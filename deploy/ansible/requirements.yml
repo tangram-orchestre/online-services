@@ -3,3 +3,13 @@ roles:
     version: v1.24.0
     src: https://github.com/konstruktoid/ansible-role-docker-rootless.git
     scm: git
+
+# Collections used by the playbooks and the docker_rootless role (versions
+# match the role's own requirements)
+collections:
+  - name: ansible.posix
+    version: 2.1.0
+  - name: community.docker
+    version: 5.2.0
+  - name: community.general
+    version: 12.5.0
