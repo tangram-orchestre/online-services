@@ -84,16 +84,31 @@ const concerts: Array<Concert> = [
     date: "27 janvier 2027",
     location: "Pavillon de la Sirène",
     image: "/images/concerts/la-sirene.png",
+    url: {
+      kind: "Tickets",
+      target:
+        "https://www.helloasso.com/associations/tangram/evenements/concert-tangram-pavillon-de-la-sirene-27-janvier-2027",
+    },
   },
   {
     date: "15 janvier 2027",
     location: "Temple Paris Batignolles",
     image: "/images/concerts/2024-06-28.png",
+    url: {
+      kind: "Tickets",
+      target:
+        "https://www.helloasso.com/associations/tangram/evenements/concert-tangram-temple-des-batignolles-15-janvier-2027",
+    },
   },
   {
     date: "17 décembre 2026",
     location: "Mairie du XIV<sup>ème</sup>",
     image: "/images/concerts/2025-01-25.png",
+    url: {
+      kind: "Tickets",
+      target:
+        "https://www.helloasso.com/associations/tangram/evenements/concert-tangram-mairie-xiv-17-decembre-2026",
+    },
   },
   {
     date: "3 juillet 2026",
