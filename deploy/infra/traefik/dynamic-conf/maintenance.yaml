@@ -1,0 +1,22 @@
+# Catch-all for the app hosts with the lowest priority: it only matches while the
+# app containers are stopped or not yet healthy (Traefik ignores unhealthy
+# containers), e.g. during a deploy.
+http:
+  routers:
+    maintenance:
+      rule: >-
+        Host(`tangram-orchestre.fr`) || Host(`www.tangram-orchestre.fr`) ||
+        Host(`portal.tangram-orchestre.fr`) || Host(`api.tangram-orchestre.fr`) ||
+        Host(`www.staging.tangram-orchestre.fr`) || Host(`portal.staging.tangram-orchestre.fr`) ||
+        Host(`api.staging.tangram-orchestre.fr`)
+      priority: 1
+      service: maintenance
+      # No certResolver: the certificates already obtained by the app routers
+      # are picked from the store by SNI.
+      tls: {}
+
+  services:
+    maintenance:
+      loadBalancer:
+        servers:
+          - url: http://maintenance:80

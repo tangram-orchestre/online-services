@@ -1,8 +1,4 @@
-include:
-  - ./website/docker-compose.yaml
-  - ./backend/docker-compose.yaml
-  - ./portal/docker-compose.yaml
-
+# Staging-only debug services, included by ../staging.yaml
 services:
   maildev:
     image: maildev/maildev:2.2.1
@@ -33,8 +29,3 @@ services:
       - traefik.http.routers.whoami.tls=true
       - traefik.http.routers.whoami.tls.certresolver=resolver
       - traefik.http.routers.whoami.middlewares=authentik@file
-
-networks:
-  default:
-    name: services
-    external: true

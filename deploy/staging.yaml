@@ -1,0 +1,16 @@
+# Staging stack: the same apps as production, plus debugging tools. It relies on
+# the production infrastructure (Traefik, Authentik) through the `services` network.
+# Deployed with scripts/deploy.sh, which sets the variables from staging.env.
+name: services-staging
+
+include:
+  - ./apps/backend/docker-compose.yaml
+  - ./apps/portal/docker-compose.yaml
+  - ./apps/website/docker-compose.yaml
+  - ./staging/docker-compose.yaml
+
+# Shared with the production stack, created by scripts/deploy.sh
+networks:
+  default:
+    name: services
+    external: true

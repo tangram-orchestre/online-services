@@ -1,0 +1,38 @@
+services:
+  showcase-website:
+    image: ghcr.io/tangram-orchestre/showcase-website:${IMAGE_TAG:?}
+    restart: unless-stopped
+    security_opt:
+      - no-new-privileges:true
+    environment:
+      - NUXT_PRIVATE_API_BASE_URL=http://backend-${APP_ENV:?}:3000
+      - NUXT_PUBLIC_API_BASE_URL=https://www.${DOMAIN:?}/api
+    healthcheck:
+      # The slim node image has neither curl nor wget
+      test: ["CMD", "node", "-e", "fetch('http://127.0.0.1:3000/').then(r => process.exit(r.ok ? 0 : 1), () => process.exit(1))"]
+      start_period: 30s
+      start_interval: 2s
+      interval: 30s
+      retries: 3
+      timeout: 5s
+    networks: [apps, ingress]
+    labels:
+      - dev.dozzle.name=Showcase Website
+      - dev.dozzle.group=${DOZZLE_GROUP:?}
+      - traefik.enable=true
+      - traefik.docker.network=services
+      - "traefik.http.routers.website-${APP_ENV}.rule=${WEBSITE_HOSTS_RULE:?}"
+      # Lesser priority than the backend public router to avoid conflicts on /api/public prefix
+      - traefik.http.routers.website-${APP_ENV}.priority=10
+      - "traefik.http.middlewares.redirect-to-www-${APP_ENV}.redirectregex.regex=^https://${DOMAIN}(.*)$$"
+      - "traefik.http.middlewares.redirect-to-www-${APP_ENV}.redirectregex.replacement=https://www.${DOMAIN}$${1}"
+      - traefik.http.routers.website-${APP_ENV}.middlewares=${WEBSITE_MIDDLEWARES:?}
+      - traefik.http.routers.website-${APP_ENV}.tls=true
+      - traefik.http.routers.website-${APP_ENV}.tls.certresolver=resolver
+      - com.centurylinklabs.watchtower.enable=false
+
+networks:
+  apps: {}
+  ingress:
+    name: services
+    external: true

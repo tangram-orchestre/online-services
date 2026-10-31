@@ -1,0 +1,14 @@
+# Fallback page served by Traefik while app containers are stopped or not yet
+# healthy (see ../traefik/dynamic-conf/maintenance.yaml).
+services:
+  maintenance:
+    image: docker.io/library/nginx:1.27.5-alpine
+    restart: unless-stopped
+    security_opt:
+      - no-new-privileges:true
+    volumes:
+      - ./nginx.conf:/etc/nginx/conf.d/default.conf:ro
+      - ./maintenance.html:/usr/share/nginx/html/maintenance.html:ro
+    labels:
+      - dev.dozzle.name=Maintenance Page
+      - dev.dozzle.group=Infrastructure
