@@ -23,7 +23,8 @@ pub struct Settings {
 impl Settings {
     pub fn load() -> Result<Self, ConfigError> {
         Config::builder()
-            .add_source(Environment::with_prefix("app"))
+            // Treat empty variables as unset, so optional settings can be left blank
+            .add_source(Environment::with_prefix("app").ignore_empty(true))
             .build()?
             .try_deserialize()
     }

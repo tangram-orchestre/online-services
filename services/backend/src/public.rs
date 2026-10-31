@@ -1,10 +1,11 @@
 use altcha_lib_rs::{Challenge, ChallengeOptions, verify_solution};
 use chrono::Utc;
+use diesel_async::RunQueryDsl;
 use lettre::{
     AsyncTransport, Message,
     message::{Mailbox, header::ContentType},
 };
-use poem::web::Data;
+use poem::{handler, http::StatusCode, web::Data};
 use poem_openapi::{
     ApiResponse, Object, OpenApi, Tags,
     payload::{Json, PlainText},
@@ -147,6 +148,23 @@ impl PublicApi {
                 tracing::error!("Could not send email: {:?}", _e);
                 SendContactFormResponse::BadRequest(PlainText("Could not send email".to_string()))
             }
+        }
+    }
+}
+
+/// Health probe used by Docker healthchecks (not part of the OpenAPI spec):
+/// the backend is healthy when it can reach its database.
+#[handler]
+pub async fn health(state: Data<&AppState>) -> StatusCode {
+    let Ok(mut conn) = state.get_db_connection().await else {
+        return StatusCode::SERVICE_UNAVAILABLE;
+    };
+
+    match diesel::sql_query("SELECT 1").execute(&mut conn).await {
+        Ok(_) => StatusCode::OK,
+        Err(e) => {
+            tracing::error!("Health check query failed: {:?}", e);
+            StatusCode::SERVICE_UNAVAILABLE
         }
     }
 }

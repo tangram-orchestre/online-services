@@ -133,6 +133,7 @@ async fn main() -> Result<(), std::io::Error> {
     });
 
     let public_endpoints = Route::new()
+        .at("/health", public::health)
         .nest("/docs", public_api.openapi_explorer())
         .nest("/spec", public_api.spec_endpoint())
         .nest("/", public_api);
