@@ -34,7 +34,7 @@ All incoming web traffic on ports 80 (HTTP) and 443 (HTTPS) is routed by [Traefi
 
 Traefik discovers routing rules from two sources:
 - Docker labels on each service container
-- Static YAML files in [`traefik/dynamic-conf/`](./traefik/dynamic-conf/)
+- Static YAML files in [`traefik/dynamic-conf/`](./traefik/dynamic-conf/), baked into the Traefik image so it is only restarted when they change
 
 The dashboard is exposed at `traefik.tangram-orchestre.fr`, protected by Authentik.
 

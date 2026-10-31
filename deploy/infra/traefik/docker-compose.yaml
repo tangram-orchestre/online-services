@@ -11,9 +11,15 @@ services:
     volumes:
       # So that Traefik can listen to the Docker events
       - /run/user/${UID}/docker.sock:/var/run/docker.sock:ro
-      - ./dynamic-conf:/etc/traefik/dynamic-conf
       - /opt/docker-volumes/traefik/acme.json:/etc/traefik/acme.json
     restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "traefik", "healthcheck", "--ping"]
+      start_period: 10s
+      start_interval: 1s
+      interval: 30s
+      retries: 3
+      timeout: 5s
     labels:
       - dev.dozzle.name=Traefik
       - dev.dozzle.group=Infrastructure
