@@ -41,6 +41,8 @@ yarn openapi-ts               # Regenerate API client from OpenAPI spec
 
 There are no unit tests — linting is the primary code quality gate.
 
+While `just dev` runs, run portal/showcase commands with `docker compose exec <service> ...` rather than `docker compose run`, to avoid disturbing the running Nuxt dev server.
+
 ## Architecture
 
 ### Tech Stack
