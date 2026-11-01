@@ -15,6 +15,9 @@ const errorMessageFromCheckViolation = (reason: CheckViolation): string => {
       .with("ConcertRoomRehearsalOnly", () => {
         return "Cette salle n'accueille pas de public : elle ne peut servir qu'aux répétitions.";
       })
+      .with("ConcertRoomBookedWithoutRoom", () => {
+        return "Choisissez une salle avant de confirmer sa réservation.";
+      })
       .with("RoomHostsConcerts", () => {
         return "Une salle qui accueille des concerts doit avoir une capacité public.";
       })

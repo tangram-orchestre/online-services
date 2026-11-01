@@ -15,6 +15,7 @@ DECLARE
     sem_id INTEGER;
     concert1_id INTEGER;
     concert2_id INTEGER;
+    concert3_date DATE;
     piece1_id INTEGER;
     piece2_id INTEGER;
     piece3_id INTEGER;
@@ -118,11 +119,14 @@ BEGIN
         concert1_date := GREATEST(anchor - 21, sem_start);
         concert2_date := LEAST(anchor + 28, sem_end);
 
-        INSERT INTO concerts (date, tickets_url, video_url, meeting_at, doors_open_at, starts_at, public, room_id, semester_id)
-            VALUES (concert1_date, 'https://tickets.example.com/' || lower(sem_short_name), NULL, '18:00', '19:30', '20:00', TRUE, room1_id, sem_id)
+        -- The second room booking is not confirmed yet.
+        INSERT INTO concerts (name, date, tickets_url, video_url, meeting_at, doors_open_at, starts_at, public, room_id, room_booked, semester_id)
+            VALUES (
+                CASE WHEN sem_short_name LIKE 'A%' THEN 'Concert d''automne' ELSE 'Concert de printemps' END,
+                concert1_date, 'https://tickets.example.com/' || lower(sem_short_name), NULL, '18:00', '19:30', '20:00', TRUE, room1_id, TRUE, sem_id)
             RETURNING id INTO concert1_id;
-        INSERT INTO concerts (date, tickets_url, video_url, meeting_at, doors_open_at, starts_at, public, room_id, semester_id)
-            VALUES (concert2_date, NULL, NULL, '16:30', NULL, '18:00', FALSE, room2_id, sem_id)
+        INSERT INTO concerts (date, tickets_url, video_url, meeting_at, doors_open_at, starts_at, public, room_id, room_booked, semester_id)
+            VALUES (concert2_date, NULL, NULL, '16:30', NULL, '18:00', FALSE, room2_id, FALSE, sem_id)
             RETURNING id INTO concert2_id;
 
         INSERT INTO concert_pieces (concert_id, piece_id, position) VALUES
@@ -130,5 +134,13 @@ BEGIN
             (concert1_id, piece3_id, 1),
             (concert2_id, piece2_id, 0),
             (concert2_id, piece3_id, 1);
+
+        -- In the current semester, a concert only planned so far: a date,
+        -- without room nor start time.
+        concert3_date := LEAST(anchor + 56, sem_end);
+        IF ref_day = CURRENT_DATE AND concert3_date > concert2_date THEN
+            INSERT INTO concerts (date, public, semester_id)
+                VALUES (concert3_date, FALSE, sem_id);
+        END IF;
     END LOOP;
 END $$;

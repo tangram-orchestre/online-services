@@ -62,6 +62,7 @@ const semesterConcerts = computed(() => {
 const roomConcerts = computed(() => {
   const counts = new Map<number, number>();
   for (const concert of allConcerts.value ?? []) {
+    if (concert.room_id == null) continue;
     counts.set(concert.room_id, (counts.get(concert.room_id) ?? 0) + 1);
   }
   return counts;
@@ -277,11 +278,15 @@ const deleteLocation = (location: Location) => {
                 <span
                   class="rounded-full bg-tertiary-200 px-2.5 py-0.5 text-sm font-medium text-on-tertiary"
                 >
-                  Concert
+                  {{ concert.name || "Concert" }}
                 </span>
                 <span class="text-toned">
                   {{ place(concert.room_id)?.room.name }} · Début
-                  {{ formatTime(concert.starts_at) }}
+                  {{
+                    concert.starts_at
+                      ? formatTime(concert.starts_at)
+                      : "à définir"
+                  }}
                 </span>
               </li>
             </ul>

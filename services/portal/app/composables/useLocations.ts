@@ -24,10 +24,11 @@ export const useLocations = () => {
   });
 
   /** Location and room of a room id. */
-  const place = (roomId: number) => places.value.get(roomId);
+  const place = (roomId?: number | null) =>
+    roomId == null ? undefined : places.value.get(roomId);
 
   /** « Salle Gaveau · Grande salle » */
-  const placeName = (roomId: number) => {
+  const placeName = (roomId?: number | null) => {
     const p = place(roomId);
     return p ? `${p.location.name} · ${p.room.name}` : undefined;
   };

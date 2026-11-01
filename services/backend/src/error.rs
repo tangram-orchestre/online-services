@@ -39,6 +39,8 @@ pub enum CheckViolationKind {
     ConcertRoomRehearsalOnly,
     /// The audience capacity of a room hosting concerts was removed.
     RoomHostsConcerts,
+    /// A concert room booking was confirmed without a room.
+    ConcertRoomBookedWithoutRoom,
     /// The total capacity of a room is lower than one of its capacities.
     RoomTotalCapacityTooSmall,
     /// A total capacity was given to a room without audience.
@@ -97,6 +99,9 @@ impl From<diesel::result::Error> for ApiError {
                             Some(CheckViolationKind::ConcertRoomRehearsalOnly)
                         }
                         "room_hosts_concerts" => Some(CheckViolationKind::RoomHostsConcerts),
+                        "concerts_room_booked_without_room" => {
+                            Some(CheckViolationKind::ConcertRoomBookedWithoutRoom)
+                        }
                         "rooms_total_capacity_too_small" => {
                             Some(CheckViolationKind::RoomTotalCapacityTooSmall)
                         }

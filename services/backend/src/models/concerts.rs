@@ -8,28 +8,40 @@ use poem_openapi::Object;
 #[diesel(treat_none_as_null = true)]
 pub struct Concert {
     pub id: i32,
+    /// Optional name, e.g. « Concert de Noël ».
+    #[oai(validator(min_length = 1, max_length = 128))]
+    pub name: Option<String>,
     pub date: chrono::NaiveDate,
     pub tickets_url: Option<String>,
     pub video_url: Option<String>,
     pub doors_open_at: Option<chrono::NaiveTime>,
     pub meeting_at: Option<chrono::NaiveTime>,
-    pub starts_at: chrono::NaiveTime,
+    pub starts_at: Option<chrono::NaiveTime>,
     pub public: bool,
-    pub room_id: i32,
+    /// Not chosen yet when absent.
+    pub room_id: Option<i32>,
+    /// Whether the venue confirmed the room booking.
+    pub room_booked: bool,
     pub semester_id: i32,
 }
 
 #[derive(Object, Insertable)]
 #[diesel(table_name = crate::schema::concerts)]
 pub struct NewConcert {
+    /// Optional name, e.g. « Concert de Noël ».
+    #[oai(validator(min_length = 1, max_length = 128))]
+    pub name: Option<String>,
     pub date: chrono::NaiveDate,
     pub tickets_url: Option<String>,
     pub video_url: Option<String>,
     pub doors_open_at: Option<chrono::NaiveTime>,
     pub meeting_at: Option<chrono::NaiveTime>,
-    pub starts_at: chrono::NaiveTime,
+    pub starts_at: Option<chrono::NaiveTime>,
     pub public: bool,
-    pub room_id: i32,
+    /// Not chosen yet when absent.
+    pub room_id: Option<i32>,
+    /// Whether the venue confirmed the room booking.
+    pub room_booked: bool,
     pub semester_id: i32,
 }
 

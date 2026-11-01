@@ -13,8 +13,6 @@ const emit = defineEmits<{
 
 const toast = useToast();
 
-const formatDate = (value: string) => new Date(value).toLocaleDateString("fr");
-
 const shown = ref(false);
 const concert = ref<ConcertWithPieces | null>(null);
 const programme = ref<Piece[]>([]);
@@ -93,9 +91,7 @@ const save = () => {
   <UModal
     v-model:open="shown"
     title="Programme"
-    :description="
-      concert ? `Concert du ${formatDate(concert.date)}` : undefined
-    "
+    :description="concert ? concertTitle(concert) : undefined"
   >
     <template #body>
       <p

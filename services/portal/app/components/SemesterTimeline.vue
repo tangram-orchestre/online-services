@@ -10,7 +10,7 @@ import {
 const props = defineProps<{
   semester: Semester;
   concerts: ConcertWithPieces[];
-  placeName: (roomId: number) => string | undefined;
+  placeName: (roomId?: number | null) => string | undefined;
 }>();
 
 const weeks = computed(() => {
@@ -37,7 +37,11 @@ const weeks = computed(() => {
 });
 
 const concertLabel = (concert: ConcertWithPieces) =>
-  [`Concert · ${formatLongDay(concert.date)}`, props.placeName(concert.room_id)]
+  [
+    concert.name ?? "Concert",
+    formatLongDay(concert.date),
+    props.placeName(concert.room_id),
+  ]
     .filter(Boolean)
     .join(" · ");
 </script>

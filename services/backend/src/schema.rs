@@ -16,10 +16,13 @@ diesel::table! {
         video_url -> Nullable<Text>,
         doors_open_at -> Nullable<Time>,
         meeting_at -> Nullable<Time>,
-        starts_at -> Time,
+        starts_at -> Nullable<Time>,
         public -> Bool,
         semester_id -> Int4,
-        room_id -> Int4,
+        room_id -> Nullable<Int4>,
+        room_booked -> Bool,
+        #[max_length = 128]
+        name -> Nullable<Varchar>,
     }
 }
 

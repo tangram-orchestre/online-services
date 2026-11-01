@@ -13,7 +13,6 @@ const props = defineProps<{
 const toast = useToast();
 const formId = useId();
 
-const formatDate = (value: string) => new Date(value).toLocaleDateString("fr");
 const formatTime = (value: string) => value.slice(0, 5);
 const formatLongDate = (value: string) =>
   new Date(value).toLocaleDateString("fr", {
@@ -96,23 +95,40 @@ const zLink = z
 
 const zConcertForm = zNewConcert
   .omit({ semester_id: true })
-  .extend({ tickets_url: zLink, video_url: zLink })
-  .refine((obj) => !obj.doors_open_at || obj.doors_open_at < obj.starts_at, {
-    path: ["doors_open_at"],
-    message:
-      "L'ouverture des portes doit être avant l'heure de début du concert",
+  .extend({
+    name: z.string().trim().max(128, "128 caractères maximum").optional(),
+    tickets_url: zLink,
+    video_url: zLink,
   })
-  .refine((obj) => !obj.meeting_at || obj.meeting_at < obj.starts_at, {
-    path: ["meeting_at"],
-    message:
-      "Le rendez-vous des musiciens doit être avant l'heure de début du concert",
-  });
+  .refine(
+    (obj) =>
+      !obj.doors_open_at || !obj.starts_at || obj.doors_open_at < obj.starts_at,
+    {
+      path: ["doors_open_at"],
+      message:
+        "L'ouverture des portes doit être avant l'heure de début du concert",
+    },
+  )
+  .refine(
+    (obj) =>
+      !obj.meeting_at || !obj.starts_at || obj.meeting_at < obj.starts_at,
+    {
+      path: ["meeting_at"],
+      message:
+        "Le rendez-vous des musiciens doit être avant l'heure de début du concert",
+    },
+  );
+
+// A new concert is private, and its room (if any) not booked yet.
+const initialValues = { public: false, room_booked: false };
 
 const { handleSubmit, handleReset, defineField, errors, isSubmitting } =
   useForm({
     validationSchema: toTypedSchema(zConcertForm),
+    initialValues,
   });
 
+const [name, nameProps] = defineField("name");
 const [date] = defineField("date");
 const [starts_at] = defineField("starts_at");
 const [doors_open_at] = defineField("doors_open_at");
@@ -121,6 +137,12 @@ const [tickets_url, tickets_urlProps] = defineField("tickets_url");
 const [video_url, video_urlProps] = defineField("video_url");
 const [isPublic, isPublicProps] = defineField("public");
 const [room_id] = defineField("room_id");
+const [room_booked] = defineField("room_booked");
+
+// Without a room, there is no booking to confirm.
+watch(room_id, (id) => {
+  if (id == null) room_booked.value = false;
+});
 
 const concertDialogShown = ref(false);
 const saveConcertId = ref<number | null>(null);
@@ -141,13 +163,14 @@ const saveConcert = (id: number | null) => {
     },
   );
 
-  if (!date.value || !starts_at.value || !room_id.value) {
+  if (!date.value) {
     return;
   }
 
   const newValue = {
+    name: name.value?.trim() || undefined,
     date: date.value,
-    starts_at: normalizeTime(starts_at.value),
+    starts_at: starts_at.value ? normalizeTime(starts_at.value) : undefined,
     doors_open_at: doors_open_at.value
       ? normalizeTime(doors_open_at.value)
       : undefined,
@@ -155,7 +178,8 @@ const saveConcert = (id: number | null) => {
     tickets_url: tickets_url.value || undefined,
     video_url: video_url.value || undefined,
     public: isPublic.value ?? false,
-    room_id: room_id.value,
+    room_id: room_id.value ?? undefined,
+    room_booked: room_id.value != null && (room_booked.value ?? false),
     semester_id: props.semester.id,
   };
 
@@ -197,34 +221,61 @@ const submit = handleSubmit(() => {
 
 const newConcert = () => {
   handleReset();
+  // Reset to the initial values, not to those of the last edited concert.
+  isPublic.value = initialValues.public;
+  room_booked.value = initialValues.room_booked;
   saveConcertId.value = null;
   concertDialogShown.value = true;
 };
 
 const editConcert = (concert: Concert | ConcertWithPieces) => {
+  name.value = concert.name ?? undefined;
   date.value = concert.date;
-  starts_at.value = concert.starts_at;
+  starts_at.value = concert.starts_at ?? undefined;
   doors_open_at.value = concert.doors_open_at ?? undefined;
   meeting_at.value = concert.meeting_at ?? undefined;
   tickets_url.value = concert.tickets_url ?? undefined;
   video_url.value = concert.video_url ?? undefined;
   isPublic.value = concert.public;
-  room_id.value = concert.room_id;
+  room_id.value = concert.room_id ?? undefined;
+  room_booked.value = concert.room_booked;
   saveConcertId.value = concert.id;
   concertDialogShown.value = true;
 };
 
+// Links from the dashboard open a concert dialog: `?concert=<id>` for its
+// details, `?programme=<id>` for its programme.
+const route = useRoute();
+const router = useRouter();
+// Client side only: the dialog state is not transferred from the server.
+onMounted(() =>
+  watch(
+    [() => route.query.concert, () => route.query.programme, concerts],
+    ([concertId, programmeId]) => {
+      const id = Number(concertId ?? programmeId);
+      const concert = concerts.value.find((c) => c.id === id);
+      if (!concert) return;
+      if (concertId != null) editConcert(concert);
+      else programmeDialog.value?.open(concert);
+      router.replace({
+        query: { ...route.query, concert: undefined, programme: undefined },
+      });
+    },
+    { immediate: true },
+  ),
+);
+
 const deleteEditedConcert = () => {
   const concert = allConcerts.value?.find((c) => c.id === saveConcertId.value);
   if (concert) {
-    deleteConcert(concert.id, concert.date);
+    deleteConcert(concert.id, concertTitle(concert));
   }
 };
 
-const deleteConcert = (id: number, concertDate: string) => {
+const deleteConcert = (id: number, title: string) => {
   confirmDialog(
     "Confirmer la suppression",
-    `Êtes-vous sûr de vouloir supprimer le concert du ${formatDate(concertDate)} ?`,
+    `Êtes-vous sûr de vouloir supprimer « ${title} » ?`,
   ).then((confirmed) => {
     if (confirmed) {
       deleteConcertByConcertId({
@@ -278,7 +329,7 @@ const deleteConcert = (id: number, concertDate: string) => {
         v-for="concert in concerts"
         :key="concert.id"
         class="relative flex flex-col"
-        :ui="{ body: 'flex-1', footer: 'flex items-center gap-1' }"
+        :ui="{ body: 'flex-1', footer: 'flex flex-wrap items-center gap-1' }"
       >
         <template #header>
           <UButton
@@ -291,12 +342,18 @@ const deleteConcert = (id: number, concertDate: string) => {
             @click="editConcert(concert)"
           />
           <div class="pe-8">
-            <p class="font-semibold capitalize">
+            <p v-if="concert.name" class="font-semibold">
+              {{ concert.name }}
+            </p>
+            <p
+              class="capitalize"
+              :class="concert.name ? 'text-sm text-toned' : 'font-semibold'"
+            >
               {{ formatLongDate(concert.date) }}
             </p>
             <p class="flex items-center gap-1 text-sm text-muted">
               <UIcon name="i-lucide-map-pin" class="shrink-0" />
-              {{ placeName(concert.room_id) ?? "Lieu inconnu" }}
+              {{ placeName(concert.room_id) ?? "Salle à définir" }}
               <template v-if="place(concert.room_id)">
                 · {{ place(concert.room_id)?.location.city }}
               </template>
@@ -322,9 +379,10 @@ const deleteConcert = (id: number, concertDate: string) => {
           <div class="flex items-center gap-2">
             <UIcon name="i-lucide-music" class="text-muted" />
             Début
-            <span class="ms-auto font-medium">
+            <span v-if="concert.starts_at" class="ms-auto font-medium">
               {{ formatTime(concert.starts_at) }}
             </span>
+            <span v-else class="ms-auto text-muted">À définir</span>
           </div>
         </div>
 
@@ -344,6 +402,13 @@ const deleteConcert = (id: number, concertDate: string) => {
             :label="concert.public ? 'Public' : 'Privé'"
             :icon="concert.public ? 'i-lucide-globe' : 'i-lucide-lock'"
             :color="concert.public ? 'success' : 'neutral'"
+            variant="subtle"
+          />
+          <UBadge
+            v-if="concert.room_id != null && !concert.room_booked"
+            label="Salle non confirmée"
+            icon="i-lucide-clock"
+            color="warning"
             variant="subtle"
           />
           <UButton
@@ -393,6 +458,14 @@ const deleteConcert = (id: number, concertDate: string) => {
   >
     <template #body>
       <form :id="formId" class="flex flex-col gap-4" @submit.prevent="submit">
+        <UFormField label="Nom" hint="Facultatif" :error="errors.name">
+          <UInput
+            v-model="name"
+            v-bind="nameProps"
+            placeholder="Concert de Noël"
+            class="w-full"
+          />
+        </UFormField>
         <UFormField label="Date" :error="errors.date">
           <DateInput
             v-model="date"
@@ -406,6 +479,8 @@ const deleteConcert = (id: number, concertDate: string) => {
             :items="roomItems"
             value-key="value"
             :search-input="{ placeholder: 'Rechercher…' }"
+            placeholder="À définir"
+            clear
             class="w-full"
           >
             <template #empty>
@@ -415,6 +490,20 @@ const deleteConcert = (id: number, concertDate: string) => {
               </ULink>
             </template>
           </USelectMenu>
+        </UFormField>
+        <UFormField
+          :error="errors.room_booked"
+          :help="
+            room_id == null
+              ? undefined
+              : 'À cocher une fois la réservation validée par le lieu'
+          "
+        >
+          <USwitch
+            v-model="room_booked"
+            :disabled="room_id == null"
+            label="Réservation confirmée"
+          />
         </UFormField>
 
         <UFormField
@@ -427,7 +516,7 @@ const deleteConcert = (id: number, concertDate: string) => {
           <TimeInput v-model="doors_open_at" clearable />
         </UFormField>
         <UFormField label="Début" :error="errors.starts_at">
-          <TimeInput v-model="starts_at" />
+          <TimeInput v-model="starts_at" clearable />
         </UFormField>
         <UFormField label="Lien billetterie" :error="errors.tickets_url">
           <UInput

@@ -25,10 +25,17 @@ const remaining = computed(() => countdown(props.concert.date));
         <DateTile :date="concert.date" />
         <div class="flex min-w-0 flex-col gap-0.5">
           <h3 class="text-2xl leading-tight font-bold text-highlighted">
-            {{ place?.location.name ?? "Lieu inconnu" }}
+            {{ concert.name || place?.location.name || "Salle à définir" }}
           </h3>
           <span class="text-sm text-muted">
-            {{ formatTime(concert.starts_at) }}
+            {{
+              concert.starts_at
+                ? formatTime(concert.starts_at)
+                : "Horaire à définir"
+            }}
+            <template v-if="concert.name">
+              · {{ place?.location.name ?? "Salle à définir" }}
+            </template>
             <template v-if="place">
               · {{ place.room.name }} · {{ place.location.city }}
             </template>
@@ -64,6 +71,14 @@ const remaining = computed(() => countdown(props.concert.date));
         :label="concert.public ? 'Public' : 'Privé'"
         :icon="concert.public ? 'i-lucide-globe' : 'i-lucide-lock'"
         :color="concert.public ? 'success' : 'neutral'"
+        variant="subtle"
+        class="rounded-full"
+      />
+      <UBadge
+        v-if="place && !concert.room_booked"
+        label="Salle non confirmée"
+        icon="i-lucide-clock"
+        color="warning"
         variant="subtle"
         class="rounded-full"
       />

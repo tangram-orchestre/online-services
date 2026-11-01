@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import type { Piece } from "#hey-api/types.gen";
 import { eachWeekOfInterval, isAfter, isBefore } from "date-fns";
+import type { RouteLocationRaw } from "vue-router";
 
 // The dashboard is reserved to the Orga group; others land on their profile.
 const user = await currentUser();
@@ -77,7 +78,24 @@ const managementLink = computed(() => ({
   query: { semester: semester.value?.id },
 }));
 
-type Todo = { tag: string; title: string; detail: string; action: string };
+type TodoItem = { label: string; icon: string; to: RouteLocationRaw };
+
+/** A card: either a single action, or a list of points, each with its link. */
+type Todo = {
+  key: string;
+  tag: string;
+  title: string;
+  detail: string;
+} & (
+  | { action: string; to: RouteLocationRaw; items?: undefined }
+  | { items: TodoItem[] }
+);
+
+/** Semester management page, with the dialog of a concert opened. */
+const concertLink = (concertId: number, dialog: "concert" | "programme") => ({
+  path: "/semesters",
+  query: { semester: semester.value?.id, [dialog]: concertId },
+});
 
 /** Things the organisers should look at, derived from the semester data. */
 const todos = computed<Todo[]>(() => {
@@ -86,6 +104,8 @@ const todos = computed<Todo[]>(() => {
 
   if (!concerts.value.length) {
     result.push({
+      key: "no-concert",
+      to: managementLink.value,
       tag: "Concerts",
       title: "Aucun concert prévu ce semestre",
       detail: "Ajoutez les dates pour pouvoir construire les programmes.",
@@ -94,6 +114,8 @@ const todos = computed<Todo[]>(() => {
   }
   if (!pieces.value.length) {
     result.push({
+      key: "no-piece",
+      to: managementLink.value,
       tag: "Morceaux",
       title: "Aucun morceau pour ce semestre",
       detail: "Ajoutez les morceaux travaillés ce semestre.",
@@ -101,16 +123,51 @@ const todos = computed<Todo[]>(() => {
     });
   }
 
+  // One card per upcoming concert, listing what it is missing.
   for (const concert of upcomingConcerts.value) {
-    if (concert.piece_ids.length) continue;
-    const where = place(concert.room_id);
+    const edit = concertLink(concert.id, "concert");
+    const items: TodoItem[] = [];
+    if (concert.room_id == null) {
+      items.push({
+        label: "Pas encore de salle",
+        icon: "i-lucide-map-pin",
+        to: edit,
+      });
+    } else if (!concert.room_booked) {
+      items.push({
+        label: "Réservation de la salle à confirmer",
+        icon: "i-lucide-clock",
+        to: edit,
+      });
+    }
+    if (!concert.starts_at) {
+      items.push({
+        label: "Heure de début à fixer",
+        icon: "i-lucide-alarm-clock",
+        to: edit,
+      });
+    }
+    if (!concert.piece_ids.length) {
+      items.push({
+        label: "Programme vide",
+        icon: "i-lucide-list-music",
+        to: concertLink(concert.id, "programme"),
+      });
+    }
+    if (!items.length) continue;
+
     result.push({
+      key: `concert-${concert.id}`,
       tag: "Concert",
-      title: `Programme vide pour le concert du ${formatLongDay(concert.date)}`,
-      detail: [where?.location.name, countdown(concert.date)]
+      title: concertTitle(concert),
+      detail: [
+        concert.name ? formatLongDay(concert.date) : undefined,
+        placeName(concert.room_id),
+        countdown(concert.date),
+      ]
         .filter(Boolean)
         .join(" · "),
-      action: "Composer le programme",
+      items,
     });
   }
 
@@ -119,6 +176,8 @@ const todos = computed<Todo[]>(() => {
   if (concerts.value.length && unscheduled.length) {
     const names = unscheduled.map((p) => p.name);
     result.push({
+      key: "unscheduled",
+      to: managementLink.value,
       tag: "Morceaux",
       title:
         unscheduled.length === 1
@@ -134,6 +193,10 @@ const todos = computed<Todo[]>(() => {
 
   return result;
 });
+
+const todoCount = computed(() =>
+  todos.value.reduce((n, todo) => n + (todo.items?.length ?? 1), 0),
+);
 </script>
 
 <template>
@@ -173,15 +236,15 @@ const todos = computed<Todo[]>(() => {
       <h2 id="todo-title" class="text-lg font-semibold">
         À traiter
         <span class="font-sans text-base font-normal text-muted">
-          · {{ todos.length }} {{ todos.length > 1 ? "points" : "point" }}
+          · {{ todoCount }} {{ todoCount > 1 ? "points" : "point" }}
         </span>
       </h2>
       <ul
-        class="grid grid-cols-[repeat(auto-fit,minmax(min(16rem,100%),1fr))] gap-3"
+        class="grid grid-cols-[repeat(auto-fill,minmax(min(18rem,100%),1fr))] gap-3"
       >
         <li
           v-for="todo in todos"
-          :key="todo.title"
+          :key="todo.key"
           class="flex flex-col gap-2.5 rounded-lg border border-warning/30 bg-warning-soft p-4"
         >
           <span
@@ -194,8 +257,27 @@ const todos = computed<Todo[]>(() => {
             {{ todo.title }}
           </span>
           <span class="text-sm text-toned">{{ todo.detail }}</span>
+          <ul
+            v-if="todo.items"
+            class="mt-auto flex flex-col divide-y divide-warning/20 overflow-hidden rounded-md border border-warning/30 bg-default"
+          >
+            <li v-for="item in todo.items" :key="item.label">
+              <ULink
+                :to="item.to"
+                class="flex items-center gap-2 px-3 py-2 text-sm font-medium text-highlighted hover:bg-elevated"
+              >
+                <UIcon :name="item.icon" class="shrink-0 text-warning" />
+                {{ item.label }}
+                <UIcon
+                  name="i-lucide-chevron-right"
+                  class="ms-auto shrink-0 text-muted"
+                />
+              </ULink>
+            </li>
+          </ul>
           <UButton
-            :to="managementLink"
+            v-else
+            :to="todo.to"
             :label="todo.action"
             color="primary"
             variant="outline"
