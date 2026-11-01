@@ -106,6 +106,14 @@ runs:
         tags: type=sha,format=long
         images: ${{ env.BACKEND_IMAGE_NAME }}
 
+    # The backend embeds its default concert image at compile time, and its
+    # seeds load venue photos: without LFS, they would be pointer files. Like
+    # the website images, only downloaded for images that are deployed.
+    - name: Download backend LFS images
+      if: inputs.PUSH_TO_REGISTRY == 'true' && env.BACKEND_NEEDS_BUILD == 'true'
+      shell: bash
+      run: git lfs pull --include "services/backend/**"
+
     - name: Build and push Backend
       if: env.BACKEND_NEEDS_BUILD == 'true'
       uses: docker/build-push-action@v6

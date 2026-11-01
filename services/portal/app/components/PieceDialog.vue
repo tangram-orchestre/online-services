@@ -1,0 +1,251 @@
+<script setup lang="ts">
+import { useForm } from "vee-validate";
+import { toTypedSchema } from "@vee-validate/zod";
+import { zNewPieceWithPeople } from "#hey-api/zod.gen";
+import type { Person, PieceWithPeople, Semester } from "#hey-api/types.gen";
+import type PersonDialogComponent from "~/components/PersonDialog.vue";
+
+const props = defineProps<{
+  semester: Semester;
+}>();
+
+const emit = defineEmits<{
+  /** After a creation or an update. */
+  saved: [pieceId: number];
+  deleted: [pieceId: number];
+}>();
+
+const toast = useToast();
+const formId = useId();
+
+const { allPieces, allConcerts, refreshPieces } = useProgramme();
+const { people } = usePeople();
+
+const peopleItems = computed(() =>
+  people.value.map((p) => ({
+    label: personName(p),
+    value: p.id,
+  })),
+);
+
+const { handleSubmit, resetForm, defineField, errors, isSubmitting } = useForm({
+  validationSchema: toTypedSchema(
+    zNewPieceWithPeople.omit({ semester_id: true }),
+  ),
+});
+
+// A required field must not show its error when the dialog is closed (the
+// blur would move the buttons under the cursor).
+const noBlurValidation = { validateOnBlur: false };
+const [name, nameProps] = defineField("name", noBlurValidation);
+const [source, sourceProps] = defineField("source");
+const [composer, composerProps] = defineField("composer");
+const [arrangerIds] = defineField("arranger_ids");
+const [conductorIds] = defineField("conductor_ids");
+
+// People created from a select are added to it.
+const personDialog =
+  useTemplateRef<InstanceType<typeof PersonDialogComponent>>("personDialog");
+const creatingFor = ref<"arranger" | "conductor" | null>(null);
+const selectOpen = reactive({ arranger: false, conductor: false });
+const createPerson = (role: "arranger" | "conductor", text: string) => {
+  creatingFor.value = role;
+  selectOpen[role] = false;
+  // Once the select menu is closed.
+  nextTick(() => personDialog.value?.create(text));
+};
+const onPersonSaved = (person: Person) => {
+  const ids = creatingFor.value === "arranger" ? arrangerIds : conductorIds;
+  if (creatingFor.value) ids.value = [...(ids.value ?? []), person.id];
+  creatingFor.value = null;
+};
+
+const shown = ref(false);
+const editedId = ref<number | null>(null);
+const saveError = ref<string | null>(null);
+
+/** Open the dialog to edit `piece`, or to create a new one if omitted. */
+const open = (piece?: PieceWithPeople) => {
+  saveError.value = null;
+  editedId.value = piece?.id ?? null;
+  resetForm({
+    values: {
+      name: piece?.name ?? "",
+      source: piece?.source ?? undefined,
+      composer: piece?.composer ?? undefined,
+      arranger_ids: piece?.arranger_ids ?? [],
+      conductor_ids: piece?.conductor_ids ?? [],
+    },
+  });
+  shown.value = true;
+};
+
+const submit = handleSubmit((values) => {
+  const onResponseError = onResponseErrorHandler(
+    "morceau",
+    false,
+    (errorMsg) => {
+      saveError.value = errorMsg;
+    },
+  );
+
+  const newValue = {
+    name: values.name,
+    source: values.source || undefined,
+    composer: values.composer || undefined,
+    arranger_ids: values.arranger_ids,
+    conductor_ids: values.conductor_ids,
+    semester_id: props.semester.id,
+  };
+
+  const id = editedId.value;
+  const promise: Promise<number> =
+    id !== null
+      ? putPiece({
+          composable: "$fetch",
+          body: { id, ...newValue },
+          onResponseError,
+        }).then(() => {
+          if (allPieces.value) {
+            allPieces.value = allPieces.value.map((p) =>
+              p.id === id ? { ...p, ...newValue } : p,
+            );
+          }
+          return id;
+        })
+      : postPiece({
+          composable: "$fetch",
+          body: newValue,
+          onResponseError,
+        }).then((created) => {
+          if (allPieces.value) {
+            allPieces.value = [...allPieces.value, created];
+          }
+          return created.id;
+        });
+
+  return promise.then((savedId) => {
+    shown.value = false;
+    toast.add({ title: "Morceau enregistré avec succès", color: "success" });
+    emit("saved", savedId);
+  });
+});
+
+/** Ask for confirmation, then delete `piece`. */
+const remove = (piece: PieceWithPeople) => {
+  confirmDialog(
+    "Confirmer la suppression",
+    `Êtes-vous sûr de vouloir supprimer le morceau « ${piece.name} » ?`,
+  ).then((confirmed) => {
+    if (!confirmed) return;
+    deletePieceByPieceId({
+      composable: "$fetch",
+      path: { piece_id: piece.id },
+      onResponseError: onResponseErrorHandler("morceau", false, (errorMsg) => {
+        toast.add({ title: errorMsg, color: "error" });
+        refreshPieces();
+      }),
+    }).then(() => {
+      if (allPieces.value) {
+        allPieces.value = allPieces.value.filter((p) => p.id !== piece.id);
+      }
+      // The piece also leaves the programmes it was on.
+      if (allConcerts.value) {
+        allConcerts.value = allConcerts.value.map((c) => ({
+          ...c,
+          piece_ids: c.piece_ids.filter((id) => id !== piece.id),
+        }));
+      }
+      shown.value = false;
+      toast.add({ title: "Morceau supprimé avec succès", color: "success" });
+      emit("deleted", piece.id);
+    });
+  });
+};
+
+defineExpose({ open, remove });
+
+const removeEdited = () => {
+  const piece = allPieces.value?.find((p) => p.id === editedId.value);
+  if (piece) remove(piece);
+};
+</script>
+
+<template>
+  <UModal
+    v-model:open="shown"
+    :title="editedId === null ? 'Nouveau morceau' : 'Modifier le morceau'"
+    :description="semester.long_name"
+  >
+    <template #body>
+      <form :id="formId" class="flex flex-col gap-4" @submit.prevent="submit">
+        <UFormField label="Nom" :error="errors.name">
+          <UInput v-model="name" v-bind="nameProps" autofocus class="w-full" />
+        </UFormField>
+        <UFormField label="Compositeur" :error="errors.composer">
+          <UInput v-model="composer" v-bind="composerProps" class="w-full" />
+        </UFormField>
+        <UFormField label="Arrangement" :error="errors.arranger_ids">
+          <USelectMenu
+            v-model="arrangerIds"
+            v-model:open="selectOpen.arranger"
+            :items="peopleItems"
+            value-key="value"
+            multiple
+            create-item
+            :search-input="{ placeholder: 'Rechercher ou ajouter…' }"
+            placeholder="Aucun"
+            class="w-full"
+            @create="(text: string) => createPerson('arranger', text)"
+          />
+        </UFormField>
+        <UFormField label="Direction" :error="errors.conductor_ids">
+          <USelectMenu
+            v-model="conductorIds"
+            v-model:open="selectOpen.conductor"
+            :items="peopleItems"
+            value-key="value"
+            multiple
+            create-item
+            :search-input="{ placeholder: 'Rechercher ou ajouter…' }"
+            placeholder="À définir"
+            class="w-full"
+            @create="(text: string) => createPerson('conductor', text)"
+          />
+        </UFormField>
+        <UFormField label="Source" :error="errors.source">
+          <UInput v-model="source" v-bind="sourceProps" class="w-full" />
+        </UFormField>
+        <p v-if="saveError" class="text-sm text-error">{{ saveError }}</p>
+      </form>
+      <!-- Nested in the modal, so that their focus traps do not fight. -->
+      <PersonDialog ref="personDialog" @saved="onPersonSaved" />
+    </template>
+
+    <template #footer>
+      <div class="flex w-full items-center gap-2">
+        <UButton
+          v-if="editedId !== null"
+          label="Supprimer"
+          icon="i-lucide-trash-2"
+          color="error"
+          variant="ghost"
+          @click="removeEdited()"
+        />
+        <UButton
+          class="ms-auto"
+          label="Annuler"
+          color="neutral"
+          variant="ghost"
+          @click="shown = false"
+        />
+        <UButton
+          label="Enregistrer"
+          type="submit"
+          :form="formId"
+          :loading="isSubmitting"
+        />
+      </div>
+    </template>
+  </UModal>
+</template>

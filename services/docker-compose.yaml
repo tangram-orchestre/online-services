@@ -122,8 +122,53 @@ services:
       - traefik.http.routers.pgweb.rule=Host(`pgweb.localhost`)
       - traefik.http.routers.pgweb.tls=true
 
+  # Generates an HTML documentation of the database schema (with ER diagrams),
+  # and regenerates it whenever the schema changes (see dev/schemaspy/watch.sh).
+  schemaspy:
+    build:
+      context: ./dev/schemaspy
+    depends_on:
+      - postgres
+    volumes:
+      - schemaspy_output:/output
+    environment:
+      PGHOST: postgres
+      PGPORT: 5432
+      PGDATABASE: portal
+      PGUSER: portal
+      PGPASSWORD: portal
+
+  # Serves the SchemaSpy output.
+  schema-viewer:
+    image: nginx:1.29-alpine
+    volumes:
+      - schemaspy_output:/usr/share/nginx/html:ro
+      - ./dev/schema-viewer.conf:/etc/nginx/conf.d/default.conf:ro
+    labels:
+      - traefik.enable=true
+      - traefik.http.routers.schema-viewer.rule=Host(`schema.localhost`)
+      - traefik.http.services.schema-viewer.loadbalancer.server.port=80
+      - traefik.http.routers.schema-viewer.tls=true
+
+  # Headless browser capturing pages of the dev stack, see `just screenshot`.
+  # Not started by `just dev`, only run on demand.
+  screenshot:
+    build:
+      context: ./dev/screenshot
+    profiles:
+      - tools
+    user: ${UID-1000}:${GID-1000}
+    working_dir: /opt/screenshot
+    volumes:
+      - ./dev/screenshot/screenshot.mjs:/opt/screenshot/screenshot.mjs:ro
+      - ./dev/screenshots:/out
+    environment:
+      - HOME=/tmp
+      - SCREENSHOT_HOST_DIR=${PWD}/dev/screenshots
+    entrypoint: ["node", "screenshot.mjs"]
+
   traefik:
-    image: traefik:v3.6
+    image: traefik:v3.6.15
     stop_signal: SIGKILL
     ports:
       # The HTTP port
@@ -161,3 +206,4 @@ services:
 volumes:
   backend_cargo_target_dir:
   backend_cargo_registry:
+  schemaspy_output:

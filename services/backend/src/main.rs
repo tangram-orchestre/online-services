@@ -1,5 +1,6 @@
 mod auth;
 mod error;
+mod images;
 mod models;
 mod private;
 mod public;
@@ -108,11 +109,21 @@ async fn main() -> Result<(), std::io::Error> {
         tracing::info!("Database migrations complete");
     }
 
+    {
+        let mut conn = db_connection_pool
+            .get()
+            .await
+            .expect("failed to get connection for the default concert image");
+        images::ensure_default_concert_image(&mut conn)
+            .await
+            .expect("failed to create the default concert image");
+    }
+
     // If a seed file path is provided, run the seed script.
     if let Some(seed_file_path) = settings.seed_file_path {
         tracing::info!("Running seed script ({})...", seed_file_path);
 
-        let seed_sql = std::fs::read_to_string(seed_file_path).expect("failed to read seed file");
+        let seed_sql = std::fs::read_to_string(&seed_file_path).expect("failed to read seed file");
 
         let mut conn = db_connection_pool
             .get()
@@ -123,6 +134,12 @@ async fn main() -> Result<(), std::io::Error> {
             Ok(_) => tracing::info!("Seed script complete"),
             Err(err) => tracing::error!("Failed to execute seed SQL: {}", err),
         }
+
+        // Photos of the seeded venues, in `images` next to the seed file.
+        let images_dir = std::path::Path::new(&seed_file_path).with_file_name("images");
+        if let Err(err) = images::seed_images(&mut conn, &images_dir).await {
+            tracing::error!("Failed to seed images: {}", err);
+        }
     }
 
     let state = Arc::new(AppStateInner {
@@ -132,8 +149,11 @@ async fn main() -> Result<(), std::io::Error> {
         db_connection_pool,
     });
 
+    images::spawn_unused_images_cleanup(state.clone());
+
     let public_endpoints = Route::new()
         .at("/health", public::health)
+        .at("/images/:image_id", public::image)
         .nest("/docs", public_api.openapi_explorer())
         .nest("/spec", public_api.spec_endpoint())
         .nest("/", public_api);

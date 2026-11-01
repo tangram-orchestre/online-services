@@ -15,8 +15,6 @@ generate_if_modified () {
     if [ "$HASH" != "$NEW_HASH" ]; then
         echo "Generating client"
         if yarn run openapi-ts -f $CONFIG_FILE; then
-            echo "Applying ESLint"
-            yarn run openapi-ts:lint:fix
             echo "$NEW_HASH" > "$HASH_FILE"
         fi
     fi

@@ -1,20 +1,10 @@
-import type ConfirmDialog from "~/components/ConfirmDialog.vue";
+import ConfirmDialog from "~/components/ConfirmDialog.vue";
 
-let dialog: null | InstanceType<typeof ConfirmDialog> = null;
-
-export function setConfirmDialogInstance(
-  instance: InstanceType<typeof ConfirmDialog>,
-) {
-  dialog = instance;
-}
-
+/** Ask the user to confirm an action, resolves to false when dismissed. */
 export async function confirmDialog(
   title: string,
   message: string,
 ): Promise<boolean> {
-  if (!dialog) {
-    throw new Error("ConfirmDialog instance not set");
-  }
-
-  return dialog.open(title, message);
+  const modal = useOverlay().create(ConfirmDialog, { destroyOnClose: true });
+  return (await modal.open({ title, message })) ?? false;
 }

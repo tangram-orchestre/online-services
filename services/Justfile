@@ -13,6 +13,17 @@ build-env:
 diesel *diesel_cmd:
     docker compose run --rm backend diesel {{ diesel_cmd }}
 
+# Regenerate the database schema documentation served at https://schema.localhost
+# (`just dev` already does it whenever the schema changes)
+db-schema:
+    docker compose run --rm --build schemaspy --once
+
+# Screenshot dev stack pages into dev/screenshots (`just screenshot --help`)
+[positional-arguments]
+screenshot *args:
+    mkdir -p dev/screenshots
+    docker compose run --rm screenshot "$@"
+
 ### Backend
 
 [group('lint')]
@@ -73,7 +84,7 @@ generate-certs:
     mkcert \
         -cert-file ./dev/traefik/certs/localhost.pem \
         -key-file ./dev/traefik/certs/localhost-key.pem \
-        localhost api.localhost portal.localhost traefik.localhost maildev.localhost pgweb.localhost
+        localhost api.localhost portal.localhost traefik.localhost maildev.localhost pgweb.localhost schema.localhost
 
 # Ensure local dev certificates exist
 [group('certs')]

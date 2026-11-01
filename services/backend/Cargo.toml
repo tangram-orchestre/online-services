@@ -12,6 +12,7 @@ poem-openapi = { version = "5.1.5", features = [
     "openapi-explorer",
     "email",
     "chrono",
+    "uuid",
 ] }
 serde = { version = "1.0.218", features = ["derive"] }
 serde_json = "1.0.139"
@@ -25,7 +26,13 @@ lettre = { version = "0.11", default-features = false, features = [
 thiserror = "2.0.12"
 tracing = "0.1.41"
 tracing-subscriber = { version = "0.3.19", features = ["env-filter"] }
-diesel = { version = "2.3.5", features = ["chrono"] }
+diesel = { version = "2.3.5", features = ["chrono", "uuid"] }
+image = { version = "0.25", default-features = false, features = [
+    "jpeg",
+    "png",
+    "webp",
+] }
+uuid = { version = "1", features = ["serde"] }
 diesel-async = { version = "0.7.4", features = [
     "postgres",
     "deadpool",

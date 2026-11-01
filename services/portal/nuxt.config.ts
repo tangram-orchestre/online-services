@@ -1,49 +1,39 @@
-import { fr } from "vuetify/locale";
-
 // https://nuxt.com/docs/api/configuration/nuxt-config
 export default defineNuxtConfig({
   compatibilityDate: "2024-11-01",
   devtools: { enabled: true },
   ssr: false,
 
-  build: {
-    transpile: ["vue-sonner"],
-  },
-
-  modules: [
-    "@vueuse/nuxt",
-    "@nuxt/eslint",
-    "@nuxt/image",
-    "@nuxt/fonts",
-    "vuetify-nuxt-module",
-    "@hey-api/nuxt",
-  ],
-  vuetify: {
-    moduleOptions: {
-      /* module specific options */
+  modules: ["@vueuse/nuxt", "@nuxt/eslint", "@nuxt/image", "@nuxt/ui"],
+  css: ["~/assets/css/main.css"],
+  ui: {
+    theme: {
+      colors: [
+        "primary",
+        "secondary",
+        "tertiary",
+        "info",
+        "success",
+        "warning",
+        "error",
+      ],
     },
-    vuetifyOptions: {
-      locale: {
-        locale: "fr",
-        messages: { fr },
-      },
-      labComponents: true,
-      date: {
-        adapter: "custom",
-      },
+  },
+  fonts: {
+    defaults: {
+      weights: [300, 400, 500, 600, 700],
     },
   },
   heyApi: {
+    input: "/opt/openapi/private-spec.json",
     config: {
-      input: "/opt/openapi/private-spec.json",
       plugins: [
+        "@hey-api/client-nuxt",
         "@hey-api/schemas",
+        "@hey-api/sdk",
         {
-          name: "@hey-api/sdk",
-        },
-        {
-          enums: "javascript",
           name: "@hey-api/typescript",
+          enums: "javascript",
         },
         "zod",
       ],
