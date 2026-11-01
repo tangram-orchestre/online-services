@@ -6,6 +6,8 @@ const props = defineProps<{
   concerts: ConcertWithPieces[];
 }>();
 
+const route = useRoute();
+
 /** A concert id, or the special filters. */
 type Filter = number | "all" | "unscheduled";
 const filter = ref<Filter>("all");
@@ -21,7 +23,7 @@ const filters = computed(() => [
   { value: "all" as Filter, label: `Tous (${props.pieces.length})` },
   ...props.concerts.map((c) => ({
     value: c.id as Filter,
-    label: formatShortDay(c.date),
+    label: concertShortName(c),
   })),
   ...(unscheduled.value.length
     ? [
@@ -57,9 +59,17 @@ const rows = computed(() => {
 <template>
   <section aria-labelledby="pieces-title" class="flex flex-col gap-3">
     <div class="flex flex-wrap items-center justify-between gap-3">
-      <h2 id="pieces-title" class="text-lg font-semibold">
-        Morceaux du semestre
-      </h2>
+      <div class="flex items-baseline gap-3">
+        <h2 id="pieces-title" class="text-lg font-semibold">
+          Morceaux du semestre
+        </h2>
+        <ULink
+          :to="{ path: '/pieces', query: { semester: route.query.semester } }"
+          class="text-sm font-medium text-secondary hover:text-highlighted"
+        >
+          Tous les morceaux
+        </ULink>
+      </div>
       <div
         v-if="pieces.length"
         role="group"
@@ -113,7 +123,7 @@ const rows = computed(() => {
               :key="concert.id"
               class="rounded-full bg-tertiary-200 px-2.5 py-0.5 text-sm font-medium text-on-tertiary"
             >
-              {{ formatShortDay(concert.date) }}
+              {{ concertShortName(concert) }}
             </span>
             <span v-if="!pieceConcerts.length" class="text-sm text-dimmed">
               Hors programme

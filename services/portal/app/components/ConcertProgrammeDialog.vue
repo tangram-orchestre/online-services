@@ -12,6 +12,7 @@ const emit = defineEmits<{
 }>();
 
 const toast = useToast();
+const { allConcerts } = useProgramme();
 
 const shown = ref(false);
 const concert = ref<ConcertWithPieces | null>(null);
@@ -79,6 +80,11 @@ const save = () => {
         title: "Programme enregistré avec succès",
         color: "success",
       });
+      if (allConcerts.value) {
+        allConcerts.value = allConcerts.value.map((c) =>
+          c.id === concertId ? { ...c, piece_ids: pieceIds } : c,
+        );
+      }
       emit("saved", concertId, pieceIds);
     })
     .finally(() => {

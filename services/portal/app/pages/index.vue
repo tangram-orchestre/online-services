@@ -1,5 +1,4 @@
 <script setup lang="ts">
-import type { Piece } from "#hey-api/types.gen";
 import { eachWeekOfInterval, isAfter, isBefore } from "date-fns";
 import type { RouteLocationRaw } from "vue-router";
 
@@ -9,34 +8,9 @@ if (!user.value.groups.includes("Orga")) {
   await navigateTo("/profile", { replace: true });
 }
 
-const { selectedSemester: semester, status: semestersStatus } = useSemesters();
-
-const { data: allConcerts, status: concertsStatus } = getConcerts({
-  composable: "useAsyncData",
-  key: "getConcerts",
-});
-const { data: allPieces, status: piecesStatus } = getPieces({
-  composable: "useAsyncData",
-  key: "getPieces",
-});
+const { status: semestersStatus } = useSemesters();
+const { semester, concerts, pieces, pieceById, loading } = useProgramme();
 const { place, placeName } = useLocations();
-
-const loading = computed(
-  () => concertsStatus.value === "pending" || piecesStatus.value === "pending",
-);
-
-// TODO: filter server side once the API supports it.
-const concerts = computed(() =>
-  (allConcerts.value ?? [])
-    .filter((c) => c.semester_id === semester.value?.id)
-    .sort((a, b) => a.date.localeCompare(b.date)),
-);
-const pieces = computed(() =>
-  (allPieces.value ?? []).filter((p) => p.semester_id === semester.value?.id),
-);
-const pieceById = computed(
-  () => new Map<number, Piece>(pieces.value.map((p) => [p.id, p])),
-);
 
 const upcomingConcerts = computed(() =>
   concerts.value.filter((c) => daysUntil(c.date) >= 0),
@@ -73,10 +47,14 @@ const stats = computed(() => {
   ];
 });
 
-const managementLink = computed(() => ({
-  path: "/semesters",
-  query: { semester: semester.value?.id },
-}));
+/** A page of the semester, with extra query parameters. */
+const pageLink = (
+  path: string,
+  query: Record<string, string | number> = {},
+) => ({
+  path,
+  query: { semester: semester.value?.id, ...query },
+});
 
 type TodoItem = { label: string; icon: string; to: RouteLocationRaw };
 
@@ -91,11 +69,9 @@ type Todo = {
   | { items: TodoItem[] }
 );
 
-/** Semester management page, with the dialog of a concert opened. */
-const concertLink = (concertId: number, dialog: "concert" | "programme") => ({
-  path: "/semesters",
-  query: { semester: semester.value?.id, [dialog]: concertId },
-});
+/** Concerts page, with a concert selected and one of its dialogs opened. */
+const concertLink = (concertId: number, edit: "concert" | "programme") =>
+  pageLink("/concerts", { concert: concertId, edit });
 
 /** Things the organisers should look at, derived from the semester data. */
 const todos = computed<Todo[]>(() => {
@@ -105,7 +81,7 @@ const todos = computed<Todo[]>(() => {
   if (!concerts.value.length) {
     result.push({
       key: "no-concert",
-      to: managementLink.value,
+      to: pageLink("/concerts", { edit: "new" }),
       tag: "Concerts",
       title: "Aucun concert prévu ce semestre",
       detail: "Ajoutez les dates pour pouvoir construire les programmes.",
@@ -115,7 +91,7 @@ const todos = computed<Todo[]>(() => {
   if (!pieces.value.length) {
     result.push({
       key: "no-piece",
-      to: managementLink.value,
+      to: pageLink("/pieces", { edit: "new" }),
       tag: "Morceaux",
       title: "Aucun morceau pour ce semestre",
       detail: "Ajoutez les morceaux travaillés ce semestre.",
@@ -177,7 +153,7 @@ const todos = computed<Todo[]>(() => {
     const names = unscheduled.map((p) => p.name);
     result.push({
       key: "unscheduled",
-      to: managementLink.value,
+      to: pageLink("/pieces", { filter: "unscheduled" }),
       tag: "Morceaux",
       title:
         unscheduled.length === 1
@@ -299,24 +275,28 @@ const todoCount = computed(() =>
       <section aria-labelledby="concerts-title" class="flex flex-col gap-3">
         <div class="flex items-baseline justify-between gap-3">
           <h2 id="concerts-title" class="text-lg font-semibold">
-            Concerts du semestre
+            Concerts à venir
           </h2>
           <ULink
-            :to="managementLink"
+            :to="pageLink('/concerts')"
             class="text-sm font-medium text-secondary hover:text-highlighted"
           >
-            Gérer
+            Tous les concerts
           </ULink>
         </div>
         <USkeleton v-if="loading" class="h-56 rounded-lg" />
         <p
-          v-else-if="!concerts.length"
+          v-else-if="!upcomingConcerts.length"
           class="rounded-lg border border-dashed border-default p-6 text-center text-muted"
         >
-          Aucun concert pour ce semestre
+          {{
+            concerts.length
+              ? "Plus de concert à venir ce semestre"
+              : "Aucun concert pour ce semestre"
+          }}
         </p>
         <DashboardConcertCard
-          v-for="concert in concerts"
+          v-for="concert in upcomingConcerts"
           :key="concert.id"
           :concert="concert"
           :place="place(concert.room_id)"
@@ -333,13 +313,6 @@ const todoCount = computed(() =>
     v-else-if="semestersStatus !== 'pending'"
     icon="i-lucide-calendar"
     title="Aucun semestre"
-    description="Créez un semestre pour y ajouter des morceaux et des concerts."
-    :actions="[
-      {
-        label: 'Gérer les semestres',
-        icon: 'i-lucide-arrow-right',
-        to: '/semesters',
-      },
-    ]"
+    description="Créez un semestre depuis le menu Semestre pour y ajouter des concerts et des morceaux."
   />
 </template>

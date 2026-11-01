@@ -1,8 +1,18 @@
 <script setup lang="ts">
 import type { DropdownMenuItem } from "@nuxt/ui";
+import type { Semester } from "#hey-api/types.gen";
+import type SemesterDialogComponent from "~/components/SemesterDialog.vue";
 
-const { sortedSemesters, selectedSemesterId, selectedSemester } =
-  useSemesters();
+const toast = useToast();
+
+const {
+  semesters,
+  sortedSemesters,
+  selectedSemesterId,
+  selectedSemester,
+  refresh,
+  status,
+} = useSemesters();
 
 const selectedIndex = computed(() =>
   sortedSemesters.value.findIndex((s) => s.id === selectedSemesterId.value),
@@ -16,16 +26,79 @@ const next = computed(() =>
     : undefined,
 );
 
-const items = computed<DropdownMenuItem[]>(() =>
-  sortedSemesters.value.map((s) => ({
-    label: `${s.short_name} — ${s.long_name}`,
-    type: "checkbox" as const,
-    checked: s.id === selectedSemesterId.value,
-    onSelect: () => {
-      selectedSemesterId.value = s.id;
-    },
-  })),
-);
+const dialog =
+  useTemplateRef<InstanceType<typeof SemesterDialogComponent>>(
+    "semesterDialog",
+  );
+
+const onSaved = (semester: Semester) => {
+  if (semesters.value) {
+    const exists = semesters.value.some((s) => s.id === semester.id);
+    semesters.value = exists
+      ? semesters.value.map((s) => (s.id === semester.id ? semester : s))
+      : [...semesters.value, semester];
+  }
+  selectedSemesterId.value = semester.id;
+};
+
+const deleteSemester = (semester: Semester) => {
+  confirmDialog(
+    "Confirmer la suppression",
+    `Êtes-vous sûr de vouloir supprimer le semestre « ${semester.long_name} » ?`,
+  ).then((confirmed) => {
+    if (!confirmed) return;
+    deleteSemesterBySemesterId({
+      composable: "$fetch",
+      path: { semester_id: semester.id },
+      onResponseError: onResponseErrorHandler("semestre", false, (errorMsg) => {
+        toast.add({ title: errorMsg, color: "error" });
+        refresh();
+      }),
+    }).then(() => {
+      if (semesters.value) {
+        semesters.value = semesters.value.filter((s) => s.id !== semester.id);
+      }
+      selectedSemesterId.value = undefined;
+      toast.add({ title: "Semestre supprimé avec succès", color: "success" });
+    });
+  });
+};
+
+const items = computed<DropdownMenuItem[][]>(() => {
+  const semester = selectedSemester.value;
+  return [
+    sortedSemesters.value.map((s) => ({
+      label: `${s.short_name} — ${s.long_name}`,
+      type: "checkbox" as const,
+      checked: s.id === selectedSemesterId.value,
+      onSelect: () => {
+        selectedSemesterId.value = s.id;
+      },
+    })),
+    [
+      {
+        label: "Nouveau semestre",
+        icon: "i-lucide-plus",
+        onSelect: () => dialog.value?.open(),
+      },
+      ...(semester
+        ? [
+            {
+              label: `Modifier ${semester.short_name}`,
+              icon: "i-lucide-pencil",
+              onSelect: () => dialog.value?.open(semester),
+            },
+            {
+              label: `Supprimer ${semester.short_name}`,
+              icon: "i-lucide-trash-2",
+              color: "error" as const,
+              onSelect: () => deleteSemester(semester),
+            },
+          ]
+        : []),
+    ],
+  ];
+});
 </script>
 
 <template>
@@ -54,7 +127,7 @@ const items = computed<DropdownMenuItem[]>(() =>
         <button
           type="button"
           class="flex flex-1 flex-col items-center rounded-lg py-2 leading-tight hover:bg-elevated focus-visible:outline-2 focus-visible:outline-primary"
-          aria-label="Choisir un semestre"
+          aria-label="Choisir ou gérer les semestres"
         >
           <span class="font-display text-xl font-bold text-highlighted">
             {{ selectedSemester.short_name }}
@@ -75,4 +148,20 @@ const items = computed<DropdownMenuItem[]>(() =>
       />
     </div>
   </div>
+
+  <UButton
+    v-else-if="status !== 'pending'"
+    label="Créer un semestre"
+    icon="i-lucide-plus"
+    color="neutral"
+    variant="outline"
+    block
+    @click="dialog?.open()"
+  />
+
+  <SemesterDialog
+    ref="semesterDialog"
+    :semesters="semesters ?? []"
+    @saved="onSaved"
+  />
 </template>

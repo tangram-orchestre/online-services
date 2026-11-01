@@ -185,3 +185,8 @@
     @apply font-display;
   }
 }
+
+/* Diamond marking a concert (timeline, legends, lists). */
+@utility concert-marker {
+  @apply inline-block shrink-0 rotate-45 border-2 border-inverted bg-tertiary;
+}

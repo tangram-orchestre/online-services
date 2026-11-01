@@ -106,9 +106,9 @@ watch(
   { flush: "post" },
 );
 
-/** Semester management page, with the concert dialog opened. */
+/** Concerts page, with the concert selected. */
 const concertLink = (concert: ConcertWithPieces) => ({
-  path: "/semesters",
+  path: "/concerts",
   query: { semester: props.semester.id, concert: concert.id },
 });
 
@@ -284,7 +284,7 @@ const concertLabel = (concert: ConcertWithPieces) =>
                       />
                       <UButton
                         :to="concertLink(concert)"
-                        label="Modifier le concert"
+                        label="Voir le concert"
                         trailing-icon="i-lucide-arrow-right"
                         color="primary"
                         variant="outline"
@@ -308,11 +308,3 @@ const concertLabel = (concert: ConcertWithPieces) =>
     </div>
   </section>
 </template>
-
-<style scoped>
-@reference "../assets/css/main.css";
-
-.concert-marker {
-  @apply inline-block shrink-0 rotate-45 border-2 border-inverted bg-tertiary;
-}
-</style>

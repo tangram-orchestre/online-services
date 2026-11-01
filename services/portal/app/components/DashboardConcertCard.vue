@@ -48,7 +48,6 @@ const remaining = computed(() => countdown(props.concert.date));
       >
         {{ remaining }}
       </span>
-      <span v-else class="text-sm text-muted">Passé</span>
     </div>
 
     <div class="flex flex-col gap-1 border-t border-muted pt-3.5">

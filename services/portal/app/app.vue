@@ -50,11 +50,8 @@ const navigation = computed<{ title: string; items: NavItem[] }[]>(() =>
               icon: "i-lucide-layout-dashboard",
               path: "/",
             },
-            {
-              label: "Concerts et morceaux",
-              icon: "i-lucide-music",
-              path: "/semesters",
-            },
+            { label: "Concerts", icon: "i-lucide-ticket", path: "/concerts" },
+            { label: "Morceaux", icon: "i-lucide-music", path: "/pieces" },
           ],
         },
         {
