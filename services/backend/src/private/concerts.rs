@@ -26,18 +26,30 @@ impl Api {
         Data(state): Data<&AppState>,
     ) -> Result<Json<Vec<ConcertWithPieces>>> {
         let mut conn = state.db_connection_pool.get().await.unwrap();
-        let concerts = concerts::table
-            .select(models::Concert::as_select())
-            .load(&mut conn)
+        // One snapshot for both queries, so that programmes match concerts.
+        let (concerts, links) = conn
+            .build_transaction()
+            .read_only()
+            .repeatable_read()
+            .run::<_, ApiError, _>(|conn| {
+                async move {
+                    let concerts = concerts::table
+                        .select(models::Concert::as_select())
+                        .load(conn)
+                        .await?;
+                    let links = concert_pieces::table
+                        .order((concert_pieces::concert_id, concert_pieces::position))
+                        .select(ConcertPiece::as_select())
+                        .load(conn)
+                        .await?;
+                    Ok((concerts, links))
+                }
+                .scope_boxed()
+            })
             .await?;
 
         let mut piece_ids_by_concert: HashMap<i32, Vec<i32>> = HashMap::new();
-        for link in concert_pieces::table
-            .order((concert_pieces::concert_id, concert_pieces::position))
-            .select(ConcertPiece::as_select())
-            .load(&mut conn)
-            .await?
-        {
+        for link in links {
             piece_ids_by_concert
                 .entry(link.concert_id)
                 .or_default()
@@ -103,12 +115,7 @@ impl Api {
     ) -> Result<()> {
         RequireRole(Role::Bureau).check(&principal)?;
         let mut conn = state.db_connection_pool.get().await.unwrap();
-        // Delete join table rows first to avoid FK violation
-        diesel::delete(
-            concert_pieces::table.filter(concert_pieces::concert_id.eq(concert_id)),
-        )
-        .execute(&mut conn)
-        .await?;
+        // The programme is deleted by cascade.
         let deleted = diesel::delete(concerts::table.find(concert_id))
             .execute(&mut conn)
             .await?;

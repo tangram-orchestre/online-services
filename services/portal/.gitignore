@@ -23,5 +23,7 @@ logs
 .env.*
 !.env.example
 
+designs
+
 client
 private-spec.json

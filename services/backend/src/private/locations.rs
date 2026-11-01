@@ -163,7 +163,14 @@ impl Api {
         Data(state): Data<&AppState>,
     ) -> Result<Json<Vec<LocationWithDetails>>> {
         let mut conn = state.db_connection_pool.get().await.unwrap();
-        Ok(Json(load_locations(&mut conn, None).await?))
+        // One snapshot for the locations, rooms and contacts queries.
+        let locations = conn
+            .build_transaction()
+            .read_only()
+            .repeatable_read()
+            .run(|conn| load_locations(conn, None).scope_boxed())
+            .await?;
+        Ok(Json(locations))
     }
 
     /// Create a location, with its rooms and contacts
