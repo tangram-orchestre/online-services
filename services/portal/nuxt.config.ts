@@ -6,6 +6,24 @@ export default defineNuxtConfig({
 
   modules: ["@vueuse/nuxt", "@nuxt/eslint", "@nuxt/image", "@nuxt/ui"],
   css: ["~/assets/css/main.css"],
+  ui: {
+    theme: {
+      colors: [
+        "primary",
+        "secondary",
+        "tertiary",
+        "info",
+        "success",
+        "warning",
+        "error",
+      ],
+    },
+  },
+  fonts: {
+    defaults: {
+      weights: [300, 400, 500, 600, 700],
+    },
+  },
   heyApi: {
     input: "/opt/openapi/private-spec.json",
     config: {

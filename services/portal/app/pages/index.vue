@@ -1,197 +1,263 @@
 <script setup lang="ts">
-import type { Semester } from "#hey-api/types.gen";
-import type { DropdownMenuItem } from "@nuxt/ui";
-import type SemesterDialogComponent from "~/components/SemesterDialog.vue";
+import type { Piece } from "#hey-api/types.gen";
+import { eachWeekOfInterval, isAfter, isBefore } from "date-fns";
 
-const route = useRoute();
-const toast = useToast();
-const router = useRouter();
-
-// Semester management is reserved to the Orga group; others land on their
-// profile.
+// The dashboard is reserved to the Orga group; others land on their profile.
 const user = await currentUser();
 if (!user.value.groups.includes("Orga")) {
   await navigateTo("/profile", { replace: true });
 }
 
-const formatDate = (value: string) => new Date(value).toLocaleDateString("fr");
+const { selectedSemester: semester, status: semestersStatus } = useSemesters();
 
-const {
-  data: semesters,
-  refresh,
-  status,
-} = getSemesters({
+const { data: allConcerts, status: concertsStatus } = getConcerts({
   composable: "useAsyncData",
-  key: "getSemesters",
+  key: "getConcerts",
 });
+const { data: allPieces, status: piecesStatus } = getPieces({
+  composable: "useAsyncData",
+  key: "getPieces",
+});
+const { place, placeName } = useLocations();
 
-const sortedSemesters = computed(() =>
-  [...(semesters.value ?? [])].sort((a, b) =>
-    b.start_date.localeCompare(a.start_date),
-  ),
+const loading = computed(
+  () => concertsStatus.value === "pending" || piecesStatus.value === "pending",
 );
 
-/** Semester containing today, or the most recent one. */
-const defaultSemester = () => {
-  const today = new Date().toISOString().split("T")[0]!;
-  return (
-    sortedSemesters.value.find(
-      (s) => s.start_date <= today && today <= s.end_date,
-    ) ?? sortedSemesters.value[0]
-  );
-};
-
-// Selected semester is kept in the URL so it survives reloads and can be
-// shared.
-const selectedSemesterId = computed<number | undefined>({
-  get: () => {
-    const fromQuery = Number(route.query.semester);
-    if (sortedSemesters.value.some((s) => s.id === fromQuery)) {
-      return fromQuery;
-    }
-    return defaultSemester()?.id;
-  },
-  set: (id) => {
-    router.replace({ query: { ...route.query, semester: id } });
-  },
-});
-
-const selectedSemester = computed(() =>
-  sortedSemesters.value.find((s) => s.id === selectedSemesterId.value),
+// TODO: filter server side once the API supports it.
+const concerts = computed(() =>
+  (allConcerts.value ?? [])
+    .filter((c) => c.semester_id === semester.value?.id)
+    .sort((a, b) => a.date.localeCompare(b.date)),
+);
+const pieces = computed(() =>
+  (allPieces.value ?? []).filter((p) => p.semester_id === semester.value?.id),
+);
+const pieceById = computed(
+  () => new Map<number, Piece>(pieces.value.map((p) => [p.id, p])),
 );
 
-const semesterDialogRef =
-  useTemplateRef<InstanceType<typeof SemesterDialogComponent>>(
-    "semesterDialog",
-  );
+const upcomingConcerts = computed(() =>
+  concerts.value.filter((c) => daysUntil(c.date) >= 0),
+);
 
-const onSemesterSaved = (semester: Semester) => {
-  if (semesters.value) {
-    const exists = semesters.value.some((s) => s.id === semester.id);
-    semesters.value = exists
-      ? semesters.value.map((s) => (s.id === semester.id ? semester : s))
-      : [...semesters.value, semester];
+/** « 14 sept. 2026 – 24 janv. 2027 · semaine 7 sur 19 » */
+const period = computed(() => {
+  const s = semester.value;
+  if (!s) return "";
+  const range = `${formatDay(s.start_date)} – ${formatDay(s.end_date)}`;
+  const start = parseDay(s.start_date);
+  const end = parseDay(s.end_date);
+  const today = new Date();
+  if (isBefore(today, start)) {
+    return `${range} · commence dans ${daysUntil(s.start_date)} jours`;
   }
-  selectedSemesterId.value = semester.id;
-};
+  if (isAfter(today, end)) return `${range} · terminé`;
+  const weeks = eachWeekOfInterval({ start, end }, { weekStartsOn: 1 });
+  const current = eachWeekOfInterval(
+    { start, end: today },
+    { weekStartsOn: 1 },
+  );
+  return `${range} · semaine ${current.length} sur ${weeks.length}`;
+});
 
-const deleteSemester = (semester: Semester) => {
-  confirmDialog(
-    "Confirmer la suppression",
-    `Êtes-vous sûr de vouloir supprimer le semestre « ${semester.long_name} » ?`,
-  ).then((confirmed) => {
-    if (!confirmed) return;
-    deleteSemesterBySemesterId({
-      composable: "$fetch",
-      path: { semester_id: semester.id },
-      onResponseError: onResponseErrorHandler("semestre", false, (errorMsg) => {
-        toast.add({ title: errorMsg, color: "error" });
-        refresh();
-      }),
-    }).then(() => {
-      if (semesters.value) {
-        semesters.value = semesters.value.filter((s) => s.id !== semester.id);
-      }
-      selectedSemesterId.value = undefined;
-      toast.add({
-        title: "Semestre supprimé avec succès",
-        color: "success",
-      });
-    });
-  });
-};
-
-const semesterMenu = computed<DropdownMenuItem[][]>(() => [
-  sortedSemesters.value.map((s) => ({
-    label: `${s.short_name} — ${s.long_name}`,
-    type: "checkbox" as const,
-    checked: s.id === selectedSemesterId.value,
-    onSelect: () => {
-      selectedSemesterId.value = s.id;
-    },
-  })),
-  [
-    {
-      label: "Nouveau semestre",
-      icon: "i-lucide-plus",
-      onSelect: () => semesterDialogRef.value?.open(),
-    },
-  ],
-]);
-
-const semesterActions = computed<DropdownMenuItem[][]>(() => {
-  const semester = selectedSemester.value;
-  if (!semester) return [];
+const stats = computed(() => {
+  const next = upcomingConcerts.value[0];
   return [
-    [
-      {
-        type: "label",
-        label: `${formatDate(semester.start_date)} → ${formatDate(semester.end_date)}`,
-        icon: "i-lucide-calendar-range",
-      },
-    ],
-    [
-      {
-        label: "Modifier le semestre",
-        icon: "i-lucide-pencil",
-        onSelect: () => semesterDialogRef.value?.open(semester),
-      },
-      {
-        label: "Supprimer le semestre",
-        icon: "i-lucide-trash-2",
-        color: "error",
-        onSelect: () => deleteSemester(semester),
-      },
-    ],
+    { value: concerts.value.length, label: "concerts" },
+    { value: pieces.value.length, label: "morceaux" },
+    ...(next
+      ? [{ value: countdown(next.date), label: "prochain concert" }]
+      : []),
   ];
+});
+
+const managementLink = computed(() => ({
+  path: "/semesters",
+  query: { semester: semester.value?.id },
+}));
+
+type Todo = { tag: string; title: string; detail: string; action: string };
+
+/** Things the organisers should look at, derived from the semester data. */
+const todos = computed<Todo[]>(() => {
+  if (loading.value) return [];
+  const result: Todo[] = [];
+
+  if (!concerts.value.length) {
+    result.push({
+      tag: "Concerts",
+      title: "Aucun concert prévu ce semestre",
+      detail: "Ajoutez les dates pour pouvoir construire les programmes.",
+      action: "Ajouter un concert",
+    });
+  }
+  if (!pieces.value.length) {
+    result.push({
+      tag: "Morceaux",
+      title: "Aucun morceau pour ce semestre",
+      detail: "Ajoutez les morceaux travaillés ce semestre.",
+      action: "Ajouter des morceaux",
+    });
+  }
+
+  for (const concert of upcomingConcerts.value) {
+    if (concert.piece_ids.length) continue;
+    const where = place(concert.room_id);
+    result.push({
+      tag: "Concert",
+      title: `Programme vide pour le concert du ${formatLongDay(concert.date)}`,
+      detail: [where?.location.name, countdown(concert.date)]
+        .filter(Boolean)
+        .join(" · "),
+      action: "Composer le programme",
+    });
+  }
+
+  const scheduled = new Set(concerts.value.flatMap((c) => c.piece_ids));
+  const unscheduled = pieces.value.filter((p) => !scheduled.has(p.id));
+  if (concerts.value.length && unscheduled.length) {
+    const names = unscheduled.map((p) => p.name);
+    result.push({
+      tag: "Morceaux",
+      title:
+        unscheduled.length === 1
+          ? `« ${names[0]} » n’est au programme d’aucun concert`
+          : `${unscheduled.length} morceaux ne sont au programme d’aucun concert`,
+      detail:
+        unscheduled.length === 1
+          ? "Ajoutez-le à un programme ou retirez-le du semestre."
+          : names.join(", "),
+      action: "Ajouter aux programmes",
+    });
+  }
+
+  return result;
 });
 </script>
 
 <template>
-  <div v-if="selectedSemester" class="flex flex-wrap items-center gap-1">
-    <UDropdownMenu :items="semesterMenu">
-      <UButton
-        :label="`${selectedSemester.long_name} (${selectedSemester.short_name})`"
-        trailing-icon="i-lucide-chevron-down"
-        color="neutral"
-        variant="ghost"
-        size="xl"
-        class="text-2xl font-semibold"
-      />
-    </UDropdownMenu>
+  <div v-if="semester" class="flex flex-col gap-7">
+    <header class="flex flex-wrap items-end justify-between gap-5">
+      <div class="flex flex-col gap-1.5">
+        <span class="text-sm font-semibold tracking-wider text-muted uppercase">
+          Semestre {{ semester.short_name }}
+        </span>
+        <h1
+          class="text-4xl leading-none font-bold tracking-tight text-highlighted sm:text-5xl"
+        >
+          {{ semester.long_name }}
+        </h1>
+        <p class="text-muted">{{ period }}</p>
+      </div>
+      <dl class="flex flex-wrap gap-3">
+        <div
+          v-for="stat in stats"
+          :key="stat.label"
+          class="flex min-w-23 flex-col-reverse gap-0.5 rounded-lg border border-default bg-default px-4 py-2"
+        >
+          <dt class="text-sm text-muted">{{ stat.label }}</dt>
+          <dd class="font-display text-3xl leading-tight font-semibold">
+            <USkeleton v-if="loading" class="my-1 h-7 w-10" />
+            <template v-else>{{ stat.value }}</template>
+          </dd>
+        </div>
+      </dl>
+    </header>
 
-    <UDropdownMenu :items="semesterActions">
-      <UButton
-        icon="i-lucide-ellipsis-vertical"
-        color="neutral"
-        variant="ghost"
-        aria-label="Détails du semestre"
-      />
-    </UDropdownMenu>
+    <section
+      v-if="todos.length"
+      aria-labelledby="todo-title"
+      class="flex flex-col gap-3"
+    >
+      <h2 id="todo-title" class="text-lg font-semibold">
+        À traiter
+        <span class="font-sans text-base font-normal text-muted">
+          · {{ todos.length }} {{ todos.length > 1 ? "points" : "point" }}
+        </span>
+      </h2>
+      <ul
+        class="grid grid-cols-[repeat(auto-fit,minmax(min(16rem,100%),1fr))] gap-3"
+      >
+        <li
+          v-for="todo in todos"
+          :key="todo.title"
+          class="flex flex-col gap-2.5 rounded-lg border border-warning/30 bg-warning-soft p-4"
+        >
+          <span
+            class="flex items-center gap-2 text-xs font-semibold tracking-wider uppercase"
+          >
+            <span class="size-2.5 rounded-full bg-warning" />
+            {{ todo.tag }}
+          </span>
+          <span class="leading-snug font-semibold text-pretty">
+            {{ todo.title }}
+          </span>
+          <span class="text-sm text-toned">{{ todo.detail }}</span>
+          <UButton
+            :to="managementLink"
+            :label="todo.action"
+            color="primary"
+            variant="outline"
+            class="mt-auto self-start bg-default"
+          />
+        </li>
+      </ul>
+    </section>
+
+    <SemesterTimeline
+      :semester="semester"
+      :concerts="concerts"
+      :place-name="placeName"
+    />
+
+    <div
+      class="grid grid-cols-[repeat(auto-fit,minmax(min(26rem,100%),1fr))] items-start gap-7"
+    >
+      <section aria-labelledby="concerts-title" class="flex flex-col gap-3">
+        <div class="flex items-baseline justify-between gap-3">
+          <h2 id="concerts-title" class="text-lg font-semibold">
+            Concerts du semestre
+          </h2>
+          <ULink
+            :to="managementLink"
+            class="text-sm font-medium text-secondary hover:text-highlighted"
+          >
+            Gérer
+          </ULink>
+        </div>
+        <USkeleton v-if="loading" class="h-56 rounded-lg" />
+        <p
+          v-else-if="!concerts.length"
+          class="rounded-lg border border-dashed border-default p-6 text-center text-muted"
+        >
+          Aucun concert pour ce semestre
+        </p>
+        <DashboardConcertCard
+          v-for="concert in concerts"
+          :key="concert.id"
+          :concert="concert"
+          :place="place(concert.room_id)"
+          :pieces="pieceById"
+        />
+      </section>
+
+      <USkeleton v-if="loading" class="h-56 rounded-lg" />
+      <DashboardPieces v-else :pieces="pieces" :concerts="concerts" />
+    </div>
   </div>
 
   <UEmpty
-    v-else-if="status !== 'pending'"
+    v-else-if="semestersStatus !== 'pending'"
     icon="i-lucide-calendar"
     title="Aucun semestre"
     description="Créez un semestre pour y ajouter des morceaux et des concerts."
     :actions="[
       {
-        label: 'Nouveau semestre',
-        icon: 'i-lucide-plus',
-        onClick: () => semesterDialogRef?.open(),
+        label: 'Gérer les semestres',
+        icon: 'i-lucide-arrow-right',
+        to: '/semesters',
       },
     ]"
-  />
-
-  <div v-if="selectedSemester" class="mt-4 flex flex-col gap-8">
-    <SemesterConcerts :semester="selectedSemester" />
-    <SemesterPieces :semester="selectedSemester" />
-  </div>
-
-  <SemesterDialog
-    ref="semesterDialog"
-    :semesters="semesters ?? []"
-    @saved="onSemesterSaved"
   />
 </template>
