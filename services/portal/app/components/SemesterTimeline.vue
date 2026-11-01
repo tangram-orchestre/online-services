@@ -143,10 +143,7 @@ const concertLabel = (concert: ConcertWithPieces) =>
 </script>
 
 <template>
-  <section
-    aria-labelledby="timeline-title"
-    class="flex flex-col gap-3 rounded-lg border border-default bg-default p-5 pb-4"
-  >
+  <section aria-labelledby="timeline-title" class="flex flex-col gap-3">
     <div class="flex flex-wrap items-baseline justify-between gap-x-6 gap-y-2">
       <h2 id="timeline-title" class="text-lg font-semibold">
         Le semestre en un coup d’œil
@@ -163,7 +160,10 @@ const concertLabel = (concert: ConcertWithPieces) =>
       </div>
     </div>
 
-    <div ref="scroller" class="relative overflow-x-auto pb-1">
+    <div
+      ref="scroller"
+      class="relative overflow-x-auto rounded-lg border border-default bg-default p-5 pb-4"
+    >
       <ol
         class="grid gap-x-0.75"
         :style="{
