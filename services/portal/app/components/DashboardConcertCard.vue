@@ -14,6 +14,8 @@ const programme = computed(() =>
     .filter((p): p is PieceWithPeople => !!p),
 );
 const remaining = computed(() => countdown(props.concert.date));
+
+const { pageLink } = useSemesters();
 </script>
 
 <template>
@@ -24,8 +26,13 @@ const remaining = computed(() => countdown(props.concert.date));
       <div class="flex min-w-0 items-center gap-4">
         <DateTile :date="concert.date" />
         <div class="flex min-w-0 flex-col gap-0.5">
-          <h3 class="text-2xl leading-tight font-bold text-highlighted">
-            {{ concert.name || place?.location.name || "Salle à définir" }}
+          <h3 class="text-2xl leading-tight font-bold">
+            <ULink
+              :to="pageLink('/concerts', { concert: concert.id })"
+              class="text-highlighted underline-offset-4 hover:underline"
+            >
+              {{ concert.name || place?.location.name || "Salle à définir" }}
+            </ULink>
           </h3>
           <span class="text-sm text-muted">
             {{
