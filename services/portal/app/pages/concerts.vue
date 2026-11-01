@@ -5,6 +5,7 @@ import type ConcertProgrammeDialogComponent from "~/components/ConcertProgrammeD
 import type DefaultImageDialogComponent from "~/components/DefaultImageDialog.vue";
 
 definePageMeta({ middleware: "orga" });
+useHead({ title: "Concerts" });
 
 const { canEdit } = useRoles();
 

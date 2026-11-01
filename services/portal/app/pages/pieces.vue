@@ -2,6 +2,7 @@
 import type PieceDialogComponent from "~/components/PieceDialog.vue";
 
 definePageMeta({ middleware: "orga" });
+useHead({ title: "Morceaux" });
 
 const { canEdit } = useRoles();
 

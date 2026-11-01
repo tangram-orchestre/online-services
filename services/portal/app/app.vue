@@ -19,6 +19,8 @@ useHead({
   htmlAttrs: {
     lang: "fr",
   },
+  // « Concerts · Tangram », each page setting its own title.
+  titleTemplate: (title) => (title ? `${title} · Tangram` : "Portail Tangram"),
 });
 
 const user = await currentUser();

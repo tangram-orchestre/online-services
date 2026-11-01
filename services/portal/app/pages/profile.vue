@@ -1,4 +1,6 @@
 <script setup lang="ts">
+useHead({ title: "Mon profil" });
+
 const user = await currentUser();
 
 const runtimeConfig = useRuntimeConfig();

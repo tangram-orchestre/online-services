@@ -3,6 +3,7 @@ import type { Person, PieceWithPeople } from "#hey-api/types.gen";
 import type PersonDialogComponent from "~/components/PersonDialog.vue";
 
 definePageMeta({ middleware: "orga" });
+useHead({ title: "Personnes" });
 
 const { canEdit } = useRoles();
 

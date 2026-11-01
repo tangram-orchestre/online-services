@@ -3,6 +3,7 @@ import { eachWeekOfInterval, isAfter, isBefore } from "date-fns";
 import type { RouteLocationRaw } from "vue-router";
 
 definePageMeta({ middleware: "orga" });
+useHead({ title: "Tableau de bord" });
 
 const { canEdit } = useRoles();
 

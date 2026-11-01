@@ -3,6 +3,8 @@ export default defineNuxtConfig({
   compatibilityDate: "2024-11-01",
   devtools: { enabled: true },
   ssr: false,
+  // Shown until the app loads, then set by `app.vue` and the pages.
+  app: { head: { title: "Portail Tangram" } },
 
   modules: ["@vueuse/nuxt", "@nuxt/eslint", "@nuxt/image", "@nuxt/ui"],
   css: ["~/assets/css/main.css"],

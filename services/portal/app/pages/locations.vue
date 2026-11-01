@@ -7,6 +7,7 @@ import type {
 import type LocationDialogComponent from "~/components/LocationDialog.vue";
 
 definePageMeta({ middleware: "orga" });
+useHead({ title: "Lieux" });
 
 const { canEdit } = useRoles();
 
