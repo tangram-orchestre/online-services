@@ -78,7 +78,7 @@ const onSemesterSaved = (semester: Semester) => {
 const deleteSemester = (semester: Semester) => {
   confirmDialog(
     "Confirmer la suppression",
-    `Êtes-vous sûr de vouloir supprimer le semestre « ${semester.name} » ?`,
+    `Êtes-vous sûr de vouloir supprimer le semestre « ${semester.long_name} » ?`,
   ).then((confirmed) => {
     if (!confirmed) return;
     deleteSemesterBySemesterId({
@@ -103,7 +103,7 @@ const deleteSemester = (semester: Semester) => {
 
 const semesterMenu = computed<DropdownMenuItem[][]>(() => [
   sortedSemesters.value.map((s) => ({
-    label: s.name,
+    label: `${s.short_name} — ${s.long_name}`,
     type: "checkbox" as const,
     checked: s.id === selectedSemesterId.value,
     onSelect: () => {
@@ -151,7 +151,7 @@ const semesterActions = computed<DropdownMenuItem[][]>(() => {
   <div v-if="selectedSemester" class="flex flex-wrap items-center gap-1">
     <UDropdownMenu :items="semesterMenu">
       <UButton
-        :label="`Semestre ${selectedSemester.name}`"
+        :label="`${selectedSemester.long_name} (${selectedSemester.short_name})`"
         trailing-icon="i-lucide-chevron-down"
         color="neutral"
         variant="ghost"

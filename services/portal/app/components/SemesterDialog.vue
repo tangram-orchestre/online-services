@@ -30,7 +30,8 @@ const { handleSubmit, resetForm, defineField, errors, isSubmitting } = useForm({
   validationSchema: toTypedSchema(zSemesterForm),
 });
 
-const [name, nameProps] = defineField("name");
+const [shortName, shortNameProps] = defineField("short_name");
+const [longName, longNameProps] = defineField("long_name");
 const [start_date] = defineField("start_date");
 const [end_date] = defineField("end_date");
 
@@ -45,7 +46,8 @@ const open = (semester?: Semester) => {
     editedId.value = semester.id;
     resetForm({
       values: {
-        name: semester.name,
+        short_name: semester.short_name,
+        long_name: semester.long_name,
         start_date: semester.start_date,
         end_date: semester.end_date,
       },
@@ -60,7 +62,8 @@ const open = (semester?: Semester) => {
     editedId.value = null;
     resetForm({
       values: {
-        name: "",
+        short_name: "",
+        long_name: "",
         start_date: serializeDate(defaultStartDate),
         end_date: serializeDate(add(defaultStartDate, { months: 6 })),
       },
@@ -109,8 +112,24 @@ const submit = handleSubmit((values) => {
   >
     <template #body>
       <form :id="formId" class="flex flex-col gap-4" @submit.prevent="submit">
-        <UFormField label="Nom" :error="errors.name">
-          <UInput v-model="name" v-bind="nameProps" autofocus class="w-full" />
+        <UFormField
+          label="Nom court"
+          :error="errors.short_name"
+          help="Par exemple « A26 »"
+        >
+          <UInput
+            v-model="shortName"
+            v-bind="shortNameProps"
+            autofocus
+            class="w-full"
+          />
+        </UFormField>
+        <UFormField
+          label="Nom long"
+          :error="errors.long_name"
+          help="Par exemple « Automne 2026 »"
+        >
+          <UInput v-model="longName" v-bind="longNameProps" class="w-full" />
         </UFormField>
         <UFormField label="Début" :error="errors.start_date">
           <DateInput v-model="start_date" />

@@ -10,11 +10,11 @@ DECLARE
     semester_p26_id INTEGER;
 BEGIN
     -- Semesters
-    IF NOT EXISTS (SELECT 1 FROM semesters WHERE name = 'P26') THEN
-        INSERT INTO semesters (name, start_date, end_date) VALUES
-            ('P26', '2026-01-28', '2026-07-04'),
-            ('A25', '2025-09-01', '2026-01-28')
-        ON CONFLICT (name) DO NOTHING;
+    IF NOT EXISTS (SELECT 1 FROM semesters WHERE short_name = 'P26') THEN
+        INSERT INTO semesters (short_name, long_name, start_date, end_date) VALUES
+            ('P26', 'Printemps 2026', '2026-01-28', '2026-07-04'),
+            ('A25', 'Automne 2025', '2025-09-01', '2026-01-28')
+        ON CONFLICT (short_name) DO NOTHING;
     END IF;
 
     -- Locations
@@ -27,7 +27,7 @@ BEGIN
         SELECT id INTO loc2_id FROM locations WHERE city = 'Lyon'  AND street = '10 Place Bellecour';
 
         -- Concerts
-        SELECT id INTO semester_p26_id FROM semesters WHERE name = 'P26';
+        SELECT id INTO semester_p26_id FROM semesters WHERE short_name = 'P26';
         INSERT INTO concerts (date, tickets_url, video_url, meeting_at, doors_open_at, starts_at, public, location_id, semester_id) VALUES
             ('2026-05-15', 'https://tickets.example.com/spring-concert', NULL, '18:00', '19:30', '20:00', TRUE,  loc1_id, semester_p26_id),
             ('2026-06-20', NULL,                                          NULL, '16:30', NULL,   '18:00', FALSE, loc2_id, semester_p26_id);

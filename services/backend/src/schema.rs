@@ -56,9 +56,11 @@ diesel::table! {
     semesters (id) {
         id -> Int4,
         #[max_length = 32]
-        name -> Varchar,
+        short_name -> Varchar,
         start_date -> Date,
         end_date -> Date,
+        #[max_length = 64]
+        long_name -> Varchar,
     }
 }
 

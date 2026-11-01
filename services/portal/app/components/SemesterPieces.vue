@@ -296,7 +296,7 @@ const sorting = ref([{ id: "name", desc: false }]);
   <UModal
     v-model:open="pieceDialogShown"
     :title="savePieceId === null ? 'Nouveau morceau' : 'Modifier le morceau'"
-    :description="`Semestre ${semester.name}`"
+    :description="semester.long_name"
   >
     <template #body>
       <form :id="formId" class="flex flex-col gap-4" @submit.prevent="submit">

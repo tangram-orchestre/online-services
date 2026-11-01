@@ -375,7 +375,7 @@ const deleteConcert = (id: number, concertDate: string) => {
   <UModal
     v-model:open="concertDialogShown"
     :title="saveConcertId === null ? 'Nouveau concert' : 'Modifier le concert'"
-    :description="`Semestre ${semester.name}`"
+    :description="semester.long_name"
   >
     <template #body>
       <form :id="formId" class="flex flex-col gap-4" @submit.prevent="submit">
