@@ -4,25 +4,18 @@ export default defineNuxtConfig({
   devtools: { enabled: true },
   ssr: false,
 
-  modules: [
-    "@vueuse/nuxt",
-    "@nuxt/eslint",
-    "@nuxt/image",
-    "@nuxt/ui",
-    "@hey-api/nuxt",
-  ],
+  modules: ["@vueuse/nuxt", "@nuxt/eslint", "@nuxt/image", "@nuxt/ui"],
   css: ["~/assets/css/main.css"],
   heyApi: {
+    input: "/opt/openapi/private-spec.json",
     config: {
-      input: "/opt/openapi/private-spec.json",
       plugins: [
+        "@hey-api/client-nuxt",
         "@hey-api/schemas",
+        "@hey-api/sdk",
         {
-          name: "@hey-api/sdk",
-        },
-        {
-          enums: "javascript",
           name: "@hey-api/typescript",
+          enums: "javascript",
         },
         "zod",
       ],

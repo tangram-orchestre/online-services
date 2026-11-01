@@ -37,7 +37,7 @@ yarn dev
 yarn build
 yarn lint
 yarn lint:fix
-yarn openapi-ts               # Regenerate API client from OpenAPI spec
+yarn openapi-ts               # Showcase only: regenerate API client from OpenAPI spec
 ```
 
 There are no unit tests — linting is the primary code quality gate.
@@ -62,7 +62,11 @@ The backend auto-generates two OpenAPI specs at startup:
 - `/public/spec` → consumed by showcase-website
 - `/spec` → consumed by portal
 
-Frontend API clients are generated from these specs via `@hey-api/openapi-ts` (`yarn openapi-ts`). The generated clients live in `services/*/client/`. When backend schemas change, regenerate clients before linting.
+Frontend API clients are generated from these specs via `@hey-api/openapi-ts` into `services/*/client/` (gitignored). In dev, both regenerate automatically when the backend spec changes:
+- showcase-website: `dev/generate-client.sh` (or `yarn openapi-ts` manually)
+- portal: the local Nuxt module `portal/modules/hey-api.ts`, run on `nuxt dev`/`prepare`/`generate`. It skips generation when the spec, config and openapi-ts version are unchanged, and auto-imports the SDK (`#hey-api` alias).
+
+openapi-ts is pinned to 0.97.x: 0.98+ generates Nuxt SDK return types that don't type-check.
 
 ### Backend Structure (`services/backend/src/`)
 
