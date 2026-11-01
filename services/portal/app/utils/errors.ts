@@ -24,6 +24,9 @@ const errorMessageFromCheckViolation = (reason: CheckViolation): string => {
       .with("RoomTotalCapacityWithoutAudience", () => {
         return "Une salle sans public ne peut pas avoir de capacité totale.";
       })
+      .with("PersonAnonymousWithDisplayName", () => {
+        return "Une personne anonyme ne peut pas avoir d'alias.";
+      })
       .with("RoomTotalCapacityTooSmall", () => {
         return "La capacité totale d'une salle ne peut pas être inférieure à sa capacité musiciens ou public.";
       })
@@ -41,6 +44,8 @@ export const onResponseErrorHandler = (
   entityName: string,
   isFeminine: boolean,
   func: (errorMsg: string) => void,
+  /** Replaces the default message when the entity is still referenced. */
+  foreignKeyMessage?: string,
 ): ErrorResponseHandler => {
   const f = (feminine: string, masculine: string = "") => {
     if (isFeminine) {
@@ -59,7 +64,9 @@ export const onResponseErrorHandler = (
       } else if (d.type === "NotNullViolation") {
         errorMsg = `Un champ requis n'est pas rempli`;
       } else if (d.type === "ForeignKeyViolation") {
-        errorMsg = `Impossible de supprimer ce${f("tte")} ${entityName} car ${f("elle", "il")} est encore référencé${f("e")}`;
+        errorMsg =
+          foreignKeyMessage ??
+          `Impossible de supprimer ce${f("tte")} ${entityName} car ${f("elle", "il")} est encore référencé${f("e")}`;
       }
     } else {
       errorMsg = `Erreur ${e.response.status}`;

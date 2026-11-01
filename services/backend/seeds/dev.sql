@@ -20,6 +20,9 @@ DECLARE
     piece2_id INTEGER;
     piece3_id INTEGER;
     ref_day DATE;
+    person1_id INTEGER;
+    person2_id INTEGER;
+    person3_id INTEGER;
     sem_start DATE;
     sem_end DATE;
     sem_short_name TEXT;
@@ -99,14 +102,14 @@ BEGIN
         END IF;
 
         -- Pieces
-        INSERT INTO pieces (name, source, composer, arranger, semester_id)
-            VALUES ('Symphony No. 5', 'Op. 67', 'Ludwig van Beethoven', NULL, sem_id)
+        INSERT INTO pieces (name, source, composer, semester_id)
+            VALUES ('Symphony No. 5', 'Op. 67', 'Ludwig van Beethoven', sem_id)
             RETURNING id INTO piece1_id;
-        INSERT INTO pieces (name, source, composer, arranger, semester_id)
-            VALUES ('Bohemian Rhapsody', NULL, 'Freddie Mercury', 'John Smith', sem_id)
+        INSERT INTO pieces (name, source, composer, semester_id)
+            VALUES ('Bohemian Rhapsody', NULL, 'Freddie Mercury', sem_id)
             RETURNING id INTO piece2_id;
-        INSERT INTO pieces (name, source, composer, arranger, semester_id)
-            VALUES ('Carmen Suite', 'Bizet''s opera', 'Georges Bizet', 'Pierre Dupont', sem_id)
+        INSERT INTO pieces (name, source, composer, semester_id)
+            VALUES ('Carmen Suite', 'Bizet''s opera', 'Georges Bizet', sem_id)
             RETURNING id INTO piece3_id;
 
         IF room1_id IS NULL OR room2_id IS NULL THEN
@@ -143,4 +146,31 @@ BEGIN
                 VALUES (concert3_date, FALSE, sem_id);
         END IF;
     END LOOP;
+
+    -- People credited on pieces, linked to the seeded pieces of every
+    -- semester that have no credits yet.
+    IF NOT EXISTS (SELECT 1 FROM people) THEN
+        INSERT INTO people (first_name, last_name, anonymous, display_name) VALUES
+            ('Jeanne', 'Moreau', FALSE, NULL),
+            ('Lucas', 'Petit', FALSE, 'Luke Little'),
+            ('Camille', 'Roux', TRUE, NULL);
+    END IF;
+    SELECT id INTO person1_id FROM people WHERE first_name = 'Jeanne' AND last_name = 'Moreau';
+    SELECT id INTO person2_id FROM people WHERE first_name = 'Lucas' AND last_name = 'Petit';
+    SELECT id INTO person3_id FROM people WHERE first_name = 'Camille' AND last_name = 'Roux';
+    IF person1_id IS NOT NULL AND person2_id IS NOT NULL AND person3_id IS NOT NULL THEN
+        INSERT INTO piece_people (piece_id, person_id, role)
+        SELECT p.id, credit.person_id, credit.role::piece_role
+        FROM pieces p
+        JOIN (VALUES
+            ('Symphony No. 5', person2_id, 'conductor'),
+            -- Jeanne both arranges and conducts Bohemian Rhapsody.
+            ('Bohemian Rhapsody', person1_id, 'arranger'),
+            ('Bohemian Rhapsody', person1_id, 'conductor'),
+            ('Carmen Suite', person3_id, 'arranger'),
+            ('Carmen Suite', person1_id, 'arranger'),
+            ('Carmen Suite', person2_id, 'conductor')
+        ) AS credit (piece_name, person_id, role) ON credit.piece_name = p.name
+        WHERE NOT EXISTS (SELECT 1 FROM piece_people pp WHERE pp.piece_id = p.id);
+    END IF;
 END $$;

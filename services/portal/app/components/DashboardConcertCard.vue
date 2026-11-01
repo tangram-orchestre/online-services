@@ -1,17 +1,17 @@
 <script setup lang="ts">
-import type { ConcertWithPieces, Piece } from "#hey-api/types.gen";
+import type { ConcertWithPieces, PieceWithPeople } from "#hey-api/types.gen";
 import type { Place } from "~/composables/useLocations";
 
 const props = defineProps<{
   concert: ConcertWithPieces;
   place?: Place;
-  pieces: Map<number, Piece>;
+  pieces: Map<number, PieceWithPeople>;
 }>();
 
 const programme = computed(() =>
   props.concert.piece_ids
     .map((id) => props.pieces.get(id))
-    .filter((p): p is Piece => !!p),
+    .filter((p): p is PieceWithPeople => !!p),
 );
 const remaining = computed(() => countdown(props.concert.date));
 </script>

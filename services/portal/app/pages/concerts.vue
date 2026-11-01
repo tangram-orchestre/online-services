@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import type { ConcertWithPieces, Piece } from "#hey-api/types.gen";
+import type { ConcertWithPieces, PieceWithPeople } from "#hey-api/types.gen";
 import type ConcertDialogComponent from "~/components/ConcertDialog.vue";
 import type ConcertProgrammeDialogComponent from "~/components/ConcertProgrammeDialog.vue";
 
@@ -58,7 +58,7 @@ const { selectedId, selected, shown, detailOpen, rowState, onDeleted } =
 const programme = (concert: ConcertWithPieces) =>
   concert.piece_ids
     .map((id) => pieceById.value.get(id))
-    .filter((p): p is Piece => !!p);
+    .filter((p): p is PieceWithPeople => !!p);
 
 /** « Dimanche 13 décembre 2026 » */
 const fullDate = (value: string) =>

@@ -30,8 +30,11 @@ const { handleSubmit, resetForm, defineField, errors, isSubmitting } = useForm({
   validationSchema: toTypedSchema(zSemesterForm),
 });
 
-const [shortName, shortNameProps] = defineField("short_name");
-const [longName, longNameProps] = defineField("long_name");
+// A required field must not show its error when the dialog is closed (the
+// blur would move the buttons under the cursor).
+const noBlurValidation = { validateOnBlur: false };
+const [shortName, shortNameProps] = defineField("short_name", noBlurValidation);
+const [longName, longNameProps] = defineField("long_name", noBlurValidation);
 const [start_date] = defineField("start_date");
 const [end_date] = defineField("end_date");
 

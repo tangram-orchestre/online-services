@@ -1,10 +1,10 @@
 <script setup lang="ts">
 import { VueDraggable } from "vue-draggable-plus";
-import type { ConcertWithPieces, Piece } from "#hey-api/types.gen";
+import type { ConcertWithPieces, PieceWithPeople } from "#hey-api/types.gen";
 
 const props = defineProps<{
   /** Pieces that can be added to the programme (the concert's semester). */
-  pieces: Piece[];
+  pieces: PieceWithPeople[];
 }>();
 
 const emit = defineEmits<{
@@ -16,7 +16,7 @@ const { allConcerts } = useProgramme();
 
 const shown = ref(false);
 const concert = ref<ConcertWithPieces | null>(null);
-const programme = ref<Piece[]>([]);
+const programme = ref<PieceWithPeople[]>([]);
 const saveError = ref<string | null>(null);
 const saving = ref(false);
 
@@ -25,7 +25,7 @@ const open = (c: ConcertWithPieces) => {
   concert.value = c;
   programme.value = c.piece_ids
     .map((id) => props.pieces.find((p) => p.id === id))
-    .filter((p): p is Piece => p !== undefined);
+    .filter((p): p is PieceWithPeople => p !== undefined);
   saveError.value = null;
   shown.value = true;
 };

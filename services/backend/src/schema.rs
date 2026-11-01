@@ -1,5 +1,11 @@
 // @generated automatically by Diesel CLI.
 
+pub mod sql_types {
+    #[derive(diesel::query_builder::QueryId, diesel::sql_types::SqlType)]
+    #[diesel(postgres_type(name = "piece_role"))]
+    pub struct PieceRole;
+}
+
 diesel::table! {
     concert_pieces (concert_id, piece_id) {
         concert_id -> Int4,
@@ -57,6 +63,30 @@ diesel::table! {
 }
 
 diesel::table! {
+    people (id) {
+        id -> Int4,
+        #[max_length = 64]
+        first_name -> Varchar,
+        #[max_length = 64]
+        last_name -> Varchar,
+        anonymous -> Bool,
+        #[max_length = 128]
+        display_name -> Nullable<Varchar>,
+    }
+}
+
+diesel::table! {
+    use diesel::sql_types::*;
+    use super::sql_types::PieceRole;
+
+    piece_people (piece_id, role, person_id) {
+        piece_id -> Int4,
+        person_id -> Int4,
+        role -> PieceRole,
+    }
+}
+
+diesel::table! {
     pieces (id) {
         id -> Int4,
         #[max_length = 256]
@@ -65,8 +95,6 @@ diesel::table! {
         source -> Nullable<Varchar>,
         #[max_length = 128]
         composer -> Nullable<Varchar>,
-        #[max_length = 128]
-        arranger -> Nullable<Varchar>,
         semester_id -> Int4,
     }
 }
@@ -100,6 +128,8 @@ diesel::joinable!(concert_pieces -> pieces (piece_id));
 diesel::joinable!(concerts -> rooms (room_id));
 diesel::joinable!(concerts -> semesters (semester_id));
 diesel::joinable!(location_contacts -> locations (location_id));
+diesel::joinable!(piece_people -> people (person_id));
+diesel::joinable!(piece_people -> pieces (piece_id));
 diesel::joinable!(pieces -> semesters (semester_id));
 diesel::joinable!(rooms -> locations (location_id));
 
@@ -108,6 +138,8 @@ diesel::allow_tables_to_appear_in_same_query!(
     concerts,
     location_contacts,
     locations,
+    people,
+    piece_people,
     pieces,
     rooms,
     semesters,

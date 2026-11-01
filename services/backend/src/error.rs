@@ -45,6 +45,8 @@ pub enum CheckViolationKind {
     RoomTotalCapacityTooSmall,
     /// A total capacity was given to a room without audience.
     RoomTotalCapacityWithoutAudience,
+    /// An anonymous person was given a display name.
+    PersonAnonymousWithDisplayName,
 }
 
 #[derive(Object, Debug, PartialEq)]
@@ -91,7 +93,9 @@ impl From<diesel::result::Error> for ApiError {
                         .unwrap_or(database_error_information.message())
                     {
                         "semesters_date_overlap" => Some(CheckViolationKind::SemestersDateOverlap),
-                        "concert_date_outside_semester" => Some(CheckViolationKind::ConcertDateOutsideSemester),
+                        "concert_date_outside_semester" => {
+                            Some(CheckViolationKind::ConcertDateOutsideSemester)
+                        }
                         "concert_piece_outside_semester" => {
                             Some(CheckViolationKind::ConcertPieceOutsideSemester)
                         }
@@ -107,6 +111,9 @@ impl From<diesel::result::Error> for ApiError {
                         }
                         "rooms_total_capacity_without_audience" => {
                             Some(CheckViolationKind::RoomTotalCapacityWithoutAudience)
+                        }
+                        "people_anonymous_with_display_name" => {
+                            Some(CheckViolationKind::PersonAnonymousWithDisplayName)
                         }
                         other => {
                             tracing::warn!("Unknown check violation: {}", other);

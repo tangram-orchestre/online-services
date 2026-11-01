@@ -1,8 +1,9 @@
 <script setup lang="ts">
 import { useForm } from "vee-validate";
 import { toTypedSchema } from "@vee-validate/zod";
-import { zNewPiece } from "#hey-api/zod.gen";
-import type { Piece, Semester } from "#hey-api/types.gen";
+import { zNewPieceWithPeople } from "#hey-api/zod.gen";
+import type { Person, PieceWithPeople, Semester } from "#hey-api/types.gen";
+import type PersonDialogComponent from "~/components/PersonDialog.vue";
 
 const props = defineProps<{
   semester: Semester;
@@ -18,22 +19,53 @@ const toast = useToast();
 const formId = useId();
 
 const { allPieces, allConcerts, refreshPieces } = useProgramme();
+const { people } = usePeople();
+
+const peopleItems = computed(() =>
+  people.value.map((p) => ({
+    label: personName(p),
+    value: p.id,
+  })),
+);
 
 const { handleSubmit, resetForm, defineField, errors, isSubmitting } = useForm({
-  validationSchema: toTypedSchema(zNewPiece.omit({ semester_id: true })),
+  validationSchema: toTypedSchema(
+    zNewPieceWithPeople.omit({ semester_id: true }),
+  ),
 });
 
-const [name, nameProps] = defineField("name");
+// A required field must not show its error when the dialog is closed (the
+// blur would move the buttons under the cursor).
+const noBlurValidation = { validateOnBlur: false };
+const [name, nameProps] = defineField("name", noBlurValidation);
 const [source, sourceProps] = defineField("source");
 const [composer, composerProps] = defineField("composer");
-const [arranger, arrangerProps] = defineField("arranger");
+const [arrangerIds] = defineField("arranger_ids");
+const [conductorIds] = defineField("conductor_ids");
+
+// People created from a select are added to it.
+const personDialog =
+  useTemplateRef<InstanceType<typeof PersonDialogComponent>>("personDialog");
+const creatingFor = ref<"arranger" | "conductor" | null>(null);
+const selectOpen = reactive({ arranger: false, conductor: false });
+const createPerson = (role: "arranger" | "conductor", text: string) => {
+  creatingFor.value = role;
+  selectOpen[role] = false;
+  // Once the select menu is closed.
+  nextTick(() => personDialog.value?.create(text));
+};
+const onPersonSaved = (person: Person) => {
+  const ids = creatingFor.value === "arranger" ? arrangerIds : conductorIds;
+  if (creatingFor.value) ids.value = [...(ids.value ?? []), person.id];
+  creatingFor.value = null;
+};
 
 const shown = ref(false);
 const editedId = ref<number | null>(null);
 const saveError = ref<string | null>(null);
 
 /** Open the dialog to edit `piece`, or to create a new one if omitted. */
-const open = (piece?: Piece) => {
+const open = (piece?: PieceWithPeople) => {
   saveError.value = null;
   editedId.value = piece?.id ?? null;
   resetForm({
@@ -41,7 +73,8 @@ const open = (piece?: Piece) => {
       name: piece?.name ?? "",
       source: piece?.source ?? undefined,
       composer: piece?.composer ?? undefined,
-      arranger: piece?.arranger ?? undefined,
+      arranger_ids: piece?.arranger_ids ?? [],
+      conductor_ids: piece?.conductor_ids ?? [],
     },
   });
   shown.value = true;
@@ -60,7 +93,8 @@ const submit = handleSubmit((values) => {
     name: values.name,
     source: values.source || undefined,
     composer: values.composer || undefined,
-    arranger: values.arranger || undefined,
+    arranger_ids: values.arranger_ids,
+    conductor_ids: values.conductor_ids,
     semester_id: props.semester.id,
   };
 
@@ -98,7 +132,7 @@ const submit = handleSubmit((values) => {
 });
 
 /** Ask for confirmation, then delete `piece`. */
-const remove = (piece: Piece) => {
+const remove = (piece: PieceWithPeople) => {
   confirmDialog(
     "Confirmer la suppression",
     `Êtes-vous sûr de vouloir supprimer le morceau « ${piece.name} » ?`,
@@ -151,14 +185,41 @@ const removeEdited = () => {
         <UFormField label="Compositeur" :error="errors.composer">
           <UInput v-model="composer" v-bind="composerProps" class="w-full" />
         </UFormField>
-        <UFormField label="Arrangeur" :error="errors.arranger">
-          <UInput v-model="arranger" v-bind="arrangerProps" class="w-full" />
+        <UFormField label="Arrangement" :error="errors.arranger_ids">
+          <USelectMenu
+            v-model="arrangerIds"
+            v-model:open="selectOpen.arranger"
+            :items="peopleItems"
+            value-key="value"
+            multiple
+            create-item
+            :search-input="{ placeholder: 'Rechercher ou ajouter…' }"
+            placeholder="Aucun"
+            class="w-full"
+            @create="(text: string) => createPerson('arranger', text)"
+          />
+        </UFormField>
+        <UFormField label="Direction" :error="errors.conductor_ids">
+          <USelectMenu
+            v-model="conductorIds"
+            v-model:open="selectOpen.conductor"
+            :items="peopleItems"
+            value-key="value"
+            multiple
+            create-item
+            :search-input="{ placeholder: 'Rechercher ou ajouter…' }"
+            placeholder="À définir"
+            class="w-full"
+            @create="(text: string) => createPerson('conductor', text)"
+          />
         </UFormField>
         <UFormField label="Source" :error="errors.source">
           <UInput v-model="source" v-bind="sourceProps" class="w-full" />
         </UFormField>
         <p v-if="saveError" class="text-sm text-error">{{ saveError }}</p>
       </form>
+      <!-- Nested in the modal, so that their focus traps do not fight. -->
+      <PersonDialog ref="personDialog" @saved="onPersonSaved" />
     </template>
 
     <template #footer>

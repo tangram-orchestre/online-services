@@ -48,6 +48,7 @@ const navigation = computed<{ title: string; items: NavItem[] }[]>(() =>
           title: "Tous semestres",
           items: [
             { label: "Lieux", icon: "i-lucide-map-pin", path: "/locations" },
+            { label: "Personnes", icon: "i-lucide-users", path: "/people" },
           ],
         },
       ]

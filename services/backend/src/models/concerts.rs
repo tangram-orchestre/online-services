@@ -54,7 +54,6 @@ pub struct Piece {
     pub name: String,
     pub source: Option<String>,
     pub composer: Option<String>,
-    pub arranger: Option<String>,
     pub semester_id: i32,
 }
 
@@ -64,8 +63,29 @@ pub struct NewPiece {
     pub name: String,
     pub source: Option<String>,
     pub composer: Option<String>,
-    pub arranger: Option<String>,
     pub semester_id: i32,
+}
+
+/// A piece along with the people credited on it.
+#[derive(Object)]
+pub struct PieceWithPeople {
+    #[oai(flatten)]
+    pub piece: Piece,
+    /// People who arranged the piece.
+    pub arranger_ids: Vec<i32>,
+    /// People who conduct the piece.
+    pub conductor_ids: Vec<i32>,
+}
+
+/// A piece to create, along with the people credited on it.
+#[derive(Object)]
+pub struct NewPieceWithPeople {
+    #[oai(flatten)]
+    pub piece: NewPiece,
+    /// People who arranged the piece.
+    pub arranger_ids: Vec<i32>,
+    /// People who conduct the piece.
+    pub conductor_ids: Vec<i32>,
 }
 
 #[derive(Queryable, Selectable, Insertable)]

@@ -9,6 +9,7 @@ const router = useRouter();
 const { status: semestersStatus, pageLink } = useSemesters();
 const { semester, pieces, concertsOf, loading } = useProgramme();
 const { placeName } = useLocations();
+const { personById } = usePeople();
 
 // `?filter=unscheduled` comes from the dashboard.
 const { filter, filters, filtered } = usePieceFilter(
@@ -19,7 +20,12 @@ const search = ref("");
 const rows = computed(() =>
   filtered.value
     .filter((p) =>
-      matchesSearch(search.value, [p.name, p.composer, p.arranger]),
+      matchesSearch(search.value, [
+        p.name,
+        p.composer,
+        peopleNames(p.arranger_ids, personById.value),
+        peopleNames(p.conductor_ids, personById.value),
+      ]),
     )
     .map((piece) => ({ piece, concerts: concertsOf(piece.id) })),
 );
@@ -31,6 +37,22 @@ const { selectedId, shown, detailOpen, rowState, onDeleted } = useListSelection(
 );
 const shownConcerts = computed(() =>
   shown.value ? concertsOf(shown.value.id) : [],
+);
+const shownCredits = computed(() =>
+  shown.value
+    ? [
+        {
+          label: "Arrangement",
+          people: peopleOf(shown.value.arranger_ids, personById.value),
+          empty: "Aucun",
+        },
+        {
+          label: "Direction",
+          people: peopleOf(shown.value.conductor_ids, personById.value),
+          empty: "À définir",
+        },
+      ]
+    : [],
 );
 
 const dialog =
@@ -111,8 +133,11 @@ onMounted(() => {
             >
               {{ piece.name }}
             </span>
-            <span v-if="pieceCredits(piece)" class="text-sm text-muted">
-              {{ pieceCredits(piece) }}
+            <span
+              v-if="pieceCredits(piece, personById)"
+              class="text-sm text-muted"
+            >
+              {{ pieceCredits(piece, personById) }}
             </span>
           </span>
           <span class="flex flex-wrap gap-1.5">
@@ -146,10 +171,32 @@ onMounted(() => {
             >
               {{ shown.name }}
             </h2>
-            <span v-if="shown.arranger" class="text-muted">
-              Arrangement : {{ shown.arranger }}
-            </span>
           </div>
+
+          <dl class="flex flex-col gap-1.5">
+            <div
+              v-for="credit in shownCredits"
+              :key="credit.label"
+              class="flex gap-3"
+            >
+              <dt class="w-28 shrink-0 font-semibold">{{ credit.label }}</dt>
+              <dd v-if="credit.people.length" class="min-w-0">
+                <template
+                  v-for="(person, index) in credit.people"
+                  :key="person.id"
+                >
+                  <template v-if="index">, </template>
+                  <ULink
+                    :to="pageLink('/people', { person: person.id })"
+                    class="text-highlighted hover:text-secondary"
+                  >
+                    {{ personName(person) }}</ULink
+                  >
+                </template>
+              </dd>
+              <dd v-else class="text-dimmed">{{ credit.empty }}</dd>
+            </div>
+          </dl>
 
           <section class="flex flex-col gap-2">
             <h3 class="font-semibold">Au programme de</h3>

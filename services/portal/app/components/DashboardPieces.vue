@@ -2,6 +2,7 @@
 const { pageLink } = useSemesters();
 const { pieces, concertsOf } = useProgramme();
 const { filter, filters, filtered } = usePieceFilter();
+const { personById } = usePeople();
 </script>
 
 <template>
@@ -43,8 +44,11 @@ const { filter, filters, filtered } = usePieceFilter();
           <span class="font-display text-lg leading-snug font-semibold">
             {{ piece.name }}
           </span>
-          <span v-if="pieceCredits(piece)" class="text-sm text-muted">
-            {{ pieceCredits(piece) }}
+          <span
+            v-if="pieceCredits(piece, personById)"
+            class="text-sm text-muted"
+          >
+            {{ pieceCredits(piece, personById) }}
           </span>
         </div>
         <div class="flex flex-wrap gap-1.5">

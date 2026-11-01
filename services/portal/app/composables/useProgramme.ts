@@ -1,4 +1,4 @@
-import type { ConcertWithPieces, Piece } from "#hey-api/types.gen";
+import type { ConcertWithPieces, PieceWithPeople } from "#hey-api/types.gen";
 
 /**
  * Concerts and pieces of the selected semester.
@@ -33,13 +33,13 @@ export const useProgramme = () => {
       .sort((a, b) => a.date.localeCompare(b.date)),
   );
   /** By name. */
-  const pieces = computed<Piece[]>(() =>
+  const pieces = computed<PieceWithPeople[]>(() =>
     (allPieces.value ?? [])
       .filter((p) => p.semester_id === semester.value?.id)
       .sort((a, b) => a.name.localeCompare(b.name, "fr")),
   );
   const pieceById = computed(
-    () => new Map<number, Piece>(pieces.value.map((p) => [p.id, p])),
+    () => new Map<number, PieceWithPeople>(pieces.value.map((p) => [p.id, p])),
   );
 
   /** Concerts whose programme contains the piece, by date. */
