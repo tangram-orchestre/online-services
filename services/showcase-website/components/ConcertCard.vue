@@ -11,14 +11,25 @@ defineProps<{
     class="flex flex-col rounded-3xl bg-slate-900 p-4 text-center text-white shadow-xl"
   >
     <div class="relative">
+      <!-- The card flips to show the programme. -->
       <div
+        v-if="concert.program"
         class="absolute right-3 top-3 z-20 flex size-12 flex-col items-center justify-center rounded-full bg-slate-900/80 text-4xl hover:opacity-90"
       >
         <Icon name="ic:round-plus" />
       </div>
-      <NuxtPicture
+      <!-- Uploaded images are already resized by the backend. -->
+      <img
+        v-if="!concert.image.startsWith('/')"
         :src="concert.image"
-        :alt="`${concert.date} - ${concert.location}`"
+        :alt="`${formatConcertDate(concert.date)} - ${concert.location}`"
+        loading="lazy"
+        class="aspect-video w-full rounded-2xl border-2 object-cover"
+      />
+      <NuxtPicture
+        v-else
+        :src="concert.image"
+        :alt="`${formatConcertDate(concert.date)} - ${concert.location}`"
         class="aspect-video"
         quality="70"
         sizes="90vw sm:45vw lg:30vw xl:25vw"
@@ -31,7 +42,7 @@ defineProps<{
           class="lilita-one-regular text-2xl tracking-wide"
           v-html="concert.location"
         />
-        <div class="raleway">{{ concert.date }}</div>
+        <div class="raleway">{{ formatConcertDate(concert.date) }}</div>
       </div>
 
       <ConcertLink

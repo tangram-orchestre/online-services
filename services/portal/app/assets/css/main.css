@@ -1,0 +1,192 @@
+@import "tailwindcss";
+@import "@nuxt/ui";
+
+/*
+ * Tangram theme.
+ *
+ * Everything visual is defined here, in three layers:
+ *   1. Brand palettes and fonts (`@theme`): raw Tailwind scales. Which
+ *      palette plays which role (primary, secondary…) is chosen in
+ *      `app/app.config.ts`.
+ *   2. Semantic tokens (`:root` / `.dark`): what Nuxt UI components and our
+ *      own markup consume (`text-muted`, `bg-default`, `border-default`,
+ *      `bg-canvas`…). Components never reference raw palette shades.
+ *   3. `.surface-inverted`: re-applies the dark tokens to a subtree (used by
+ *      the sidebar), so any component inside it adapts automatically.
+ */
+
+@theme static {
+  --font-sans: "Outfit", ui-sans-serif, system-ui, sans-serif;
+  --font-display: "League Spartan", ui-sans-serif, system-ui, sans-serif;
+
+  /* Ink: the Tangram navy. */
+  --color-navy-50: #f0eff8;
+  --color-navy-100: #e1dff1;
+  --color-navy-200: #c4bfe0;
+  --color-navy-300: #a19bcb;
+  --color-navy-400: #7a73b3;
+  --color-navy-500: #554d99;
+  --color-navy-600: #3a3283;
+  --color-navy-700: #241c6e;
+  --color-navy-800: #14105f;
+  --color-navy-900: #0b0654;
+  --color-navy-950: #060049;
+
+  --color-teal-50: #eff9f6;
+  --color-teal-100: #d5efe7;
+  --color-teal-200: #b0dfcf;
+  --color-teal-300: #81ccb5;
+  --color-teal-400: #4fb09a;
+  --color-teal-500: #1f9480;
+  --color-teal-600: #0d7d6c;
+  --color-teal-700: #0a5e51;
+  --color-teal-800: #0a4a40;
+  --color-teal-900: #083b33;
+  --color-teal-950: #04221e;
+
+  --color-sun-50: #fffbea;
+  --color-sun-100: #fef5c7;
+  --color-sun-200: #faea7c;
+  --color-sun-300: #ffd84a;
+  --color-sun-400: #ffc303;
+  --color-sun-500: #e6a800;
+  --color-sun-600: #b98200;
+  --color-sun-700: #8c5e02;
+  --color-sun-800: #6e490a;
+  --color-sun-900: #5c3d0e;
+  --color-sun-950: #352003;
+
+  --color-rose-50: #fff1f6;
+  --color-rose-100: #ffe2ec;
+  --color-rose-200: #ffb3cc;
+  --color-rose-300: #ff81ac;
+  --color-rose-400: #f94d88;
+  --color-rose-500: #f11766;
+  --color-rose-600: #d10a55;
+  --color-rose-700: #a80a46;
+  --color-rose-800: #7a0a33;
+  --color-rose-900: #5c0a28;
+  --color-rose-950: #3a0418;
+
+  /* Paper: warm neutrals for surfaces and borders. */
+  --color-sand-50: #fffcf8;
+  --color-sand-100: #f5efe9;
+  --color-sand-200: #ede5de;
+  --color-sand-300: #e4dbd2;
+  --color-sand-400: #d8ccc2;
+  --color-sand-500: #bfb2a7;
+  --color-sand-600: #9c8e82;
+  --color-sand-700: #75685e;
+  --color-sand-800: #4f453e;
+  --color-sand-900: #2e2824;
+  --color-sand-950: #1a1613;
+}
+
+/* Extra semantic utilities: `bg-canvas`, `bg-warning-soft`, `text-on-tertiary`. */
+@theme inline {
+  --color-canvas: var(--ui-bg-canvas);
+  --color-warning-soft: var(--ui-bg-warning-soft);
+  --color-on-tertiary: var(--ui-text-on-tertiary);
+}
+
+:root {
+  --ui-radius: 0.5rem;
+
+  /* Ink and paper, from which text tones are mixed. */
+  --ui-ink: var(--ui-color-primary-950);
+  --ui-paper: var(--ui-color-neutral-50);
+
+  --ui-primary: var(--ui-color-primary-950);
+  --ui-secondary: var(--ui-color-secondary-600);
+  --ui-tertiary: var(--ui-color-tertiary-400);
+  --ui-success: var(--ui-color-success-600);
+  --ui-info: var(--ui-color-info-600);
+  --ui-warning: var(--ui-color-warning-500);
+  --ui-error: var(--ui-color-error-600);
+
+  --ui-text-highlighted: var(--ui-ink);
+  --ui-text-inverted: var(--ui-paper);
+  --ui-text-on-tertiary: var(--ui-color-primary-950);
+
+  /* Page background, behind cards. */
+  --ui-bg-canvas: var(--ui-color-neutral-200);
+  --ui-bg-muted: var(--ui-color-neutral-100);
+  --ui-bg-elevated: var(--ui-color-neutral-100);
+  --ui-bg-accented: var(--ui-color-neutral-300);
+
+  --ui-border: var(--ui-color-neutral-400);
+  --ui-border-muted: var(--ui-color-neutral-300);
+  --ui-border-accented: var(--ui-color-neutral-500);
+}
+
+.dark,
+.surface-inverted {
+  --ui-ink: var(--ui-color-neutral-200);
+  --ui-paper: var(--ui-color-primary-900);
+
+  --ui-primary: var(--ui-color-primary-200);
+  --ui-secondary: var(--ui-color-secondary-300);
+  --ui-tertiary: var(--ui-color-tertiary-400);
+  --ui-success: var(--ui-color-success-300);
+  --ui-info: var(--ui-color-info-200);
+  --ui-warning: var(--ui-color-warning-300);
+  --ui-error: var(--ui-color-error-300);
+
+  --ui-text-highlighted: #fff;
+  --ui-text-inverted: var(--ui-color-primary-950);
+
+  --ui-bg-canvas: var(--ui-color-primary-950);
+  --ui-bg-muted: var(--ui-color-primary-800);
+  --ui-bg-elevated: var(--ui-color-primary-800);
+  --ui-bg-accented: var(--ui-color-primary-700);
+
+  --ui-border: var(--ui-color-primary-700);
+  --ui-border-muted: var(--ui-color-primary-800);
+  --ui-border-accented: var(--ui-color-primary-600);
+}
+
+/*
+ * Tokens derived from ink and paper. Custom properties are resolved where
+ * they are declared, so these must be re-declared on every scope that
+ * changes ink or paper.
+ */
+:root,
+.dark,
+.surface-inverted {
+  --ui-text: var(--ui-ink);
+  --ui-text-toned: color-mix(in oklab, var(--ui-ink) 80%, var(--ui-paper));
+  --ui-text-muted: color-mix(in oklab, var(--ui-ink) 65%, var(--ui-paper));
+  --ui-text-dimmed: color-mix(in oklab, var(--ui-ink) 45%, var(--ui-paper));
+  /* Cards, menus, modals. */
+  --ui-bg: var(--ui-paper);
+  --ui-bg-inverted: var(--ui-ink);
+  /* Opaque tint for things needing attention. */
+  --ui-bg-warning-soft: color-mix(
+    in oklab,
+    var(--ui-warning) 12%,
+    var(--ui-paper)
+  );
+  --ui-border-inverted: var(--ui-ink);
+}
+
+.surface-inverted {
+  color: var(--ui-text);
+  color-scheme: dark;
+}
+
+@layer base {
+  body {
+    @apply bg-canvas;
+  }
+
+  h1,
+  h2,
+  h3 {
+    @apply font-display;
+  }
+}
+
+/* Diamond marking a concert (timeline, legends, lists). */
+@utility concert-marker {
+  @apply inline-block shrink-0 rotate-45 border-2 border-inverted bg-tertiary;
+}

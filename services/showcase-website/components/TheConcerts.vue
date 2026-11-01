@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { breakpointsTailwind } from "@vueuse/core";
+import { getPublicConcerts } from "~/client";
 import type ConcertCard from "./ConcertCard.vue";
 
 const breakpoints = useBreakpoints(breakpointsTailwind);
@@ -79,232 +80,18 @@ useEventListener("resize", () => {
   }
 });
 
-const concerts: Array<Concert> = [
-  {
-    date: "27 janvier 2027",
-    location: "Pavillon de la Sirène",
-    image: "/images/concerts/la-sirene.png",
-    url: {
-      kind: "Tickets",
-      target:
-        "https://www.helloasso.com/associations/tangram/evenements/concert-tangram-pavillon-de-la-sirene-27-janvier-2027",
-    },
-  },
-  {
-    date: "15 janvier 2027",
-    location: "Temple Paris Batignolles",
-    image: "/images/concerts/2024-06-28.png",
-    url: {
-      kind: "Tickets",
-      target:
-        "https://www.helloasso.com/associations/tangram/evenements/concert-tangram-temple-des-batignolles-15-janvier-2027",
-    },
-  },
-  {
-    date: "17 décembre 2026",
-    location: "Mairie du XIV<sup>ème</sup>",
-    image: "/images/concerts/2025-01-25.png",
-    url: {
-      kind: "Tickets",
-      target:
-        "https://www.helloasso.com/associations/tangram/evenements/concert-tangram-mairie-xiv-17-decembre-2026",
-    },
-  },
-  {
-    date: "3 juillet 2026",
-    location: "Pavillon de la Sirène",
-    image: "/images/concerts/la-sirene.png",
-  },
-  {
-    date: "26 Juin 2026",
-    location: "Pavillon de la Sirène",
-    image: "/images/concerts/la-sirene.png",
-  },
-  {
-    date: "23 janvier 2026",
-    location: "Pavillon de la Sirène",
-    image: "/images/concerts/la-sirene.png",
-    url: {
-      kind: "Video",
-      target: "https://www.youtube.com/watch?v=YNYPXGex13Y&list=PLL-lVpeBBdeA",
-    },
-  },
-  {
-    date: "17 janvier 2026",
-    location: "Temple Paris Batignolles",
-    image: "/images/concerts/2024-06-28.png",
-  },
-  {
-    date: "18 décembre 2025",
-    location: "Mairie du XIV<sup>ème</sup>",
-    image: "/images/concerts/2025-01-25.png",
-  },
-  {
-    date: "4 juillet 2025",
-    location: "Pavillon de la Sirène",
-    image: "/images/concerts/la-sirene.png",
-    program: [
-      { name: "Fantastic beasts", direction: "Cédric" },
-      { name: "Game Of Thrones - The winds of winter", direction: "Anaëlle" },
-      { name: "Final Fantasy VII", direction: "Théophile" },
-      { name: "Yentl - A piece of sky", direction: "Noémie" },
-      { name: "Star Wars", direction: "Ryadh" },
-      { name: "La La Land", direction: "Zélie" },
-      {
-        name: "The life and time of Scrooge - The Last Sled",
-        direction: "Alexis",
-      },
-      { name: "Wakfu - Le Chaos d'Ogrest", direction: "Tanguy" },
-      { name: "Mary Poppins", direction: "Jean-Victor" },
-      { name: "Ace Attorney", direction: "Guillaume" },
-    ],
-  },
-  {
-    date: "25 mai 2025",
-    location: "La Cité Fertile",
-    image: "/images/concerts/la-cite-fertile.jpg",
-  },
-  {
-    date: "25 janvier 2025",
-    location: "Mairie du XIV<sup>ème</sup>",
-    image: "/images/concerts/2025-01-25.png",
-    program: [
-      { name: "Zelda - La vallée Gerudo", direction: "Thibaud" },
-      { name: "Genshin Impact - Fontaine", direction: "Antoine" },
-      { name: "Mean Girls - Someone gets hurt", direction: "Anaëlle" },
-      {
-        name: "Encanto - Le tango dysfonctionnel",
-        direction: "Cédric / Anice",
-      },
-      { name: "Triangle strategy", direction: "Intila" },
-      { name: "Impossible", direction: "Benjamin" },
-      { name: "God Of War - Memory of mother", direction: "Ryadh" },
-      { name: "Shrek", direction: "Noémie" },
-      { name: "Aladdin - Prince Ali", direction: "Alix" },
-      { name: "Hades - In the blood", direction: "Arthur" },
-    ],
-  },
-  {
-    date: "7 décembre 2024",
-    location: "Pavillon de la Sirène",
-    image: "/images/concerts/la-sirene.png",
-    program: [
-      { name: "Triangle strategy", direction: "Intila" },
-      {
-        name: "Encanto - Le tango dysfonctionnel",
-        direction: "Cédric / Anice",
-      },
-      { name: "Genshin Impact - Fontaine", direction: "Antoine" },
-      { name: "God Of War - Memory of mother", direction: "Ryadh" },
-      { name: "Impossible", direction: "Benjamin" },
-      { name: "Mean Girls - Someone gets hurt", direction: "Anaëlle" },
-      { name: "Aladdin - Prince Ali", direction: "Alix" },
-      { name: "Zelda - La vallée Gerudo", direction: "Thibaud" },
-    ],
-  },
-  {
-    date: "28 juin 2024",
-    location: "Temple Paris Batignolles",
-    image: "/images/concerts/2024-06-28.png",
-    url: {
-      kind: "Video",
-      target:
-        "https://www.youtube.com/watch?v=bRKj0I16uIs&list=PLaKZ2HpaR66HlhepL8kLuCIE-NtkGLos0",
-    },
-    program: [
-      { name: "FFXIV - Endcaller", direction: "Guillaume" },
-      { name: "Undertale", direction: "Selma / Théophile" },
-      { name: "Vaïana", direction: "Zélie" },
-      { name: "Medley James Newton Howard", direction: "Ryadh" },
-      { name: "Pirate des Caraïbes", direction: "Rindra / Korantin" },
-      { name: "Peter Pan", direction: "Cédric" },
-      { name: "Pelléas et Mélisande", direction: "Anice" },
-      { name: "Medley ABBA", direction: "Max" },
-      { name: "Peau d'Âne", direction: "Simon" },
-      { name: "Le Château dans le Ciel", direction: "Yumi / Rindra" },
-      { name: "Le Roi Lion", direction: "Arthur" },
-      { name: "OSS 117", direction: "Alexis" },
-    ],
-  },
-  {
-    date: "28 janvier 2024",
-    location: "Mairie du XIV<sup>ème</sup>",
-    image: "/images/concerts/2024-01-24.png",
-    program: [
-      { name: "The Lord of the Rings", direction: "Arthur" },
-      { name: "Alice au pays des merveilles", direction: "Cédric" },
-      { name: "Pokémon", direction: "Etienne" },
-      { name: "Narnia - The Battle", direction: "Ryadh" },
-      { name: "Hollow knight", direction: "Noémie" },
-      { name: "Kung Fu Panda", direction: "Simon" },
-      { name: "Gladiator", direction: "Rindra" },
-      { name: "Unbreakable", direction: "Gaétan" },
-      { name: "Violet Evergarden", direction: "Intila" },
-      { name: "Titina", direction: "Yumi" },
-      { name: "Hyper-espace", direction: "Anice" },
-      { name: "Lord of the Dance", direction: "Anice" },
-    ],
-  },
-  {
-    date: "15 décembre 2023",
-    location: "MPAA Saint Germain",
-    image: "/images/concerts/2023-12-15.png",
-    url: {
-      kind: "Video",
-      target: "https://www.youtube.com/watch?v=aLhweV3tKvc",
-    },
-    program: [
-      { name: "The Lord of the Rings", direction: "Arthur" },
-      { name: "Alice au pays des merveilles", direction: "Cédric" },
-      { name: "Pokémon", direction: "Etienne" },
-      { name: "Narnia - The Battle", direction: "Ryadh" },
-      { name: "Hollow knight", direction: "Noémie" },
-      { name: "Kung Fu Panda", direction: "Simon" },
-      { name: "Gladiator", direction: "Rindra" },
-      { name: "Unbreakable", direction: "Gaétan" },
-      { name: "Titina", direction: "Yumi" },
-      { name: "Hyper-espace", direction: "Anice" },
-    ],
-  },
-  {
-    date: "29 juin 2023",
-    location: "Lycée Rodin",
-    image: "/images/concerts/2023-06-29.png",
-    url: {
-      kind: "Video",
-      target: "https://www.youtube.com/watch?v=2NE-AwF7v2A",
-    },
-    program: [
-      { name: "Chicken Run", direction: "Simon" },
-      { name: "Nausicaa", direction: "Cédric" },
-      { name: "Octopath Traveler", direction: "Intila" },
-      { name: "Cowboy Bebop", direction: "Anice" },
-      { name: "Across the stars", direction: "Thibaud" },
-      { name: "Narnia", direction: "Noémie" },
-      { name: "Le Parrain", direction: "Yumi" },
-      { name: "Sinbad", direction: "Ryadh" },
-      { name: "Star Trek", direction: "Luc" },
-      { name: "Legends Never Die", direction: "Arthur" },
-    ],
-  },
-  {
-    date: "21 janvier 2023",
-    location: "Maison du Japon",
-    image: "/images/concerts/2022-01-21.png",
-    program: [
-      { name: "Cinema Paradiso", direction: "Simon" },
-      { name: "Doctor Who", direction: "Amaury" },
-      { name: "How to train your dragon", direction: "Gaetan" },
-      { name: "Kiki", direction: "Thibaud" },
-      { name: "Le vent se lève", direction: "Cédric" },
-      { name: "Lord of the Dance", direction: "Emilie" },
-      { name: "Star Wars VII", direction: "Tanguy / Rindra" },
-      { name: "Cowboy Bebop", direction: "Yumi" },
-      { name: "Tintin", direction: "Arthur" },
-      { name: "Final Fantasy X", direction: "Arthur" },
-    ],
-  },
-];
+// Most recent first. Programmes are not fetched for now, so cards do not flip.
+const { data: publicConcerts } = getPublicConcerts({
+  composable: "useAsyncData",
+  key: "getPublicConcerts",
+});
+const apiBaseUrl = useRuntimeConfig().public.api_base_url;
+const concerts = computed<Concert[]>(() =>
+  (publicConcerts.value ?? []).map((c) => fromPublicConcert(c, apiBaseUrl)),
+);
+
+/** Only concerts with a programme flip, to show it. */
+const canFlip = (concert: Concert) => !!concert.program;
 </script>
 
 <template>
@@ -383,13 +170,13 @@ const concerts: Array<Concert> = [
         v-for="(concert, index) in concerts.slice(0, displayedConcertCount + 2)"
         v-show="index < displayedConcertCount"
         :ref="concertRefs.set"
-        :key="concert.date"
+        :key="`${concert.date} ${concert.location}`"
         :concert="concert"
         :class="{
           'opacity-0 transition-none': index === focus?.index,
+          'cursor-pointer': canFlip(concert),
         }"
-        class="cursor-pointer"
-        @click="focusConcert(index)"
+        @click="canFlip(concert) && focusConcert(index)"
       />
 
       <div

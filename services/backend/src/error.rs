@@ -24,9 +24,29 @@ pub enum ApiError {
 #[derive(Object, Debug, PartialEq)]
 pub struct UniqueViolation;
 
+#[derive(Object, Debug, PartialEq)]
+pub struct ForeignKeyViolation;
+
+#[derive(Object, Debug, PartialEq)]
+pub struct NotNullViolation;
+
 #[derive(Enum, Debug, PartialEq)]
 pub enum CheckViolationKind {
     SemestersDateOverlap,
+    ConcertDateOutsideSemester,
+    ConcertPieceOutsideSemester,
+    /// A concert was placed in a room without audience capacity.
+    ConcertRoomRehearsalOnly,
+    /// The audience capacity of a room hosting concerts was removed.
+    RoomHostsConcerts,
+    /// A concert room booking was confirmed without a room.
+    ConcertRoomBookedWithoutRoom,
+    /// The total capacity of a room is lower than one of its capacities.
+    RoomTotalCapacityTooSmall,
+    /// A total capacity was given to a room without audience.
+    RoomTotalCapacityWithoutAudience,
+    /// An anonymous person was given a display name.
+    PersonAnonymousWithDisplayName,
 }
 
 #[derive(Object, Debug, PartialEq)]
@@ -36,11 +56,27 @@ pub struct CheckViolation {
     details: Option<String>,
 }
 
+#[derive(Enum, Debug, PartialEq)]
+pub enum InvalidImageReason {
+    /// Larger than the upload limit.
+    TooLarge,
+    /// Not an image, or in a format that is not supported (e.g. HEIC).
+    Unsupported,
+}
+
+#[derive(Object, Debug, PartialEq)]
+pub struct InvalidImage {
+    pub reason: InvalidImageReason,
+}
+
 #[derive(Union, Debug, PartialEq)]
 #[oai(discriminator_name = "type")]
 pub enum BadRequestReason {
     UniqueViolation(UniqueViolation),
+    ForeignKeyViolation(ForeignKeyViolation),
+    NotNullViolation(NotNullViolation),
     CheckViolation(CheckViolation),
+    InvalidImage(InvalidImage),
 }
 
 fn bad_request_handler(err: poem::Error) -> ApiError {
@@ -48,6 +84,12 @@ fn bad_request_handler(err: poem::Error) -> ApiError {
 }
 
 impl ApiError {
+    pub fn invalid_image(reason: InvalidImageReason) -> Self {
+        Self::BadRequest(Json(BadRequestReason::InvalidImage(InvalidImage {
+            reason,
+        })))
+    }
+
     pub(super) fn internal(text: impl Into<String>) -> Self {
         Self::Internal(PlainText(text.into()))
     }
@@ -64,8 +106,35 @@ impl From<diesel::result::Error> for ApiError {
                     ApiError::BadRequest(Json(BadRequestReason::UniqueViolation(UniqueViolation)))
                 }
                 DatabaseErrorKind::CheckViolation => {
-                    let kind = match database_error_information.message() {
+                    // Errors raised by triggers carry their kind in the
+                    // message; table constraints are identified by name.
+                    let kind = match database_error_information
+                        .constraint_name()
+                        .unwrap_or(database_error_information.message())
+                    {
                         "semesters_date_overlap" => Some(CheckViolationKind::SemestersDateOverlap),
+                        "concert_date_outside_semester" => {
+                            Some(CheckViolationKind::ConcertDateOutsideSemester)
+                        }
+                        "concert_piece_outside_semester" => {
+                            Some(CheckViolationKind::ConcertPieceOutsideSemester)
+                        }
+                        "concert_room_rehearsal_only" => {
+                            Some(CheckViolationKind::ConcertRoomRehearsalOnly)
+                        }
+                        "room_hosts_concerts" => Some(CheckViolationKind::RoomHostsConcerts),
+                        "concerts_room_booked_without_room" => {
+                            Some(CheckViolationKind::ConcertRoomBookedWithoutRoom)
+                        }
+                        "rooms_total_capacity_too_small" => {
+                            Some(CheckViolationKind::RoomTotalCapacityTooSmall)
+                        }
+                        "rooms_total_capacity_without_audience" => {
+                            Some(CheckViolationKind::RoomTotalCapacityWithoutAudience)
+                        }
+                        "people_anonymous_with_display_name" => {
+                            Some(CheckViolationKind::PersonAnonymousWithDisplayName)
+                        }
                         other => {
                             tracing::warn!("Unknown check violation: {}", other);
                             None
@@ -78,8 +147,12 @@ impl From<diesel::result::Error> for ApiError {
                         details: database_error_information.details().map(|s| s.to_string()),
                     })))
                 }
-                DatabaseErrorKind::ForeignKeyViolation => todo!(),
-                DatabaseErrorKind::NotNullViolation => todo!(),
+                DatabaseErrorKind::ForeignKeyViolation => ApiError::BadRequest(Json(
+                    BadRequestReason::ForeignKeyViolation(ForeignKeyViolation),
+                )),
+                DatabaseErrorKind::NotNullViolation => {
+                    ApiError::BadRequest(Json(BadRequestReason::NotNullViolation(NotNullViolation)))
+                }
                 DatabaseErrorKind::ClosedConnection
                 | DatabaseErrorKind::ReadOnlyTransaction
                 | DatabaseErrorKind::SerializationFailure

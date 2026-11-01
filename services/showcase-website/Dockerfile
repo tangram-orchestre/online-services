@@ -1,4 +1,4 @@
-FROM node:20.16.0 AS build
+FROM node:24.4.1 AS build
 
 WORKDIR /app
 COPY package.json yarn.lock ./
@@ -14,12 +14,12 @@ RUN yarn run openapi-ts
 RUN yarn build
 RUN yarn lint
 
-FROM node:20.16.0 AS deps
+FROM node:24.4.1 AS deps
 WORKDIR /app
 COPY package.json yarn.lock ./
 RUN yarn install --locked --production
 
-FROM node:20.16.0-slim
+FROM node:24.4.1-slim
 
 WORKDIR /app
 COPY --from=build /app/.output ./

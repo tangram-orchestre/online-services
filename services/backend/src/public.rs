@@ -1,11 +1,18 @@
 use altcha_lib_rs::{Challenge, ChallengeOptions, verify_solution};
-use chrono::Utc;
+use chrono::{NaiveDate, NaiveTime, Utc};
+use diesel::{
+    ExpressionMethods, NullableExpressionMethods, OptionalExtension, QueryDsl, Queryable,
+};
 use diesel_async::RunQueryDsl;
 use lettre::{
     AsyncTransport, Message,
     message::{Mailbox, header::ContentType},
 };
-use poem::{handler, http::StatusCode, web::Data};
+use poem::{
+    IntoResponse, Request, Response, handler,
+    http::{StatusCode, header},
+    web::{Data, Path},
+};
 use poem_openapi::{
     ApiResponse, Object, OpenApi, Tags,
     payload::{Json, PlainText},
@@ -13,6 +20,13 @@ use poem_openapi::{
 };
 
 use crate::AppState;
+use crate::error::Result;
+use crate::schema::{concerts, images, locations, rooms, settings};
+
+diesel::define_sql_function!(
+    /// The first of `a` and `b` that is not null.
+    fn coalesce(a: diesel::sql_types::Nullable<diesel::sql_types::Uuid>, b: diesel::sql_types::Nullable<diesel::sql_types::Uuid>) -> diesel::sql_types::Nullable<diesel::sql_types::Uuid>
+);
 
 pub struct PublicApi;
 
@@ -37,6 +51,27 @@ struct ContactForm {
 #[derive(Tags)]
 enum PublicApiTags {
     Contact,
+    Concerts,
+}
+
+/// A concert as shown on the showcase website (without its programme).
+#[derive(Debug, Object, Queryable)]
+struct PublicConcert {
+    id: i32,
+    date: NaiveDate,
+    /// Optional name, e.g. « Concert de Noël ».
+    name: Option<String>,
+    /// Name of the venue, absent while not chosen.
+    location_name: Option<String>,
+    /// City of the venue, absent while not chosen.
+    city: Option<String>,
+    starts_at: Option<NaiveTime>,
+    tickets_url: Option<String>,
+    video_url: Option<String>,
+    /// Image of the concert, else photo of its room, else of its venue, else
+    /// the default image: served at
+    /// `/public/images/{image_id}`.
+    image_id: Option<uuid::Uuid>,
 }
 
 #[derive(ApiResponse)]
@@ -53,6 +88,46 @@ const ALTCHA_CHALLENGE_COMPLEXITY: u64 = 100_000;
 
 #[OpenApi]
 impl PublicApi {
+    /// Get the public concerts, most recent first
+    #[oai(path = "/concerts", method = "get", tag = PublicApiTags::Concerts)]
+    async fn list_public_concerts(
+        &self,
+        state: Data<&AppState>,
+    ) -> Result<Json<Vec<PublicConcert>>> {
+        let mut conn = state.db_connection_pool.get().await.unwrap();
+        Ok(Json(
+            concerts::table
+                .left_join(rooms::table.inner_join(locations::table))
+                .filter(concerts::public.eq(true))
+                .order(concerts::date.desc())
+                .select((
+                    concerts::id,
+                    concerts::date,
+                    concerts::name,
+                    locations::name.nullable(),
+                    locations::city.nullable(),
+                    concerts::starts_at,
+                    concerts::tickets_url,
+                    concerts::video_url,
+                    // The most specific image: concert, room, venue, then default.
+                    coalesce(
+                        concerts::image_id,
+                        coalesce(
+                            rooms::image_id.nullable(),
+                            coalesce(
+                                locations::image_id.nullable(),
+                                settings::table
+                                    .select(settings::default_concert_image_id)
+                                    .single_value(),
+                            ),
+                        ),
+                    ),
+                ))
+                .load::<PublicConcert>(&mut conn)
+                .await?,
+        ))
+    }
+
     /// Retrieve an Altcha challenge that can be used to validate a contact form
     #[oai(path = "/altcha_challenge", method = "get", tag = PublicApiTags::Contact)]
     async fn altcha_challenge(&self, state: Data<&AppState>) -> Json<Any<Challenge>> {
@@ -165,6 +240,49 @@ pub async fn health(state: Data<&AppState>) -> StatusCode {
         Err(e) => {
             tracing::error!("Health check query failed: {:?}", e);
             StatusCode::SERVICE_UNAVAILABLE
+        }
+    }
+}
+
+/// An uploaded image. Images never change (a new image gets a new id), so they
+/// can be cached forever.
+#[handler]
+pub async fn image(
+    Path(image_id): Path<String>,
+    state: Data<&AppState>,
+    req: &Request,
+) -> Response {
+    let Ok(id) = uuid::Uuid::parse_str(&image_id) else {
+        return StatusCode::NOT_FOUND.into_response();
+    };
+    let etag = format!("\"{id}\"");
+    if req
+        .headers()
+        .get(header::IF_NONE_MATCH)
+        .is_some_and(|value| value.as_bytes() == etag.as_bytes())
+    {
+        return StatusCode::NOT_MODIFIED.into_response();
+    }
+
+    let Ok(mut conn) = state.get_db_connection().await else {
+        return StatusCode::SERVICE_UNAVAILABLE.into_response();
+    };
+    match images::table
+        .find(id)
+        .select((images::content_type, images::data))
+        .first::<(String, Vec<u8>)>(&mut conn)
+        .await
+        .optional()
+    {
+        Ok(Some((content_type, data))) => Response::builder()
+            .content_type(content_type)
+            .header(header::CACHE_CONTROL, "public, max-age=31536000, immutable")
+            .header(header::ETAG, etag)
+            .body(data),
+        Ok(None) => StatusCode::NOT_FOUND.into_response(),
+        Err(err) => {
+            tracing::error!("Could not load image {id}: {err}");
+            StatusCode::INTERNAL_SERVER_ERROR.into_response()
         }
     }
 }
