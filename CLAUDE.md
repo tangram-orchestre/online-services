@@ -42,7 +42,7 @@ yarn openapi-ts               # Showcase only: regenerate API client from OpenAP
 
 There are no unit tests — linting is the primary code quality gate.
 
-After frontend changes, check them visually with `just screenshot` (dev stack must be running) and read the resulting PNGs. It also reports console errors, page errors and failed requests. Use `--click '<selector>'` to open dialogs or menus, `--dark` / `--mobile` / `--full` for variants.
+After frontend changes, check them visually with `just screenshot` (dev stack must be running) and read the resulting PNGs. It also reports console errors, page errors and failed requests. Use `--click '<selector>'` to open dialogs or menus, `--fill '<selector> => <text>'` to type into fields, `--hover '<selector>'` to show tooltips, `--dark` / `--mobile` / `--full` for variants.
 
 While `just dev` runs, run portal/showcase commands with `docker compose exec <service> ...` rather than `docker compose run`, to avoid disturbing the running Nuxt dev server.
 

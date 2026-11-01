@@ -16,6 +16,11 @@ Options:
   --click <selector> Click an element before capturing (repeatable, in order).
                      Playwright selectors, e.g. 'text=Concerts' or
                      '[aria-label="Modifier le concert"] >> nth=0'
+  --hover <selector> Hover an element, e.g. to show a tooltip (repeatable,
+                     run in order with --click and --fill)
+  --fill '<selector> => <text>'
+                     Type text into a field (repeatable, run in order with
+                     --click), e.g. '[data-path="name"] input => Salle'
   --wait <ms>        Extra delay before capturing (default: 500)
   --name <name>      Output file name (single path only)
   -h, --help         Show this help
@@ -24,16 +29,24 @@ Examples:
   just screenshot /
   just screenshot --dark --mobile / /locations
   just screenshot --click '[aria-label="Modifier le concert"] >> nth=0' /
+  just screenshot --click 'text=Ajouter un lieu' --fill 'input >> nth=1 => x' /locations
 `;
 
-const { values: opts, positionals: paths } = parseArgs({
+const {
+  values: opts,
+  positionals: paths,
+  tokens,
+} = parseArgs({
   allowPositionals: true,
+  tokens: true,
   options: {
     host: { type: "string", default: "portal.localhost" },
     dark: { type: "boolean", default: false },
     mobile: { type: "boolean", default: false },
     full: { type: "boolean", default: false },
     click: { type: "string", multiple: true, default: [] },
+    fill: { type: "string", multiple: true, default: [] },
+    hover: { type: "string", multiple: true, default: [] },
     wait: { type: "string", default: "500" },
     name: { type: "string" },
     help: { type: "boolean", short: "h", default: false },
@@ -49,6 +62,23 @@ if (opts.name && paths.length > 1) {
   process.exit(1);
 }
 
+// Clicks, hovers and fills, in command line order.
+const actions = tokens
+  .filter((t) => t.kind === "option" && ["click", "hover", "fill"].includes(t.name))
+  .map((t) => {
+    if (t.name !== "fill") return { kind: t.name, selector: t.value };
+    const separator = t.value.lastIndexOf("=>");
+    if (separator === -1) {
+      console.error(`--fill expects '<selector> => <text>', got: ${t.value}`);
+      process.exit(1);
+    }
+    return {
+      kind: "fill",
+      selector: t.value.slice(0, separator).trim(),
+      text: t.value.slice(separator + 2).trimStart(),
+    };
+  });
+
 const OUT_DIR = "/out";
 // Where OUT_DIR is mounted on the host, to print usable paths.
 const HOST_OUT_DIR = process.env.SCREENSHOT_HOST_DIR ?? OUT_DIR;
@@ -63,7 +93,7 @@ const fileName = (pagePath) => {
   const suffix = [
     opts.mobile && "mobile",
     opts.dark && "dark",
-    opts.click.length > 0 && "clicked",
+    actions.length > 0 && "clicked",
   ]
     .filter(Boolean)
     .join("-");
@@ -116,8 +146,18 @@ for (const pagePath of paths) {
 
   try {
     await page.goto(url, { waitUntil: "networkidle", timeout: 60_000 });
-    for (const selector of opts.click) {
-      await page.locator(selector).first().click({ timeout: 10_000 });
+    for (const action of actions) {
+      const target = page.locator(action.selector).first();
+      if (action.kind === "click") {
+        await target.click({ timeout: 10_000 });
+      } else if (action.kind === "hover") {
+        // Disabled elements are hoverable too (e.g. to show why).
+        await target.hover({ timeout: 10_000, force: true });
+      } else {
+        // Typed key by key, like a user, so input handlers run as they would.
+        await target.fill("", { timeout: 10_000 });
+        await target.pressSequentially(action.text);
+      }
       await page.waitForLoadState("networkidle");
     }
     // Hide the Nuxt devtools badge, it overlaps the page content.
