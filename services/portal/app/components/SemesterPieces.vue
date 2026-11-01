@@ -3,11 +3,14 @@ import { useForm } from "vee-validate";
 import { toTypedSchema } from "@vee-validate/zod";
 import { zNewPiece } from "#hey-api/zod.gen";
 import type { Piece, Semester } from "#hey-api/types.gen";
-import { toast } from "vuetify-sonner";
+import type { TableColumn } from "@nuxt/ui";
 
 const props = defineProps<{
   semester: Semester;
 }>();
+
+const toast = useToast();
+const formId = useId();
 
 const {
   data: allPieces,
@@ -105,7 +108,7 @@ const savePiece = (id: number | null) => {
 
   promise.then(() => {
     pieceDialogShown.value = false;
-    toast.success("Morceau enregistré avec succès");
+    toast.add({ title: "Morceau enregistré avec succès", color: "success" });
   });
 };
 
@@ -123,7 +126,6 @@ const editPiece = (piece: Piece) => {
 };
 
 // Small screens get one card per piece instead of the (too wide) table.
-const { smAndDown } = useDisplay();
 const piecesByName = computed(() =>
   [...pieces.value].sort((a, b) => a.name.localeCompare(b.name)),
 );
@@ -154,7 +156,7 @@ const deletePiece = (id: number, pieceName: string) => {
           "morceau",
           false,
           (errorMsg) => {
-            toast.error(errorMsg);
+            toast.add({ title: errorMsg, color: "error" });
             refresh();
           },
         ),
@@ -163,197 +165,183 @@ const deletePiece = (id: number, pieceName: string) => {
           allPieces.value = allPieces.value.filter((p) => p.id !== id);
         }
         pieceDialogShown.value = false;
-        toast.success("Morceau supprimé avec succès");
+        toast.add({ title: "Morceau supprimé avec succès", color: "success" });
       });
     }
   });
 };
+
+const columns: TableColumn<Piece>[] = [
+  { accessorKey: "name", header: sortableHeader("Nom") },
+  { accessorKey: "source", header: sortableHeader("Source") },
+  { accessorKey: "composer", header: sortableHeader("Compositeur") },
+  { accessorKey: "arranger", header: sortableHeader("Arrangeur") },
+  { id: "concerts", header: "Concerts" },
+  { id: "actions", meta: { class: { td: "text-right" } } },
+];
+const sorting = ref([{ id: "name", desc: false }]);
 </script>
 
 <template>
   <section>
-    <div class="d-flex align-center mb-3">
-      <h2 class="text-h6 d-flex align-center">
-        <v-icon
-          color="medium-emphasis"
-          icon="mdi-music-note"
-          size="small"
-          start
-        />
+    <div class="mb-3 flex items-center gap-1">
+      <h2 class="flex items-center gap-2 text-lg font-semibold">
+        <UIcon name="i-lucide-music-2" class="text-muted" />
         Morceaux
       </h2>
-      <v-btn
-        class="ms-1"
-        icon="mdi-plus"
-        size="small"
-        variant="text"
-        color="medium-emphasis"
-        title="Nouveau morceau"
+      <UButton
+        icon="i-lucide-plus"
+        color="neutral"
+        variant="ghost"
+        aria-label="Nouveau morceau"
         @click="newPiece()"
       />
     </div>
 
-    <template v-if="smAndDown">
-      <v-progress-linear
-        v-if="status == 'pending' && pieces.length === 0"
-        indeterminate
-      />
-      <div
+    <!-- Small screens: one card per piece -->
+    <div class="md:hidden">
+      <UProgress v-if="status == 'pending' && pieces.length === 0" />
+      <p
         v-else-if="pieces.length === 0"
-        class="text-body-2 text-medium-emphasis py-4 text-center"
+        class="py-4 text-center text-sm text-muted"
       >
         Aucun morceau pour ce semestre
-      </div>
-      <div v-else class="d-flex flex-column ga-2">
-        <v-card v-for="piece in piecesByName" :key="piece.id" border flat>
-          <v-btn
-            class="edit-button"
-            icon="mdi-pencil"
-            size="small"
-            variant="text"
-            color="medium-emphasis"
-            title="Modifier le morceau"
+      </p>
+      <div v-else class="flex flex-col gap-2">
+        <UCard v-for="piece in piecesByName" :key="piece.id" class="relative">
+          <UButton
+            class="absolute top-2 right-2"
+            icon="i-lucide-pencil"
+            color="neutral"
+            variant="ghost"
+            size="sm"
+            aria-label="Modifier le morceau"
             @click="editPiece(piece)"
           />
-          <v-card-item class="pe-12">
-            <v-card-title>{{ piece.name }}</v-card-title>
-            <v-card-subtitle v-if="piece.composer || piece.arranger">
+          <div class="pe-8">
+            <p class="font-medium">{{ piece.name }}</p>
+            <p
+              v-if="piece.composer || piece.arranger"
+              class="text-sm text-muted"
+            >
               {{ piece.composer }}
               <template v-if="piece.arranger">
                 <template v-if="piece.composer"> · </template>
                 arr. {{ piece.arranger }}
               </template>
-            </v-card-subtitle>
-          </v-card-item>
-          <v-card-text
-            v-if="piece.source || concertsOf(piece.id).length"
-            class="d-flex flex-column ga-2"
+            </p>
+          </div>
+          <p v-if="piece.source" class="mt-2 text-sm text-muted">
+            {{ piece.source }}
+          </p>
+          <div
+            v-if="concertsOf(piece.id).length"
+            class="mt-2 flex flex-wrap gap-1"
           >
-            <div v-if="piece.source" class="text-medium-emphasis">
-              {{ piece.source }}
-            </div>
-            <div
-              v-if="concertsOf(piece.id).length"
-              class="d-flex flex-wrap ga-1"
-            >
-              <v-chip
-                v-for="concert in concertsOf(piece.id)"
-                :key="concert.id"
-                size="x-small"
-                prepend-icon="mdi-music"
-                :text="formatShortDate(concert.date)"
-              />
-            </div>
-          </v-card-text>
-        </v-card>
-      </div>
-    </template>
-
-    <v-sheet v-else border rounded>
-      <v-data-table
-        :loading="status == 'pending'"
-        :items="pieces"
-        :headers="[
-          { title: 'Nom', key: 'name' },
-          { title: 'Source', key: 'source' },
-          { title: 'Compositeur', key: 'composer' },
-          { title: 'Arrangeur', key: 'arranger' },
-          { title: 'Concerts', key: 'concerts', sortable: false },
-          { title: 'Actions', value: 'actions', align: 'end', sortable: false },
-        ]"
-        :hide-default-footer="pieces.length < 11"
-        :sort-by="[{ key: 'name', order: 'asc' }]"
-        no-data-text="Aucun morceau pour ce semestre"
-        item-value="id"
-      >
-        <template #item.concerts="{ item }">
-          <div class="d-flex flex-wrap ga-1">
-            <v-chip
-              v-for="concert in concertsOf(item.id)"
+            <UBadge
+              v-for="concert in concertsOf(piece.id)"
               :key="concert.id"
-              size="x-small"
-              :text="formatShortDate(concert.date)"
+              :label="formatShortDate(concert.date)"
+              icon="i-lucide-music"
+              color="neutral"
+              variant="subtle"
+              size="sm"
+            />
+          </div>
+        </UCard>
+      </div>
+    </div>
+
+    <!-- Larger screens: table -->
+    <UCard class="hidden md:block" :ui="{ body: 'p-0 sm:p-0' }">
+      <UTable
+        v-model:sorting="sorting"
+        :data="pieces"
+        :columns="columns"
+        :loading="status == 'pending'"
+        empty="Aucun morceau pour ce semestre"
+      >
+        <template #concerts-cell="{ row }">
+          <div class="flex flex-wrap gap-1">
+            <UBadge
+              v-for="concert in concertsOf(row.original.id)"
+              :key="concert.id"
+              :label="formatShortDate(concert.date)"
+              color="neutral"
+              variant="subtle"
+              size="sm"
             />
             <span
-              v-if="concertsOf(item.id).length === 0"
-              class="text-medium-emphasis"
+              v-if="concertsOf(row.original.id).length === 0"
+              class="text-muted"
               >—</span
             >
           </div>
         </template>
 
-        <template #item.actions="{ item }">
-          <div class="d-flex ga-2 justify-end">
-            <v-icon
-              color="medium-emphasis"
-              icon="mdi-pencil"
-              size="small"
-              @click="editPiece(item)"
-            />
-          </div>
+        <template #actions-cell="{ row }">
+          <UButton
+            icon="i-lucide-pencil"
+            color="neutral"
+            variant="ghost"
+            size="sm"
+            aria-label="Modifier le morceau"
+            @click="editPiece(row.original)"
+          />
         </template>
-      </v-data-table>
-    </v-sheet>
+      </UTable>
+    </UCard>
   </section>
 
-  <v-dialog v-model="pieceDialogShown" max-width="450" :modal="true">
-    <v-form @submit.prevent="submit">
-      <v-card
-        :title="savePieceId === null ? 'Nouveau morceau' : 'Modifier morceau'"
-        :subtitle="`Semestre ${semester.name}`"
-      >
-        <v-card-text>
-          <v-text-field
-            v-model="name"
-            v-bind="nameProps"
-            label="Nom"
-            :error-messages="errors.name"
-            autofocus
-          />
-          <v-text-field
-            v-model="source"
-            v-bind="sourceProps"
-            label="Source"
-            :error-messages="errors.source"
-          />
-          <v-text-field
-            v-model="composer"
-            v-bind="composerProps"
-            label="Compositeur"
-            :error-messages="errors.composer"
-          />
-          <v-text-field
-            v-model="arranger"
-            v-bind="arrangerProps"
-            label="Arrangeur"
-            :error-messages="errors.arranger"
-          />
-          <div v-if="savePieceError" class="text-error">
-            {{ savePieceError }}
-          </div>
-        </v-card-text>
+  <UModal
+    v-model:open="pieceDialogShown"
+    :title="savePieceId === null ? 'Nouveau morceau' : 'Modifier le morceau'"
+    :description="`Semestre ${semester.name}`"
+  >
+    <template #body>
+      <form :id="formId" class="flex flex-col gap-4" @submit.prevent="submit">
+        <UFormField label="Nom" :error="errors.name">
+          <UInput v-model="name" v-bind="nameProps" autofocus class="w-full" />
+        </UFormField>
+        <UFormField label="Source" :error="errors.source">
+          <UInput v-model="source" v-bind="sourceProps" class="w-full" />
+        </UFormField>
+        <UFormField label="Compositeur" :error="errors.composer">
+          <UInput v-model="composer" v-bind="composerProps" class="w-full" />
+        </UFormField>
+        <UFormField label="Arrangeur" :error="errors.arranger">
+          <UInput v-model="arranger" v-bind="arrangerProps" class="w-full" />
+        </UFormField>
+        <p v-if="savePieceError" class="text-sm text-error">
+          {{ savePieceError }}
+        </p>
+      </form>
+    </template>
 
-        <v-card-actions>
-          <v-btn
-            v-if="savePieceId !== null"
-            color="error"
-            prepend-icon="mdi-delete"
-            text="Supprimer"
-            @click="deleteEditedPiece()"
-          />
-          <v-spacer />
-          <v-btn @click="() => (pieceDialogShown = false)">Annuler</v-btn>
-          <v-btn :loading="isSubmitting" type="submit">Enregistrer</v-btn>
-        </v-card-actions>
-      </v-card>
-    </v-form>
-  </v-dialog>
+    <template #footer>
+      <div class="flex w-full items-center gap-2">
+        <UButton
+          v-if="savePieceId !== null"
+          label="Supprimer"
+          icon="i-lucide-trash-2"
+          color="error"
+          variant="ghost"
+          @click="deleteEditedPiece()"
+        />
+        <UButton
+          class="ms-auto"
+          label="Annuler"
+          color="neutral"
+          variant="ghost"
+          @click="pieceDialogShown = false"
+        />
+        <UButton
+          label="Enregistrer"
+          type="submit"
+          :form="formId"
+          :loading="isSubmitting"
+        />
+      </div>
+    </template>
+  </UModal>
 </template>
-
-<style scoped>
-.edit-button {
-  position: absolute;
-  top: 4px;
-  right: 4px;
-}
-</style>

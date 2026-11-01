@@ -15,7 +15,7 @@ Options:
   --full             Capture the full page instead of the viewport
   --click <selector> Click an element before capturing (repeatable, in order).
                      Playwright selectors, e.g. 'text=Concerts' or
-                     '[title="Modifier le concert"] >> nth=0'
+                     '[aria-label="Modifier le concert"] >> nth=0'
   --wait <ms>        Extra delay before capturing (default: 500)
   --name <name>      Output file name (single path only)
   -h, --help         Show this help
@@ -23,7 +23,7 @@ Options:
 Examples:
   just screenshot /
   just screenshot --dark --mobile / /locations
-  just screenshot --click '[title="Modifier le concert"] >> nth=0' /
+  just screenshot --click '[aria-label="Modifier le concert"] >> nth=0' /
 `;
 
 const { values: opts, positionals: paths } = parseArgs({

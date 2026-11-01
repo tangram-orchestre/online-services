@@ -54,7 +54,7 @@ While `just dev` runs, run portal/showcase commands with `docker compose exec <s
 |---|---|---|---|
 | `backend` | Poem + poem-openapi | Rust | PostgreSQL via Diesel ORM |
 | `showcase-website` | Nuxt 3 + Tailwind | TypeScript | Public-facing site |
-| `portal` | Nuxt 4 + Vuetify 3 | TypeScript | Members-only admin portal |
+| `portal` | Nuxt 4 + Nuxt UI 4 (Tailwind 4) | TypeScript | Members-only admin portal |
 
 ### Type-Safe API Contract
 

@@ -4,7 +4,6 @@ import { useForm } from "vee-validate";
 import { toTypedSchema } from "@vee-validate/zod";
 import { zNewSemester } from "#hey-api/zod.gen";
 import type { Semester } from "#hey-api/types.gen";
-import { toast } from "vuetify-sonner";
 
 const props = defineProps<{
   semesters: Semester[];
@@ -13,6 +12,9 @@ const props = defineProps<{
 const emit = defineEmits<{
   saved: [semester: Semester];
 }>();
+
+const toast = useToast();
+const formId = useId();
 
 const serializeDate = (date: Date) => date.toISOString().split("T")[0];
 
@@ -29,8 +31,8 @@ const { handleSubmit, resetForm, defineField, errors, isSubmitting } = useForm({
 });
 
 const [name, nameProps] = defineField("name");
-const [start_date, start_dateProps] = defineField("start_date");
-const [end_date, end_dateProps] = defineField("end_date");
+const [start_date] = defineField("start_date");
+const [end_date] = defineField("end_date");
 
 const shown = ref(false);
 const editedId = ref<number | null>(null);
@@ -94,50 +96,47 @@ const submit = handleSubmit((values) => {
 
   return promise.then((semester) => {
     shown.value = false;
-    toast.success("Semestre enregistré avec succès");
+    toast.add({ title: "Semestre enregistré avec succès", color: "success" });
     emit("saved", semester);
   });
 });
 </script>
 
 <template>
-  <v-dialog v-model="shown" max-width="450" :modal="true">
-    <v-form @submit.prevent="submit">
-      <v-card
-        :title="editedId === null ? 'Nouveau semestre' : 'Modifier semestre'"
-      >
-        <v-card-text>
-          <v-text-field
-            v-model="name"
-            v-bind="nameProps"
-            label="Nom"
-            :error-messages="errors.name"
-            autofocus
-          />
-          <v-date-input
-            v-model="start_date"
-            v-bind="start_dateProps"
-            label="Début"
-            :error-messages="errors.start_date"
-            prepend-icon=""
-          />
-          <v-date-input
-            v-model="end_date"
-            v-bind="end_dateProps"
-            label="Fin"
-            :error-messages="errors.end_date"
-            prepend-icon=""
-          />
-          <div v-if="saveError" class="text-error">
-            {{ saveError }}
-          </div>
-        </v-card-text>
+  <UModal
+    v-model:open="shown"
+    :title="editedId === null ? 'Nouveau semestre' : 'Modifier le semestre'"
+  >
+    <template #body>
+      <form :id="formId" class="flex flex-col gap-4" @submit.prevent="submit">
+        <UFormField label="Nom" :error="errors.name">
+          <UInput v-model="name" v-bind="nameProps" autofocus class="w-full" />
+        </UFormField>
+        <UFormField label="Début" :error="errors.start_date">
+          <DateInput v-model="start_date" />
+        </UFormField>
+        <UFormField label="Fin" :error="errors.end_date">
+          <DateInput v-model="end_date" />
+        </UFormField>
+        <p v-if="saveError" class="text-sm text-error">{{ saveError }}</p>
+      </form>
+    </template>
 
-        <v-card-actions>
-          <v-btn @click="() => (shown = false)">Annuler</v-btn>
-          <v-btn :loading="isSubmitting" type="submit">Enregistrer</v-btn>
-        </v-card-actions>
-      </v-card>
-    </v-form>
-  </v-dialog>
+    <template #footer>
+      <div class="flex w-full justify-end gap-2">
+        <UButton
+          label="Annuler"
+          color="neutral"
+          variant="ghost"
+          @click="shown = false"
+        />
+        <UButton
+          label="Enregistrer"
+          type="submit"
+          :form="formId"
+          :loading="isSubmitting"
+        />
+      </div>
+    </template>
+  </UModal>
 </template>

@@ -1,38 +1,17 @@
-import { fr } from "vuetify/locale";
-
 // https://nuxt.com/docs/api/configuration/nuxt-config
 export default defineNuxtConfig({
   compatibilityDate: "2024-11-01",
   devtools: { enabled: true },
   ssr: false,
 
-  build: {
-    transpile: ["vue-sonner"],
-  },
-
   modules: [
     "@vueuse/nuxt",
     "@nuxt/eslint",
     "@nuxt/image",
-    "@nuxt/fonts",
-    "vuetify-nuxt-module",
+    "@nuxt/ui",
     "@hey-api/nuxt",
   ],
-  vuetify: {
-    moduleOptions: {
-      /* module specific options */
-    },
-    vuetifyOptions: {
-      locale: {
-        locale: "fr",
-        messages: { fr },
-      },
-      labComponents: true,
-      date: {
-        adapter: "custom",
-      },
-    },
-  },
+  css: ["~/assets/css/main.css"],
   heyApi: {
     config: {
       input: "/opt/openapi/private-spec.json",

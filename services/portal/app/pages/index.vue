@@ -1,9 +1,10 @@
 <script setup lang="ts">
 import type { Semester } from "#hey-api/types.gen";
-import { toast } from "vuetify-sonner";
+import type { DropdownMenuItem } from "@nuxt/ui";
 import type SemesterDialogComponent from "~/components/SemesterDialog.vue";
 
 const route = useRoute();
+const toast = useToast();
 const router = useRouter();
 
 // Semester management is reserved to the Orga group; others land on their
@@ -28,10 +29,6 @@ const sortedSemesters = computed(() =>
   [...(semesters.value ?? [])].sort((a, b) =>
     b.start_date.localeCompare(a.start_date),
   ),
-);
-
-const semesterItems = computed(() =>
-  sortedSemesters.value.map((s) => ({ title: s.name, value: s.id })),
 );
 
 /** Semester containing today, or the most recent one. */
@@ -88,7 +85,7 @@ const deleteSemester = (semester: Semester) => {
       composable: "$fetch",
       path: { semester_id: semester.id },
       onResponseError: onResponseErrorHandler("semestre", false, (errorMsg) => {
-        toast.error(errorMsg);
+        toast.add({ title: errorMsg, color: "error" });
         refresh();
       }),
     }).then(() => {
@@ -96,98 +93,103 @@ const deleteSemester = (semester: Semester) => {
         semesters.value = semesters.value.filter((s) => s.id !== semester.id);
       }
       selectedSemesterId.value = undefined;
-      toast.success("Semestre supprimé avec succès");
+      toast.add({
+        title: "Semestre supprimé avec succès",
+        color: "success",
+      });
     });
   });
 };
+
+const semesterMenu = computed<DropdownMenuItem[][]>(() => [
+  sortedSemesters.value.map((s) => ({
+    label: s.name,
+    type: "checkbox" as const,
+    checked: s.id === selectedSemesterId.value,
+    onSelect: () => {
+      selectedSemesterId.value = s.id;
+    },
+  })),
+  [
+    {
+      label: "Nouveau semestre",
+      icon: "i-lucide-plus",
+      onSelect: () => semesterDialogRef.value?.open(),
+    },
+  ],
+]);
+
+const semesterActions = computed<DropdownMenuItem[][]>(() => {
+  const semester = selectedSemester.value;
+  if (!semester) return [];
+  return [
+    [
+      {
+        type: "label",
+        label: `${formatDate(semester.start_date)} → ${formatDate(semester.end_date)}`,
+        icon: "i-lucide-calendar-range",
+      },
+    ],
+    [
+      {
+        label: "Modifier le semestre",
+        icon: "i-lucide-pencil",
+        onSelect: () => semesterDialogRef.value?.open(semester),
+      },
+      {
+        label: "Supprimer le semestre",
+        icon: "i-lucide-trash-2",
+        color: "error",
+        onSelect: () => deleteSemester(semester),
+      },
+    ],
+  ];
+});
 </script>
 
 <template>
-  <div v-if="selectedSemester" class="d-flex align-center flex-wrap ga-2">
-    <v-menu>
-      <template #activator="{ props: menuProps }">
-        <v-btn
-          v-bind="menuProps"
-          variant="text"
-          class="text-h5 text-none px-2"
-          append-icon="mdi-menu-down"
-          :text="`Semestre ${selectedSemester.name}`"
-        />
-      </template>
-      <v-list density="compact">
-        <v-list-item
-          v-for="item in semesterItems"
-          :key="item.value"
-          :title="item.title"
-          :active="item.value === selectedSemesterId"
-          @click="selectedSemesterId = item.value"
-        />
-        <v-divider class="my-1" />
-        <v-list-item
-          prepend-icon="mdi-plus"
-          title="Nouveau semestre"
-          @click="semesterDialogRef?.open()"
-        />
-      </v-list>
-    </v-menu>
-
-    <v-menu>
-      <template #activator="{ props: menuProps }">
-        <v-btn
-          v-bind="menuProps"
-          icon="mdi-dots-vertical"
-          size="small"
-          variant="text"
-          color="medium-emphasis"
-          title="Détails du semestre"
-        />
-      </template>
-      <v-list density="compact">
-        <v-list-item
-          prepend-icon="mdi-calendar-range"
-          :title="`${formatDate(selectedSemester.start_date)} → ${formatDate(selectedSemester.end_date)}`"
-          subtitle="Période du semestre"
-          :link="false"
-        />
-        <v-divider class="my-1" />
-        <v-list-item
-          prepend-icon="mdi-pencil"
-          title="Modifier le semestre"
-          @click="semesterDialogRef?.open(selectedSemester)"
-        />
-        <v-list-item
-          prepend-icon="mdi-delete"
-          title="Supprimer le semestre"
-          base-color="error"
-          @click="deleteSemester(selectedSemester)"
-        />
-      </v-list>
-    </v-menu>
-  </div>
-
-  <v-empty-state
-    v-else-if="status !== 'pending'"
-    icon="mdi-calendar-blank"
-    title="Aucun semestre"
-    text="Créez un semestre pour y ajouter des morceaux et des concerts."
-  >
-    <template #actions>
-      <v-btn
-        prepend-icon="mdi-plus"
-        text="Nouveau semestre"
-        border
-        rounded="lg"
-        @click="semesterDialogRef?.open()"
+  <div v-if="selectedSemester" class="flex flex-wrap items-center gap-1">
+    <UDropdownMenu :items="semesterMenu">
+      <UButton
+        :label="`Semestre ${selectedSemester.name}`"
+        trailing-icon="i-lucide-chevron-down"
+        color="neutral"
+        variant="ghost"
+        size="xl"
+        class="text-2xl font-semibold"
       />
-    </template>
-  </v-empty-state>
+    </UDropdownMenu>
 
-  <div v-if="selectedSemester" class="d-flex flex-column ga-8 mt-4">
-    <semester-concerts :semester="selectedSemester" />
-    <semester-pieces :semester="selectedSemester" />
+    <UDropdownMenu :items="semesterActions">
+      <UButton
+        icon="i-lucide-ellipsis-vertical"
+        color="neutral"
+        variant="ghost"
+        aria-label="Détails du semestre"
+      />
+    </UDropdownMenu>
   </div>
 
-  <semester-dialog
+  <UEmpty
+    v-else-if="status !== 'pending'"
+    icon="i-lucide-calendar"
+    title="Aucun semestre"
+    description="Créez un semestre pour y ajouter des morceaux et des concerts."
+    :actions="[
+      {
+        label: 'Nouveau semestre',
+        icon: 'i-lucide-plus',
+        onClick: () => semesterDialogRef?.open(),
+      },
+    ]"
+  />
+
+  <div v-if="selectedSemester" class="mt-4 flex flex-col gap-8">
+    <SemesterConcerts :semester="selectedSemester" />
+    <SemesterPieces :semester="selectedSemester" />
+  </div>
+
+  <SemesterDialog
     ref="semesterDialog"
     :semesters="semesters ?? []"
     @saved="onSemesterSaved"

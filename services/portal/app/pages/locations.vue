@@ -2,7 +2,11 @@
 import { useForm } from "vee-validate";
 import { toTypedSchema } from "@vee-validate/zod";
 import { zNewLocation } from "#hey-api/zod.gen";
-import { toast } from "vuetify-sonner";
+import type { TableColumn } from "@nuxt/ui";
+import type { Location } from "#hey-api/types.gen";
+
+const toast = useToast();
+const formId = useId();
 
 const {
   data: locations,
@@ -73,7 +77,7 @@ const saveLocation = (id: number | null) => {
 
   promise.then(() => {
     locationDialogShown.value = false;
-    toast.success("Lieu enregistré avec succès");
+    toast.add({ title: "Lieu enregistré avec succès", color: "success" });
   });
 };
 
@@ -91,135 +95,129 @@ const deleteLocation = (id: number, locationName: string) => {
         composable: "$fetch",
         path: { location_id: id },
         onResponseError: onResponseErrorHandler("lieu", false, (errorMsg) => {
-          toast.error(errorMsg);
+          toast.add({ title: errorMsg, color: "error" });
           refresh();
         }),
       }).then(() => {
         if (locations.value) {
           locations.value = locations.value.filter((l) => l.id !== id);
         }
-        toast.success("Lieu supprimé avec succès");
+        toast.add({ title: "Lieu supprimé avec succès", color: "success" });
       });
     }
   });
 };
+
+const newLocation = () => {
+  handleReset();
+  saveLocationId.value = null;
+  locationDialogShown.value = true;
+};
+
+const editLocation = (location: Location) => {
+  name.value = location.name;
+  city.value = location.city;
+  zipcode.value = location.zipcode;
+  street.value = location.street;
+  saveLocationId.value = location.id;
+  locationDialogShown.value = true;
+};
+
+const columns: TableColumn<Location>[] = [
+  { accessorKey: "name", header: sortableHeader("Nom") },
+  { accessorKey: "city", header: sortableHeader("Ville") },
+  { accessorKey: "zipcode", header: sortableHeader("Code postal") },
+  { accessorKey: "street", header: "Adresse" },
+  { id: "actions", meta: { class: { td: "text-right" } } },
+];
+const sorting = ref([{ id: "city", desc: false }]);
 </script>
 
 <template>
-  <v-sheet border rounded>
-    <v-data-table
-      v-if="locations"
+  <div class="mb-3 flex items-center gap-1">
+    <h1 class="flex items-center gap-2 text-xl font-semibold">
+      <UIcon name="i-lucide-map-pin" class="text-muted" />
+      Lieux
+    </h1>
+    <UButton
+      icon="i-lucide-plus"
+      color="neutral"
+      variant="ghost"
+      aria-label="Nouveau lieu"
+      @click="newLocation()"
+    />
+  </div>
+
+  <UCard :ui="{ body: 'p-0 sm:p-0' }">
+    <UTable
+      v-model:sorting="sorting"
+      :data="locations ?? []"
+      :columns="columns"
       :loading="status == 'pending'"
-      :items="locations"
-      :headers="[
-        { title: 'Nom', key: 'name' },
-        { title: 'Ville', key: 'city' },
-        { title: 'Code postal', key: 'zipcode' },
-        { title: 'Adresse', key: 'street' },
-        { title: 'Actions', value: 'actions', align: 'end' },
-      ]"
-      :hide-default-footer="locations.length < 11"
-      :sort-by="[{ key: 'city', order: 'asc' }]"
-      item-value="id"
+      empty="Aucun lieu"
     >
-      <template #top>
-        <v-toolbar flat>
-          <v-toolbar-title>
-            <v-icon
-              color="medium-emphasis"
-              icon="mdi-map-marker"
-              size="x-small"
-              start
-            />
-            Lieux
-          </v-toolbar-title>
-
-          <v-btn
-            class="me-2"
-            prepend-icon="mdi-plus"
-            rounded="lg"
-            text="Nouveau lieu"
-            border
-            @click="
-              () => {
-                handleReset();
-                saveLocationId = null;
-                locationDialogShown = true;
-              }
-            "
+      <template #actions-cell="{ row }">
+        <div class="flex justify-end gap-1">
+          <UButton
+            icon="i-lucide-pencil"
+            color="neutral"
+            variant="ghost"
+            size="sm"
+            aria-label="Modifier le lieu"
+            @click="editLocation(row.original)"
           />
-        </v-toolbar>
-      </template>
-
-      <template #item.actions="{ item }">
-        <div class="d-flex ga-2 justify-end">
-          <v-icon
-            color="medium-emphasis"
-            icon="mdi-pencil"
-            size="small"
-            @click="
-              () => {
-                name = item.name;
-                city = item.city;
-                zipcode = item.zipcode;
-                street = item.street;
-                saveLocationId = item.id;
-                locationDialogShown = true;
-              }
-            "
-          />
-          <v-icon
-            color="medium-emphasis"
-            icon="mdi-delete"
-            size="small"
-            @click="deleteLocation(item.id, item.name)"
+          <UButton
+            icon="i-lucide-trash-2"
+            color="neutral"
+            variant="ghost"
+            size="sm"
+            aria-label="Supprimer le lieu"
+            @click="deleteLocation(row.original.id, row.original.name)"
           />
         </div>
       </template>
-    </v-data-table>
-  </v-sheet>
+    </UTable>
+  </UCard>
 
-  <v-dialog v-model="locationDialogShown" max-width="450" :modal="true">
-    <v-form @submit.prevent="submit">
-      <v-card
-        :title="saveLocationId === null ? 'Nouveau lieu' : 'Modifier lieu'"
-      >
-        <v-card-text>
-          <v-text-field
-            v-model="name"
-            v-bind="nameProps"
-            label="Nom"
-            :error-messages="errors.name"
-            autofocus
-          />
-          <v-text-field
-            v-model="city"
-            v-bind="cityProps"
-            label="Ville"
-            :error-messages="errors.city"
-          />
-          <v-text-field
-            v-model="zipcode"
-            v-bind="zipcodeProps"
-            label="Code postal"
-            :error-messages="errors.zipcode"
-          />
-          <v-text-field
-            v-model="street"
-            v-bind="streetProps"
-            label="Adresse"
-            :error-messages="errors.street"
-          />
-          <div v-if="saveLocationError" class="text-error">
-            {{ saveLocationError }}
-          </div>
-        </v-card-text>
+  <UModal
+    v-model:open="locationDialogShown"
+    :title="saveLocationId === null ? 'Nouveau lieu' : 'Modifier le lieu'"
+  >
+    <template #body>
+      <form :id="formId" class="flex flex-col gap-4" @submit.prevent="submit">
+        <UFormField label="Nom" :error="errors.name">
+          <UInput v-model="name" v-bind="nameProps" autofocus class="w-full" />
+        </UFormField>
+        <UFormField label="Ville" :error="errors.city">
+          <UInput v-model="city" v-bind="cityProps" class="w-full" />
+        </UFormField>
+        <UFormField label="Code postal" :error="errors.zipcode">
+          <UInput v-model="zipcode" v-bind="zipcodeProps" class="w-full" />
+        </UFormField>
+        <UFormField label="Adresse" :error="errors.street">
+          <UInput v-model="street" v-bind="streetProps" class="w-full" />
+        </UFormField>
+        <p v-if="saveLocationError" class="text-sm text-error">
+          {{ saveLocationError }}
+        </p>
+      </form>
+    </template>
 
-        <v-card-actions>
-          <v-btn @click="() => (locationDialogShown = false)">Annuler</v-btn>
-          <v-btn :loading="isSubmitting" type="submit">Enregistrer</v-btn>
-        </v-card-actions>
-      </v-card>
-    </v-form>
-  </v-dialog>
+    <template #footer>
+      <div class="flex w-full justify-end gap-2">
+        <UButton
+          label="Annuler"
+          color="neutral"
+          variant="ghost"
+          @click="locationDialogShown = false"
+        />
+        <UButton
+          label="Enregistrer"
+          type="submit"
+          :form="formId"
+          :loading="isSubmitting"
+        />
+      </div>
+    </template>
+  </UModal>
 </template>

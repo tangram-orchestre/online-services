@@ -1,15 +1,13 @@
 <script lang="ts" setup>
 import { NuxtPage } from "#components";
 import { client } from "#hey-api/client.gen";
+import type { NavigationMenuItem } from "@nuxt/ui";
+import { fr } from "@nuxt/ui/locale";
 
 import i18next from "i18next";
 import { z } from "zod";
 import { zodI18nMap } from "zod-i18n-map";
 import translation from "zod-i18n-map/locales/fr/zod.json";
-import ConfirmDialog from "./components/ConfirmDialog.vue";
-
-import { VSonner } from "vuetify-sonner";
-import "vuetify-sonner/style.css";
 
 i18next.init({
   lng: "fr",
@@ -36,77 +34,41 @@ useHead({
 
 const user = await currentUser();
 
-const isDark = useDark();
-const toggleDark = useToggle(isDark);
-const theme = useTheme();
-
-const setTheme = () => {
-  theme.change(isDark.value ? "dark" : "light");
-};
-
-onMounted(() => {
-  setTheme();
-});
-
-watch(isDark, () => {
-  setTheme();
-});
-
-const drawer = ref(false);
-
-const confirmDialogRef =
-  useTemplateRef<InstanceType<typeof ConfirmDialog>>("confirm");
-
-onMounted(() => {
-  if (confirmDialogRef.value) {
-    setConfirmDialogInstance(confirmDialogRef.value);
-  } else {
-    console.error("ConfirmDialog component not found");
-  }
-});
+const navigation = computed<NavigationMenuItem[]>(() =>
+  user.value.groups.includes("Orga")
+    ? [
+        { label: "Semestres", icon: "i-lucide-calendar", to: "/", exact: true },
+        { label: "Lieux", icon: "i-lucide-map-pin", to: "/locations" },
+      ]
+    : [],
+);
 </script>
 
 <template>
-  <v-app>
-    <confirm-dialog ref="confirm" />
+  <UApp :locale="fr" :toaster="{ position: 'top-right', duration: 3000 }">
+    <UHeader title="Tangram" to="/">
+      <UNavigationMenu :items="navigation" />
 
-    <v-sonner position="top-right" :duration="3000" />
+      <template #right>
+        <UColorModeButton />
+        <UButton
+          icon="i-lucide-user"
+          color="neutral"
+          variant="ghost"
+          to="/profile"
+          aria-label="Mon profil"
+        />
+      </template>
 
-    <v-app-bar color="primary">
-      <v-app-bar-nav-icon variant="text" @click.stop="drawer = !drawer" />
+      <template #body>
+        <UNavigationMenu :items="navigation" orientation="vertical" />
+      </template>
+    </UHeader>
 
-      <v-toolbar-title>Tangram</v-toolbar-title>
-
-      <v-spacer />
-
-      <v-btn
-        :icon="isDark ? 'mdi-weather-night' : 'mdi-brightness-5'"
-        @click="toggleDark()"
-      />
-      <v-btn class="ma-2" icon="mdi-account" to="/profile" />
-    </v-app-bar>
-
-    <v-navigation-drawer v-model="drawer">
-      <v-list nav>
-        <template v-if="user.groups.includes('Orga')">
-          <v-list-item prepend-icon="mdi-calendar" to="/" exact>
-            Semestres
-          </v-list-item>
-          <v-list-item prepend-icon="mdi-map-marker" to="/locations">
-            Lieux
-          </v-list-item>
-        </template>
-      </v-list>
-    </v-navigation-drawer>
-
-    <v-main>
-      <v-container class="pa-4">
+    <UMain>
+      <UContainer class="py-6">
         <NuxtPage />
-      </v-container>
-    </v-main>
-  </v-app>
+      </UContainer>
+    </UMain>
+  </UApp>
 </template>
-
-<style lang="scss">
-@use "~/assets/scss/main.scss";
-</style>

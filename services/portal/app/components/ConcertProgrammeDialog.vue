@@ -1,7 +1,6 @@
 <script setup lang="ts">
 import { VueDraggable } from "vue-draggable-plus";
 import type { ConcertWithPieces, Piece } from "#hey-api/types.gen";
-import { toast } from "vuetify-sonner";
 
 const props = defineProps<{
   /** Pieces that can be added to the programme (the concert's semester). */
@@ -11,6 +10,8 @@ const props = defineProps<{
 const emit = defineEmits<{
   saved: [concertId: number, pieceIds: number[]];
 }>();
+
+const toast = useToast();
 
 const formatDate = (value: string) => new Date(value).toLocaleDateString("fr");
 
@@ -35,19 +36,24 @@ defineExpose({ open });
 const availablePieces = computed(() =>
   props.pieces
     .filter((p) => !programme.value.some((selected) => selected.id === p.id))
-    .sort((a, b) => a.name.localeCompare(b.name)),
+    .sort((a, b) => a.name.localeCompare(b.name))
+    .map((p) => ({
+      label: p.name,
+      description: p.composer ?? undefined,
+      value: p.id,
+    })),
 );
 
 // Bound to the "add a piece" autocomplete, reset right after each pick.
-const pieceToAdd = ref<number | null>(null);
+const pieceToAdd = ref<number | undefined>(undefined);
 watch(pieceToAdd, (id) => {
-  if (id === null) return;
+  if (id === undefined) return;
   const piece = props.pieces.find((p) => p.id === id);
   if (piece) {
     programme.value = [...programme.value, piece];
   }
   nextTick(() => {
-    pieceToAdd.value = null;
+    pieceToAdd.value = undefined;
   });
 });
 
@@ -71,7 +77,10 @@ const save = () => {
   })
     .then(() => {
       shown.value = false;
-      toast.success("Programme enregistré avec succès");
+      toast.add({
+        title: "Programme enregistré avec succès",
+        color: "success",
+      });
       emit("saved", concertId, pieceIds);
     })
     .finally(() => {
@@ -81,90 +90,82 @@ const save = () => {
 </script>
 
 <template>
-  <v-dialog v-model="shown" max-width="500" :modal="true" scrollable>
-    <v-card
-      title="Programme"
-      :subtitle="concert ? `Concert du ${formatDate(concert.date)}` : undefined"
-    >
-      <v-card-text>
-        <div
-          v-if="programme.length === 0"
-          class="text-body-2 text-medium-emphasis text-center py-4"
+  <UModal
+    v-model:open="shown"
+    title="Programme"
+    :description="
+      concert ? `Concert du ${formatDate(concert.date)}` : undefined
+    "
+  >
+    <template #body>
+      <p
+        v-if="programme.length === 0"
+        class="py-4 text-center text-sm text-muted"
+      >
+        Aucun morceau au programme
+      </p>
+      <VueDraggable
+        v-else
+        v-model="programme"
+        tag="ul"
+        :animation="150"
+        handle=".drag-handle"
+        ghost-class="opacity-40"
+        class="divide-y divide-default"
+      >
+        <li
+          v-for="(piece, index) in programme"
+          :key="piece.id"
+          class="flex items-center gap-3 py-2"
         >
-          Aucun morceau au programme
-        </div>
-        <v-list v-else density="compact" class="py-0">
-          <VueDraggable
-            v-model="programme"
-            :animation="150"
-            handle=".drag-handle"
-            ghost-class="programme-ghost"
-          >
-            <v-list-item
-              v-for="(piece, index) in programme"
-              :key="piece.id"
-              :title="`${index + 1}. ${piece.name}`"
-              :subtitle="piece.composer ?? undefined"
-              rounded
-            >
-              <template #prepend>
-                <v-icon
-                  class="drag-handle me-2"
-                  icon="mdi-drag"
-                  color="medium-emphasis"
-                />
-              </template>
-              <template #append>
-                <v-btn
-                  icon="mdi-close"
-                  size="small"
-                  variant="text"
-                  title="Retirer du programme"
-                  @click="remove(piece.id)"
-                />
-              </template>
-            </v-list-item>
-          </VueDraggable>
-        </v-list>
+          <UIcon
+            name="i-lucide-grip-vertical"
+            class="drag-handle shrink-0 cursor-grab text-muted"
+          />
+          <div class="min-w-0 flex-1">
+            <p class="truncate">{{ index + 1 }}. {{ piece.name }}</p>
+            <p v-if="piece.composer" class="truncate text-sm text-muted">
+              {{ piece.composer }}
+            </p>
+          </div>
+          <UButton
+            icon="i-lucide-x"
+            color="neutral"
+            variant="ghost"
+            size="sm"
+            aria-label="Retirer du programme"
+            @click="remove(piece.id)"
+          />
+        </li>
+      </VueDraggable>
 
-        <v-autocomplete
-          v-model="pieceToAdd"
-          class="mt-4"
-          :items="availablePieces"
-          item-title="name"
-          item-value="id"
-          label="Ajouter un morceau"
-          prepend-inner-icon="mdi-plus"
-          no-data-text="Tous les morceaux du semestre sont au programme"
-          hide-details
-        >
-          <template #item="{ props: itemProps, item }">
-            <v-list-item
-              v-bind="itemProps"
-              :subtitle="item.raw.composer ?? undefined"
-            />
-          </template>
-        </v-autocomplete>
+      <USelectMenu
+        v-model="pieceToAdd"
+        :items="availablePieces"
+        value-key="value"
+        icon="i-lucide-plus"
+        placeholder="Ajouter un morceau"
+        :search-input="{ placeholder: 'Rechercher…' }"
+        class="mt-4 w-full"
+      >
+        <template #empty>
+          Tous les morceaux du semestre sont au programme
+        </template>
+      </USelectMenu>
 
-        <div v-if="saveError" class="text-error mt-2">
-          {{ saveError }}
-        </div>
-      </v-card-text>
+      <p v-if="saveError" class="mt-2 text-sm text-error">{{ saveError }}</p>
+    </template>
 
-      <v-card-actions>
-        <v-btn @click="() => (shown = false)">Annuler</v-btn>
-        <v-btn :loading="saving" @click="save">Enregistrer</v-btn>
-      </v-card-actions>
-    </v-card>
-  </v-dialog>
+    <template #footer>
+      <div class="flex w-full justify-end gap-2">
+        <UButton
+          label="Annuler"
+          color="neutral"
+          variant="ghost"
+          @click="shown = false"
+        />
+        <UButton label="Enregistrer" :loading="saving" @click="save" />
+      </div>
+    </template>
+  </UModal>
 </template>
-
-<style scoped>
-.drag-handle {
-  cursor: grab;
-}
-
-:deep(.programme-ghost) {
-  opacity: 0.4;
-}
-</style>

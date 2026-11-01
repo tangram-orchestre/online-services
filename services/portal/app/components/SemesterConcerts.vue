@@ -4,11 +4,13 @@ import { toTypedSchema } from "@vee-validate/zod";
 import { zNewConcert } from "#hey-api/zod.gen";
 import type { Concert, ConcertWithPieces, Semester } from "#hey-api/types.gen";
 import type ConcertProgrammeDialogComponent from "~/components/ConcertProgrammeDialog.vue";
-import { toast } from "vuetify-sonner";
 
 const props = defineProps<{
   semester: Semester;
 }>();
+
+const toast = useToast();
+const formId = useId();
 
 const formatDate = (value: string) => new Date(value).toLocaleDateString("fr");
 const formatTime = (value: string) => value.slice(0, 5);
@@ -46,7 +48,7 @@ const { data: locations } = getLocations({
 const locationItems = computed(
   () =>
     locations.value?.map((l) => ({
-      title: `${l.name} — ${l.city}`,
+      label: `${l.name} — ${l.city}`,
       value: l.id,
     })) ?? [],
 );
@@ -97,14 +99,14 @@ const { handleSubmit, handleReset, defineField, errors, isSubmitting } =
     validationSchema: toTypedSchema(zConcertForm),
   });
 
-const [date, dateProps] = defineField("date");
+const [date] = defineField("date");
 const [starts_at] = defineField("starts_at");
 const [doors_open_at] = defineField("doors_open_at");
 const [meeting_at] = defineField("meeting_at");
 const [tickets_url, tickets_urlProps] = defineField("tickets_url");
 const [video_url, video_urlProps] = defineField("video_url");
 const [isPublic, isPublicProps] = defineField("public");
-const [location_id, location_idProps] = defineField("location_id");
+const [location_id] = defineField("location_id");
 
 const concertDialogShown = ref(false);
 const saveConcertId = ref<number | null>(null);
@@ -171,7 +173,7 @@ const saveConcert = (id: number | null) => {
 
   promise.then(() => {
     concertDialogShown.value = false;
-    toast.success("Concert enregistré avec succès");
+    toast.add({ title: "Concert enregistré avec succès", color: "success" });
   });
 };
 
@@ -218,7 +220,7 @@ const deleteConcert = (id: number, concertDate: string) => {
           "concert",
           false,
           (errorMsg) => {
-            toast.error(errorMsg);
+            toast.add({ title: errorMsg, color: "error" });
             refresh();
           },
         ),
@@ -227,7 +229,7 @@ const deleteConcert = (id: number, concertDate: string) => {
           allConcerts.value = allConcerts.value.filter((c) => c.id !== id);
         }
         concertDialogShown.value = false;
-        toast.success("Concert supprimé avec succès");
+        toast.add({ title: "Concert supprimé avec succès", color: "success" });
       });
     }
   });
@@ -236,293 +238,232 @@ const deleteConcert = (id: number, concertDate: string) => {
 
 <template>
   <section>
-    <div class="d-flex align-center mb-3">
-      <h2 class="text-h6 d-flex align-center">
-        <v-icon color="medium-emphasis" icon="mdi-music" size="small" start />
+    <div class="mb-3 flex items-center gap-1">
+      <h2 class="flex items-center gap-2 text-lg font-semibold">
+        <UIcon name="i-lucide-music" class="text-muted" />
         Concerts
       </h2>
-      <v-btn
-        class="ms-1"
-        icon="mdi-plus"
-        size="small"
-        variant="text"
-        color="medium-emphasis"
-        title="Nouveau concert"
+      <UButton
+        icon="i-lucide-plus"
+        color="neutral"
+        variant="ghost"
+        aria-label="Nouveau concert"
         @click="newConcert()"
       />
     </div>
 
-    <v-progress-linear
-      v-if="status == 'pending' && concerts.length === 0"
-      indeterminate
-    />
-    <div
+    <UProgress v-if="status == 'pending' && concerts.length === 0" />
+    <p
       v-else-if="concerts.length === 0"
-      class="text-body-2 text-medium-emphasis py-4 text-center"
+      class="py-4 text-center text-sm text-muted"
     >
       Aucun concert pour ce semestre
-    </div>
-    <v-row v-else dense>
-      <v-col
+    </p>
+    <div v-else class="grid gap-3 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4">
+      <UCard
         v-for="concert in concerts"
         :key="concert.id"
-        cols="12"
-        sm="6"
-        md="4"
-        lg="3"
+        class="relative flex flex-col"
+        :ui="{ body: 'flex-1', footer: 'flex items-center gap-1' }"
       >
-        <v-card border flat class="h-100 d-flex flex-column">
-          <v-btn
-            class="edit-button"
-            icon="mdi-pencil"
-            size="small"
-            variant="text"
-            color="medium-emphasis"
-            title="Modifier le concert"
+        <template #header>
+          <UButton
+            class="absolute top-2 right-2"
+            icon="i-lucide-pencil"
+            color="neutral"
+            variant="ghost"
+            size="sm"
+            aria-label="Modifier le concert"
             @click="editConcert(concert)"
           />
-          <v-card-item class="pe-12">
-            <v-card-title class="text-capitalize">
+          <div class="pe-8">
+            <p class="font-semibold capitalize">
               {{ formatLongDate(concert.date) }}
-            </v-card-title>
-            <v-card-subtitle>
-              <v-icon icon="mdi-map-marker" size="x-small" start />
+            </p>
+            <p class="flex items-center gap-1 text-sm text-muted">
+              <UIcon name="i-lucide-map-pin" class="shrink-0" />
               {{ location(concert.location_id)?.name ?? "Lieu inconnu" }}
               <template v-if="location(concert.location_id)">
                 · {{ location(concert.location_id)?.city }}
               </template>
-            </v-card-subtitle>
-          </v-card-item>
+            </p>
+          </div>
+        </template>
 
-          <v-card-text class="flex-grow-1">
-            <div class="d-flex flex-column ga-1">
-              <div v-if="concert.meeting_at" class="d-flex align-center">
-                <v-icon
-                  icon="mdi-account-group"
-                  size="small"
-                  class="me-2"
-                  color="medium-emphasis"
-                />
-                Rendez-vous
-                <span class="ms-auto font-weight-medium">
-                  {{ formatTime(concert.meeting_at) }}
-                </span>
-              </div>
-              <div v-if="concert.doors_open_at" class="d-flex align-center">
-                <v-icon
-                  icon="mdi-door-open"
-                  size="small"
-                  class="me-2"
-                  color="medium-emphasis"
-                />
-                Ouverture des portes
-                <span class="ms-auto font-weight-medium">
-                  {{ formatTime(concert.doors_open_at) }}
-                </span>
-              </div>
-              <div class="d-flex align-center">
-                <v-icon
-                  icon="mdi-music"
-                  size="small"
-                  class="me-2"
-                  color="medium-emphasis"
-                />
-                Début
-                <span class="ms-auto font-weight-medium">
-                  {{ formatTime(concert.starts_at) }}
-                </span>
-              </div>
-            </div>
+        <div class="flex flex-col gap-1 text-sm">
+          <div v-if="concert.meeting_at" class="flex items-center gap-2">
+            <UIcon name="i-lucide-users" class="text-muted" />
+            Rendez-vous
+            <span class="ms-auto font-medium">
+              {{ formatTime(concert.meeting_at) }}
+            </span>
+          </div>
+          <div v-if="concert.doors_open_at" class="flex items-center gap-2">
+            <UIcon name="i-lucide-door-open" class="text-muted" />
+            Ouverture des portes
+            <span class="ms-auto font-medium">
+              {{ formatTime(concert.doors_open_at) }}
+            </span>
+          </div>
+          <div class="flex items-center gap-2">
+            <UIcon name="i-lucide-music" class="text-muted" />
+            Début
+            <span class="ms-auto font-medium">
+              {{ formatTime(concert.starts_at) }}
+            </span>
+          </div>
+        </div>
 
-            <v-divider class="my-3" />
-            <div class="text-overline text-medium-emphasis mb-1">Programme</div>
-            <ol v-if="concert.piece_ids.length" class="programme">
-              <li v-for="pieceId in concert.piece_ids" :key="pieceId">
-                {{ pieceName(pieceId) }}
-              </li>
-            </ol>
-            <div v-else class="text-body-2 text-medium-emphasis">
-              Programme vide
-            </div>
-          </v-card-text>
+        <USeparator class="my-3" />
+        <p class="mb-1 text-xs font-medium tracking-wide text-muted uppercase">
+          Programme
+        </p>
+        <ol v-if="concert.piece_ids.length" class="list-decimal ps-5 text-sm">
+          <li v-for="pieceId in concert.piece_ids" :key="pieceId">
+            {{ pieceName(pieceId) }}
+          </li>
+        </ol>
+        <p v-else class="text-sm text-muted">Programme vide</p>
 
-          <v-card-actions>
-            <v-chip
-              :color="concert.public ? 'success' : undefined"
-              :prepend-icon="concert.public ? 'mdi-earth' : 'mdi-lock'"
-              size="small"
-              variant="flat"
-              :text="concert.public ? 'Public' : 'Privé'"
-            />
-            <v-btn
-              v-if="concert.tickets_url"
-              :href="concert.tickets_url"
-              target="_blank"
-              icon="mdi-ticket"
-              size="small"
-              title="Billetterie"
-            />
-            <v-btn
-              v-if="concert.video_url"
-              :href="concert.video_url"
-              target="_blank"
-              icon="mdi-play-circle"
-              size="small"
-              title="Vidéo"
-            />
-            <v-spacer />
-            <v-btn
-              icon="mdi-playlist-music"
-              size="small"
-              title="Modifier le programme"
-              @click="programmeDialog?.open(concert)"
-            />
-          </v-card-actions>
-        </v-card>
-      </v-col>
-    </v-row>
+        <template #footer>
+          <UBadge
+            :label="concert.public ? 'Public' : 'Privé'"
+            :icon="concert.public ? 'i-lucide-globe' : 'i-lucide-lock'"
+            :color="concert.public ? 'success' : 'neutral'"
+            variant="subtle"
+          />
+          <UButton
+            v-if="concert.tickets_url"
+            :to="concert.tickets_url"
+            target="_blank"
+            icon="i-lucide-ticket"
+            color="neutral"
+            variant="ghost"
+            size="sm"
+            aria-label="Billetterie"
+          />
+          <UButton
+            v-if="concert.video_url"
+            :to="concert.video_url"
+            target="_blank"
+            icon="i-lucide-circle-play"
+            color="neutral"
+            variant="ghost"
+            size="sm"
+            aria-label="Vidéo"
+          />
+          <UButton
+            class="ms-auto"
+            icon="i-lucide-list-music"
+            color="neutral"
+            variant="ghost"
+            size="sm"
+            aria-label="Modifier le programme"
+            @click="programmeDialog?.open(concert)"
+          />
+        </template>
+      </UCard>
+    </div>
   </section>
 
-  <concert-programme-dialog
+  <ConcertProgrammeDialog
     ref="programmeDialog"
     :pieces="semesterPieces"
     @saved="onProgrammeSaved"
   />
 
-  <v-dialog
-    v-model="concertDialogShown"
-    max-width="500"
-    :modal="true"
-    scrollable
+  <UModal
+    v-model:open="concertDialogShown"
+    :title="saveConcertId === null ? 'Nouveau concert' : 'Modifier le concert'"
+    :description="`Semestre ${semester.name}`"
   >
-    <!-- The card is the form so that `scrollable` keeps the actions visible -->
-    <v-card
-      tag="form"
-      :title="saveConcertId === null ? 'Nouveau concert' : 'Modifier concert'"
-      :subtitle="`Semestre ${semester.name}`"
-      @submit.prevent="submit"
-    >
-      <v-card-text>
-        <v-date-input
-          v-model="date"
-          v-bind="dateProps"
-          label="Date"
-          :min="semester.start_date"
-          :max="semester.end_date"
-          :error-messages="errors.date"
-          prepend-icon=""
-        />
-        <v-select
-          v-model="location_id"
-          v-bind="location_idProps"
-          label="Lieu"
-          :items="locationItems"
-          :error-messages="errors.location_id"
-        >
-          <template #no-data>
-            <v-list-item>
+    <template #body>
+      <form :id="formId" class="flex flex-col gap-4" @submit.prevent="submit">
+        <UFormField label="Date" :error="errors.date">
+          <DateInput
+            v-model="date"
+            :min="semester.start_date"
+            :max="semester.end_date"
+          />
+        </UFormField>
+        <UFormField label="Lieu" :error="errors.location_id">
+          <USelectMenu
+            v-model="location_id"
+            :items="locationItems"
+            value-key="value"
+            :search-input="{ placeholder: 'Rechercher…' }"
+            class="w-full"
+          >
+            <template #empty>
               Aucun lieu.
-              <nuxt-link to="/locations">Gérer les lieux</nuxt-link>
-            </v-list-item>
-          </template>
-        </v-select>
+              <ULink to="/locations" class="text-primary">
+                Gérer les lieux
+              </ULink>
+            </template>
+          </USelectMenu>
+        </UFormField>
 
-        <v-text-field
-          :model-value="meeting_at ? formatTime(meeting_at) : undefined"
+        <UFormField
           label="Rendez-vous des musiciens"
-          :error-messages="errors.meeting_at"
-          :append-inner-icon="meeting_at ? 'mdi-close-circle' : undefined"
-          readonly
-          @click:append-inner.stop="meeting_at = undefined"
+          :error="errors.meeting_at"
         >
-          <v-menu
-            :close-on-content-click="false"
-            activator="parent"
-            min-width="0"
-          >
-            <v-time-picker v-model="meeting_at" format="24hr" />
-          </v-menu>
-        </v-text-field>
-        <v-text-field
-          :model-value="doors_open_at ? formatTime(doors_open_at) : undefined"
-          label="Ouverture des portes"
-          :error-messages="errors.doors_open_at"
-          :append-inner-icon="doors_open_at ? 'mdi-close-circle' : undefined"
-          readonly
-          @click:append-inner.stop="doors_open_at = undefined"
-        >
-          <v-menu
-            :close-on-content-click="false"
-            activator="parent"
-            min-width="0"
-          >
-            <v-time-picker v-model="doors_open_at" format="24hr" />
-          </v-menu>
-        </v-text-field>
-        <v-text-field
-          :model-value="starts_at ? formatTime(starts_at) : undefined"
-          label="Début"
-          :error-messages="errors.starts_at"
-          readonly
-        >
-          <v-menu
-            :close-on-content-click="false"
-            activator="parent"
-            min-width="0"
-          >
-            <v-time-picker v-model="starts_at" format="24hr" />
-          </v-menu>
-        </v-text-field>
-        <v-text-field
-          v-model="tickets_url"
-          v-bind="tickets_urlProps"
-          label="Lien billetterie"
-          :error-messages="errors.tickets_url"
-          clearable
-        />
-        <v-text-field
-          v-model="video_url"
-          v-bind="video_urlProps"
-          label="Lien vidéo"
-          :error-messages="errors.video_url"
-          clearable
-        />
-        <v-switch
-          v-model="isPublic"
-          v-bind="isPublicProps"
-          label="Public"
-          color="primary"
-          :error-messages="errors.public"
-        />
-        <div v-if="saveConcertError" class="text-error">
+          <TimeInput v-model="meeting_at" clearable />
+        </UFormField>
+        <UFormField label="Ouverture des portes" :error="errors.doors_open_at">
+          <TimeInput v-model="doors_open_at" clearable />
+        </UFormField>
+        <UFormField label="Début" :error="errors.starts_at">
+          <TimeInput v-model="starts_at" />
+        </UFormField>
+        <UFormField label="Lien billetterie" :error="errors.tickets_url">
+          <UInput
+            v-model="tickets_url"
+            v-bind="tickets_urlProps"
+            type="url"
+            class="w-full"
+          />
+        </UFormField>
+        <UFormField label="Lien vidéo" :error="errors.video_url">
+          <UInput
+            v-model="video_url"
+            v-bind="video_urlProps"
+            type="url"
+            class="w-full"
+          />
+        </UFormField>
+        <UFormField :error="errors.public">
+          <USwitch v-model="isPublic" v-bind="isPublicProps" label="Public" />
+        </UFormField>
+        <p v-if="saveConcertError" class="text-sm text-error">
           {{ saveConcertError }}
-        </div>
-      </v-card-text>
+        </p>
+      </form>
+    </template>
 
-      <v-card-actions>
-        <v-btn
+    <template #footer>
+      <div class="flex w-full items-center gap-2">
+        <UButton
           v-if="saveConcertId !== null"
+          label="Supprimer"
+          icon="i-lucide-trash-2"
           color="error"
-          prepend-icon="mdi-delete"
-          text="Supprimer"
+          variant="ghost"
           @click="deleteEditedConcert()"
         />
-        <v-spacer />
-        <v-btn @click="() => (concertDialogShown = false)">Annuler</v-btn>
-        <v-btn :loading="isSubmitting" type="submit">Enregistrer</v-btn>
-      </v-card-actions>
-    </v-card>
-  </v-dialog>
+        <UButton
+          class="ms-auto"
+          label="Annuler"
+          color="neutral"
+          variant="ghost"
+          @click="concertDialogShown = false"
+        />
+        <UButton
+          label="Enregistrer"
+          type="submit"
+          :form="formId"
+          :loading="isSubmitting"
+        />
+      </div>
+    </template>
+  </UModal>
 </template>
-
-<style scoped>
-.edit-button {
-  position: absolute;
-  top: 4px;
-  right: 4px;
-}
-
-.programme {
-  padding-inline-start: 1.25rem;
-}
-</style>

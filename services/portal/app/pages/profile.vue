@@ -5,65 +5,34 @@ const runtimeConfig = useRuntimeConfig();
 </script>
 
 <template>
-  <v-container>
-    <h1>Mon profil</h1>
-    <div v-if="user" class="mt-2">
-      <h3 class="mb-4">Informations personnelles</h3>
+  <h1 class="text-2xl font-semibold">Mon profil</h1>
+  <div v-if="user" class="mt-4">
+    <h2 class="mb-4 text-lg font-medium">Informations personnelles</h2>
 
-      <v-defaults-provider
-        :defaults="{
-          VTextField: {
-            variant: 'outlined',
-            disabled: true,
-          },
-        }"
-      >
-        <v-row>
-          <v-col cols="12" sm="6">
-            <v-text-field
-              v-model="user.username"
-              hide-details
-              label="Nom d'utilisateur"
-            />
-          </v-col>
-          <v-col cols="12" sm="6">
-            <v-text-field v-model="user.email" hide-details label="Email" />
-          </v-col>
-        </v-row>
-        <v-row>
-          <v-col cols="12" sm="6">
-            <v-text-field
-              v-model="user.first_name"
-              hide-details
-              label="Prénom"
-            />
-          </v-col>
-          <v-col>
-            <v-text-field v-model="user.last_name" hide-details label="Nom" />
-          </v-col>
-        </v-row>
-        <v-row>
-          <v-col cols="12" sm="6">
-            <v-text-field
-              v-model="user.phone_number"
-              hide-details
-              label="Téléphone"
-            />
-          </v-col>
-          <v-col>
-            <v-btn
-              color="primary"
-              height="56"
-              block
-              :href="runtimeConfig.public.sso_user_settings_url"
-            >
-              Modifier mes informations
-            </v-btn>
-          </v-col>
-        </v-row>
-      </v-defaults-provider>
+    <div class="grid gap-4 sm:grid-cols-2">
+      <UFormField label="Nom d'utilisateur">
+        <UInput :model-value="user.username" disabled class="w-full" />
+      </UFormField>
+      <UFormField label="Email">
+        <UInput :model-value="user.email" disabled class="w-full" />
+      </UFormField>
+      <UFormField label="Prénom">
+        <UInput :model-value="user.first_name" disabled class="w-full" />
+      </UFormField>
+      <UFormField label="Nom">
+        <UInput :model-value="user.last_name" disabled class="w-full" />
+      </UFormField>
+      <UFormField label="Téléphone">
+        <UInput :model-value="user.phone_number" disabled class="w-full" />
+      </UFormField>
     </div>
 
-    <v-divider class="mt-4" />
-  </v-container>
+    <UButton
+      class="mt-6"
+      label="Modifier mes informations"
+      icon="i-lucide-external-link"
+      :to="runtimeConfig.public.sso_user_settings_url"
+      external
+    />
+  </div>
 </template>
