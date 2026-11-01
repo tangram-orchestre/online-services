@@ -2,26 +2,6 @@ use diesel::prelude::*;
 use poem_openapi::Object;
 
 #[derive(Object, Queryable, Selectable, Identifiable, AsChangeset)]
-#[diesel(table_name = crate::schema::locations)]
-#[diesel(check_for_backend(diesel::pg::Pg))]
-pub struct Location {
-    pub id: i32,
-    pub name: String,
-    pub city: String,
-    pub zipcode: String,
-    pub street: String,
-}
-
-#[derive(Object, Insertable)]
-#[diesel(table_name = crate::schema::locations)]
-pub struct NewLocation {
-    pub name: String,
-    pub city: String,
-    pub zipcode: String,
-    pub street: String,
-}
-
-#[derive(Object, Queryable, Selectable, Identifiable, AsChangeset)]
 #[diesel(table_name = crate::schema::concerts)]
 #[diesel(check_for_backend(diesel::pg::Pg))]
 // Clearing an optional field must set it to NULL, not leave it unchanged.
@@ -35,7 +15,7 @@ pub struct Concert {
     pub meeting_at: Option<chrono::NaiveTime>,
     pub starts_at: chrono::NaiveTime,
     pub public: bool,
-    pub location_id: i32,
+    pub room_id: i32,
     pub semester_id: i32,
 }
 
@@ -49,7 +29,7 @@ pub struct NewConcert {
     pub meeting_at: Option<chrono::NaiveTime>,
     pub starts_at: chrono::NaiveTime,
     pub public: bool,
-    pub location_id: i32,
+    pub room_id: i32,
     pub semester_id: i32,
 }
 

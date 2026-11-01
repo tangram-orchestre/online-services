@@ -12,6 +12,18 @@ const errorMessageFromCheckViolation = (reason: CheckViolation): string => {
       .with("ConcertPieceOutsideSemester", () => {
         return "Un morceau du programme n'appartient pas au semestre du concert.";
       })
+      .with("ConcertRoomRehearsalOnly", () => {
+        return "Cette salle n'accueille pas de public : elle ne peut servir qu'aux répétitions.";
+      })
+      .with("RoomHostsConcerts", () => {
+        return "Une salle qui accueille des concerts doit avoir une capacité public.";
+      })
+      .with("RoomTotalCapacityWithoutAudience", () => {
+        return "Une salle sans public ne peut pas avoir de capacité totale.";
+      })
+      .with("RoomTotalCapacityTooSmall", () => {
+        return "La capacité totale d'une salle ne peut pas être inférieure à sa capacité musiciens ou public.";
+      })
       .exhaustive();
   }
 

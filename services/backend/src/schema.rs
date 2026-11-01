@@ -18,8 +18,23 @@ diesel::table! {
         meeting_at -> Nullable<Time>,
         starts_at -> Time,
         public -> Bool,
-        location_id -> Int4,
         semester_id -> Int4,
+        room_id -> Int4,
+    }
+}
+
+diesel::table! {
+    location_contacts (id) {
+        id -> Int4,
+        location_id -> Int4,
+        #[max_length = 128]
+        name -> Varchar,
+        #[max_length = 254]
+        email -> Nullable<Varchar>,
+        #[max_length = 32]
+        phone_number -> Nullable<Varchar>,
+        #[max_length = 128]
+        role -> Nullable<Varchar>,
     }
 }
 
@@ -34,6 +49,7 @@ diesel::table! {
         zipcode -> Varchar,
         #[max_length = 256]
         street -> Varchar,
+        notes -> Nullable<Text>,
     }
 }
 
@@ -53,6 +69,18 @@ diesel::table! {
 }
 
 diesel::table! {
+    rooms (id) {
+        id -> Int4,
+        location_id -> Int4,
+        #[max_length = 128]
+        name -> Varchar,
+        musician_capacity -> Nullable<Int4>,
+        audience_capacity -> Nullable<Int4>,
+        total_capacity -> Nullable<Int4>,
+    }
+}
+
+diesel::table! {
     semesters (id) {
         id -> Int4,
         #[max_length = 32]
@@ -66,14 +94,18 @@ diesel::table! {
 
 diesel::joinable!(concert_pieces -> concerts (concert_id));
 diesel::joinable!(concert_pieces -> pieces (piece_id));
-diesel::joinable!(concerts -> locations (location_id));
+diesel::joinable!(concerts -> rooms (room_id));
 diesel::joinable!(concerts -> semesters (semester_id));
+diesel::joinable!(location_contacts -> locations (location_id));
 diesel::joinable!(pieces -> semesters (semester_id));
+diesel::joinable!(rooms -> locations (location_id));
 
 diesel::allow_tables_to_appear_in_same_query!(
     concert_pieces,
     concerts,
+    location_contacts,
     locations,
     pieces,
+    rooms,
     semesters,
 );

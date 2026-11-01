@@ -35,6 +35,14 @@ pub enum CheckViolationKind {
     SemestersDateOverlap,
     ConcertDateOutsideSemester,
     ConcertPieceOutsideSemester,
+    /// A concert was placed in a room without audience capacity.
+    ConcertRoomRehearsalOnly,
+    /// The audience capacity of a room hosting concerts was removed.
+    RoomHostsConcerts,
+    /// The total capacity of a room is lower than one of its capacities.
+    RoomTotalCapacityTooSmall,
+    /// A total capacity was given to a room without audience.
+    RoomTotalCapacityWithoutAudience,
 }
 
 #[derive(Object, Debug, PartialEq)]
@@ -74,11 +82,26 @@ impl From<diesel::result::Error> for ApiError {
                     ApiError::BadRequest(Json(BadRequestReason::UniqueViolation(UniqueViolation)))
                 }
                 DatabaseErrorKind::CheckViolation => {
-                    let kind = match database_error_information.message() {
+                    // Errors raised by triggers carry their kind in the
+                    // message; table constraints are identified by name.
+                    let kind = match database_error_information
+                        .constraint_name()
+                        .unwrap_or(database_error_information.message())
+                    {
                         "semesters_date_overlap" => Some(CheckViolationKind::SemestersDateOverlap),
                         "concert_date_outside_semester" => Some(CheckViolationKind::ConcertDateOutsideSemester),
                         "concert_piece_outside_semester" => {
                             Some(CheckViolationKind::ConcertPieceOutsideSemester)
+                        }
+                        "concert_room_rehearsal_only" => {
+                            Some(CheckViolationKind::ConcertRoomRehearsalOnly)
+                        }
+                        "room_hosts_concerts" => Some(CheckViolationKind::RoomHostsConcerts),
+                        "rooms_total_capacity_too_small" => {
+                            Some(CheckViolationKind::RoomTotalCapacityTooSmall)
+                        }
+                        "rooms_total_capacity_without_audience" => {
+                            Some(CheckViolationKind::RoomTotalCapacityWithoutAudience)
                         }
                         other => {
                             tracing::warn!("Unknown check violation: {}", other);

@@ -40,20 +40,23 @@ const concerts = computed(
       .sort((a, b) => a.date.localeCompare(b.date)) ?? [],
 );
 
-const { data: locations } = getLocations({
-  composable: "useAsyncData",
-  key: "getLocations",
-});
+const { locations, place, placeName } = useLocations();
 
-const locationItems = computed(
-  () =>
-    locations.value?.map((l) => ({
-      label: `${l.name} — ${l.city}`,
-      value: l.id,
-    })) ?? [],
+/** Every room; rehearsal-only rooms are listed but cannot host concerts. */
+const roomItems = computed(() =>
+  [...(locations.value ?? [])]
+    .sort((a, b) => a.name.localeCompare(b.name, "fr"))
+    .flatMap((l) =>
+      l.rooms.map((room) => ({
+        label: `${l.name} · ${room.name}`,
+        description: isRehearsalOnly(room)
+          ? "Répétitions uniquement"
+          : `${l.city} · ${room.audience_capacity} places`,
+        value: room.id,
+        disabled: isRehearsalOnly(room),
+      })),
+    ),
 );
-
-const location = (id: number) => locations.value?.find((l) => l.id === id);
 
 const { data: allPieces } = getPieces({
   composable: "useAsyncData",
@@ -106,7 +109,7 @@ const [meeting_at] = defineField("meeting_at");
 const [tickets_url, tickets_urlProps] = defineField("tickets_url");
 const [video_url, video_urlProps] = defineField("video_url");
 const [isPublic, isPublicProps] = defineField("public");
-const [location_id] = defineField("location_id");
+const [room_id] = defineField("room_id");
 
 const concertDialogShown = ref(false);
 const saveConcertId = ref<number | null>(null);
@@ -127,7 +130,7 @@ const saveConcert = (id: number | null) => {
     },
   );
 
-  if (!date.value || !starts_at.value || !location_id.value) {
+  if (!date.value || !starts_at.value || !room_id.value) {
     return;
   }
 
@@ -141,7 +144,7 @@ const saveConcert = (id: number | null) => {
     tickets_url: tickets_url.value || undefined,
     video_url: video_url.value || undefined,
     public: isPublic.value ?? false,
-    location_id: location_id.value,
+    room_id: room_id.value,
     semester_id: props.semester.id,
   };
 
@@ -195,7 +198,7 @@ const editConcert = (concert: Concert | ConcertWithPieces) => {
   tickets_url.value = concert.tickets_url ?? undefined;
   video_url.value = concert.video_url ?? undefined;
   isPublic.value = concert.public;
-  location_id.value = concert.location_id;
+  room_id.value = concert.room_id;
   saveConcertId.value = concert.id;
   concertDialogShown.value = true;
 };
@@ -282,9 +285,9 @@ const deleteConcert = (id: number, concertDate: string) => {
             </p>
             <p class="flex items-center gap-1 text-sm text-muted">
               <UIcon name="i-lucide-map-pin" class="shrink-0" />
-              {{ location(concert.location_id)?.name ?? "Lieu inconnu" }}
-              <template v-if="location(concert.location_id)">
-                · {{ location(concert.location_id)?.city }}
+              {{ placeName(concert.room_id) ?? "Lieu inconnu" }}
+              <template v-if="place(concert.room_id)">
+                · {{ place(concert.room_id)?.location.city }}
               </template>
             </p>
           </div>
@@ -386,16 +389,16 @@ const deleteConcert = (id: number, concertDate: string) => {
             :max="semester.end_date"
           />
         </UFormField>
-        <UFormField label="Lieu" :error="errors.location_id">
+        <UFormField label="Salle" :error="errors.room_id">
           <USelectMenu
-            v-model="location_id"
-            :items="locationItems"
+            v-model="room_id"
+            :items="roomItems"
             value-key="value"
             :search-input="{ placeholder: 'Rechercher…' }"
             class="w-full"
           >
             <template #empty>
-              Aucun lieu.
+              Aucune salle.
               <ULink to="/locations" class="text-primary">
                 Gérer les lieux
               </ULink>

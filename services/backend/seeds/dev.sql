@@ -2,6 +2,9 @@ DO $$
 DECLARE
     loc1_id INTEGER;
     loc2_id INTEGER;
+    loc3_id INTEGER;
+    room1_id INTEGER;
+    room2_id INTEGER;
     concert1_id INTEGER;
     concert2_id INTEGER;
     piece1_id INTEGER;
@@ -19,21 +22,39 @@ BEGIN
 
     -- Locations
     IF NOT EXISTS (SELECT 1 FROM locations WHERE city = 'Paris' AND street = '1 Rue de la Paix') THEN
-        INSERT INTO locations (name, city, zipcode, street) VALUES
-            ('Salle Gaveau', 'Paris', '75001', '1 Rue de la Paix'),
-            ('Opéra de Lyon', 'Lyon', '69001', '10 Place Bellecour');
+        INSERT INTO locations (name, city, zipcode, street, notes) VALUES
+            ('Salle Gaveau', 'Paris', '75001', '1 Rue de la Paix', 'Entrée des artistes rue de Ponthieu. Piano de concert accordé sur demande.'),
+            ('Opéra de Lyon', 'Lyon', '69001', '10 Place Bellecour', NULL),
+            ('Conservatoire du 11e', 'Paris', '75011', '12 Rue Oberkampf', 'Clés à récupérer à l''accueil. Pas de parking.');
 
         SELECT id INTO loc1_id FROM locations WHERE city = 'Paris' AND street = '1 Rue de la Paix';
         SELECT id INTO loc2_id FROM locations WHERE city = 'Lyon'  AND street = '10 Place Bellecour';
+        SELECT id INTO loc3_id FROM locations WHERE city = 'Paris' AND street = '12 Rue Oberkampf';
+
+        -- Rooms without audience capacity are for rehearsals only.
+        INSERT INTO rooms (location_id, name, musician_capacity, audience_capacity, total_capacity) VALUES
+            (loc1_id, 'Grande salle', 80, 1000, 1050),
+            (loc1_id, 'Salle Ravel', 40, NULL, NULL),
+            (loc2_id, 'Grande salle', 90, 1100, NULL),
+            (loc3_id, 'Auditorium', 70, 200, 250),
+            (loc3_id, 'Salle 12', 60, NULL, NULL);
+
+        SELECT id INTO room1_id FROM rooms WHERE location_id = loc1_id AND name = 'Grande salle';
+        SELECT id INTO room2_id FROM rooms WHERE location_id = loc2_id AND name = 'Grande salle';
+
+        INSERT INTO location_contacts (location_id, name, email, phone_number, role) VALUES
+            (loc1_id, 'Claire Martin', 'claire.martin@example.com', '01 23 45 67 89', 'Régisseuse'),
+            (loc1_id, 'Paul Durand', NULL, '06 12 34 56 78', NULL),
+            (loc2_id, 'Sophie Bernard', 'sophie.bernard@example.com', NULL, 'Programmation');
 
         -- Concerts
         SELECT id INTO semester_p26_id FROM semesters WHERE short_name = 'P26';
-        INSERT INTO concerts (date, tickets_url, video_url, meeting_at, doors_open_at, starts_at, public, location_id, semester_id) VALUES
-            ('2026-05-15', 'https://tickets.example.com/spring-concert', NULL, '18:00', '19:30', '20:00', TRUE,  loc1_id, semester_p26_id),
-            ('2026-06-20', NULL,                                          NULL, '16:30', NULL,   '18:00', FALSE, loc2_id, semester_p26_id);
+        INSERT INTO concerts (date, tickets_url, video_url, meeting_at, doors_open_at, starts_at, public, room_id, semester_id) VALUES
+            ('2026-05-15', 'https://tickets.example.com/spring-concert', NULL, '18:00', '19:30', '20:00', TRUE,  room1_id, semester_p26_id),
+            ('2026-06-20', NULL,                                          NULL, '16:30', NULL,   '18:00', FALSE, room2_id, semester_p26_id);
 
-        SELECT id INTO concert1_id FROM concerts WHERE date = '2026-05-15' AND location_id = loc1_id;
-        SELECT id INTO concert2_id FROM concerts WHERE date = '2026-06-20' AND location_id = loc2_id;
+        SELECT id INTO concert1_id FROM concerts WHERE date = '2026-05-15' AND room_id = room1_id;
+        SELECT id INTO concert2_id FROM concerts WHERE date = '2026-06-20' AND room_id = room2_id;
 
         -- Pieces
         INSERT INTO pieces (name, source, composer, arranger, semester_id) VALUES
