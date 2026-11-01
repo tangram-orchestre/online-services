@@ -24,6 +24,8 @@ pub struct NewLocation {
 #[derive(Object, Queryable, Selectable, Identifiable, AsChangeset)]
 #[diesel(table_name = crate::schema::concerts)]
 #[diesel(check_for_backend(diesel::pg::Pg))]
+// Clearing an optional field must set it to NULL, not leave it unchanged.
+#[diesel(treat_none_as_null = true)]
 pub struct Concert {
     pub id: i32,
     pub date: chrono::NaiveDate,
@@ -54,6 +56,7 @@ pub struct NewConcert {
 #[derive(Object, Queryable, Selectable, Identifiable, AsChangeset)]
 #[diesel(table_name = crate::schema::pieces)]
 #[diesel(check_for_backend(diesel::pg::Pg))]
+#[diesel(treat_none_as_null = true)]
 pub struct Piece {
     pub id: i32,
     pub name: String,
