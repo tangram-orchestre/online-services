@@ -29,6 +29,19 @@ diesel::table! {
         room_booked -> Bool,
         #[max_length = 128]
         name -> Nullable<Varchar>,
+        image_id -> Nullable<Uuid>,
+    }
+}
+
+diesel::table! {
+    images (id) {
+        id -> Uuid,
+        #[max_length = 32]
+        content_type -> Varchar,
+        width -> Int4,
+        height -> Int4,
+        data -> Bytea,
+        created_at -> Timestamptz,
     }
 }
 
@@ -59,6 +72,7 @@ diesel::table! {
         #[max_length = 256]
         street -> Varchar,
         notes -> Nullable<Text>,
+        image_id -> Nullable<Uuid>,
     }
 }
 
@@ -108,6 +122,7 @@ diesel::table! {
         musician_capacity -> Nullable<Int4>,
         audience_capacity -> Nullable<Int4>,
         total_capacity -> Nullable<Int4>,
+        image_id -> Nullable<Uuid>,
     }
 }
 
@@ -123,19 +138,31 @@ diesel::table! {
     }
 }
 
+diesel::table! {
+    settings (id) {
+        id -> Bool,
+        default_concert_image_id -> Nullable<Uuid>,
+    }
+}
+
 diesel::joinable!(concert_pieces -> concerts (concert_id));
 diesel::joinable!(concert_pieces -> pieces (piece_id));
+diesel::joinable!(concerts -> images (image_id));
 diesel::joinable!(concerts -> rooms (room_id));
 diesel::joinable!(concerts -> semesters (semester_id));
 diesel::joinable!(location_contacts -> locations (location_id));
+diesel::joinable!(locations -> images (image_id));
 diesel::joinable!(piece_people -> people (person_id));
 diesel::joinable!(piece_people -> pieces (piece_id));
 diesel::joinable!(pieces -> semesters (semester_id));
+diesel::joinable!(rooms -> images (image_id));
 diesel::joinable!(rooms -> locations (location_id));
+diesel::joinable!(settings -> images (default_concert_image_id));
 
 diesel::allow_tables_to_appear_in_same_query!(
     concert_pieces,
     concerts,
+    images,
     location_contacts,
     locations,
     people,
@@ -143,4 +170,5 @@ diesel::allow_tables_to_appear_in_same_query!(
     pieces,
     rooms,
     semesters,
+    settings,
 );

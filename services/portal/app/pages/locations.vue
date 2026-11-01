@@ -164,7 +164,7 @@ const deleteLocation = (location: Location) => {
           <li v-for="location in filteredLocations" :key="location.id">
             <button
               type="button"
-              class="flex w-full flex-col gap-1 rounded-lg border bg-default p-4 text-start transition-colors focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary"
+              class="flex w-full items-start gap-3 rounded-lg border bg-default p-4 text-start transition-colors focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary"
               :class="
                 selection === location.id
                   ? 'border-inverted ring-1 ring-inverted'
@@ -173,29 +173,37 @@ const deleteLocation = (location: Location) => {
               :aria-current="selection === location.id ? 'true' : undefined"
               @click="selection = location.id"
             >
-              <span class="font-display text-lg font-bold text-highlighted">
-                {{ location.name }}
-              </span>
-              <span class="text-sm text-toned">
-                {{ location.zipcode }} {{ location.city }}
-              </span>
-              <span class="flex flex-wrap gap-1.5 py-1">
-                <span
-                  v-for="room in location.rooms"
-                  :key="room.id"
-                  class="rounded-full px-2.5 py-0.5 text-xs font-medium"
-                  :class="
-                    isRehearsalOnly(room)
-                      ? 'bg-secondary/15'
-                      : 'bg-tertiary-200 text-on-tertiary'
-                  "
-                >
-                  {{ room.name }}
+              <span class="flex min-w-0 flex-1 flex-col gap-1">
+                <span class="font-display text-lg font-bold text-highlighted">
+                  {{ location.name }}
+                </span>
+                <span class="text-sm text-toned">
+                  {{ location.zipcode }} {{ location.city }}
+                </span>
+                <span class="flex flex-wrap gap-1.5 py-1">
+                  <span
+                    v-for="room in location.rooms"
+                    :key="room.id"
+                    class="rounded-full px-2.5 py-0.5 text-xs font-medium"
+                    :class="
+                      isRehearsalOnly(room)
+                        ? 'bg-secondary/15'
+                        : 'bg-tertiary-200 text-on-tertiary'
+                    "
+                  >
+                    {{ room.name }}
+                  </span>
+                </span>
+                <span class="text-sm text-muted">
+                  {{ concertCount(concertsAt(location).length) }}
                 </span>
               </span>
-              <span class="text-sm text-muted">
-                {{ concertCount(concertsAt(location).length) }}
-              </span>
+              <img
+                v-if="location.image_id"
+                :src="imageUrl(location.image_id)"
+                alt=""
+                class="aspect-video w-24 shrink-0 rounded-md object-cover"
+              />
             </button>
           </li>
         </ul>

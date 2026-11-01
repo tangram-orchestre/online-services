@@ -8,6 +8,7 @@ use poem_openapi::{OpenApi, param::Path, payload::Json};
 use crate::auth::policies::{Policy, RequireRole};
 use crate::auth::{Principal, Role};
 use crate::error::{ApiError, Result};
+use crate::images::delete_unused_images;
 use crate::{
     AppState,
     models::{self, ConcertPiece, ConcertWithPieces, NewConcert},
@@ -98,11 +99,28 @@ impl Api {
     ) -> Result<()> {
         RequireRole(Role::Bureau).check(&principal)?;
         let mut conn = state.db_connection_pool.get().await.unwrap();
-        diesel::update(concerts::table.find(concert.id))
-            .set(&concert)
-            .execute(&mut conn)
-            .await?;
-        Ok(())
+        conn.transaction::<_, ApiError, _>(|conn| {
+            async move {
+                let old_image_id = concerts::table
+                    .find(concert.id)
+                    .select(concerts::image_id)
+                    .first::<Option<uuid::Uuid>>(conn)
+                    .await
+                    .optional()?
+                    .ok_or(ApiError::NotFound)?;
+                diesel::update(concerts::table.find(concert.id))
+                    .set(&concert)
+                    .execute(conn)
+                    .await?;
+                // A replaced image is not used anymore.
+                if old_image_id != concert.image_id {
+                    delete_unused_images(conn, old_image_id.as_slice()).await?;
+                }
+                Ok(())
+            }
+            .scope_boxed()
+        })
+        .await
     }
 
     /// Delete a concert
@@ -115,14 +133,21 @@ impl Api {
     ) -> Result<()> {
         RequireRole(Role::Bureau).check(&principal)?;
         let mut conn = state.db_connection_pool.get().await.unwrap();
-        // The programme is deleted by cascade.
-        let deleted = diesel::delete(concerts::table.find(concert_id))
-            .execute(&mut conn)
-            .await?;
-        if deleted == 0 {
-            return Err(ApiError::NotFound);
-        }
-        Ok(())
+        conn.transaction::<_, ApiError, _>(|conn| {
+            async move {
+                // The programme is deleted by cascade.
+                let image_id = diesel::delete(concerts::table.find(concert_id))
+                    .returning(concerts::image_id)
+                    .get_result::<Option<uuid::Uuid>>(conn)
+                    .await
+                    .optional()?
+                    .ok_or(ApiError::NotFound)?;
+                delete_unused_images(conn, image_id.as_slice()).await?;
+                Ok(())
+            }
+            .scope_boxed()
+        })
+        .await
     }
 
     /// Set the programme of a concert

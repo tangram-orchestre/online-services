@@ -15,6 +15,8 @@ pub struct Location {
     pub street: String,
     /// Practical information: access, keys, piano, parking…
     pub notes: Option<String>,
+    /// Photo of the venue, shown for its concerts.
+    pub image_id: Option<uuid::Uuid>,
 }
 
 #[derive(Object, Insertable)]
@@ -26,6 +28,8 @@ pub struct NewLocation {
     pub street: String,
     /// Practical information: access, keys, piano, parking…
     pub notes: Option<String>,
+    /// Photo of the venue, shown for its concerts.
+    pub image_id: Option<uuid::Uuid>,
 }
 
 /// A room of a location, where rehearsals and concerts take place.
@@ -45,6 +49,8 @@ pub struct Room {
     /// Maximum number of people, musicians and audience together. Cannot be
     /// lower than either capacity, and requires an audience capacity.
     pub total_capacity: Option<i32>,
+    /// Photo of the room, shown for its concerts instead of the venue's.
+    pub image_id: Option<uuid::Uuid>,
 }
 
 /// A room to create (without `id`) or update (with the `id` of one of the
@@ -65,6 +71,8 @@ pub struct RoomInput {
     pub audience_capacity: Option<i32>,
     #[oai(validator(minimum(value = "1")))]
     pub total_capacity: Option<i32>,
+    /// Photo of the room, shown for its concerts instead of the venue's.
+    pub image_id: Option<uuid::Uuid>,
 }
 
 /// Row of `rooms`, as inserted.

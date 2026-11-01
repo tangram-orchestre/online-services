@@ -2,6 +2,7 @@
 import type { ConcertWithPieces, PieceWithPeople } from "#hey-api/types.gen";
 import type ConcertDialogComponent from "~/components/ConcertDialog.vue";
 import type ConcertProgrammeDialogComponent from "~/components/ConcertProgrammeDialog.vue";
+import type DefaultImageDialogComponent from "~/components/DefaultImageDialog.vue";
 
 definePageMeta({ middleware: "orga" });
 
@@ -69,6 +70,32 @@ const fullDate = (value: string) =>
     year: "numeric",
   });
 
+const { settings } = useSettings();
+
+/**
+ * Image of the concert on the showcase website, and where it comes from: its
+ * own, its room's, its venue's, else the default one.
+ */
+const concertImage = (concert: ConcertWithPieces) => {
+  const p = place(concert.room_id);
+  if (concert.image_id)
+    return { id: concert.image_id, source: "Image du concert" };
+  if (p?.room.image_id)
+    return {
+      id: p.room.image_id,
+      source: `Photo de la salle « ${p.room.name} »`,
+    };
+  if (p?.location.image_id)
+    return {
+      id: p.location.image_id,
+      source: `Photo du lieu « ${p.location.name} »`,
+    };
+  const id = settings.value?.default_concert_image_id;
+  return id ? { id, source: "Image par défaut", isDefault: true } : undefined;
+};
+
+const shownImage = computed(() => shown.value && concertImage(shown.value));
+
 const schedule = (concert: ConcertWithPieces) => [
   {
     label: "Rendez-vous des musiciens",
@@ -85,6 +112,10 @@ const schedule = (concert: ConcertWithPieces) => [
 
 const concertDialog =
   useTemplateRef<InstanceType<typeof ConcertDialogComponent>>("concertDialog");
+const defaultImageDialog =
+  useTemplateRef<InstanceType<typeof DefaultImageDialogComponent>>(
+    "defaultImageDialog",
+  );
 const programmeDialog =
   useTemplateRef<InstanceType<typeof ConcertProgrammeDialogComponent>>(
     "programmeDialog",
@@ -248,6 +279,57 @@ onMounted(() =>
               {{ countdown(shown.date) ?? "Passé" }}
             </span>
           </div>
+          <!-- As on the showcase website. -->
+          <section v-if="shownImage" class="flex flex-col gap-2">
+            <h3 class="font-semibold">Image sur le site</h3>
+            <div class="flex items-center gap-4">
+              <a
+                :href="imageUrl(shownImage.id)"
+                target="_blank"
+                class="shrink-0"
+              >
+                <img
+                  :src="imageUrl(shownImage.id)"
+                  :alt="shownImage.source"
+                  class="aspect-video w-28 rounded-md object-cover"
+                />
+              </a>
+              <div class="flex min-w-0 flex-col gap-0.5">
+                <span
+                  class="text-sm"
+                  :class="
+                    shownImage.isDefault
+                      ? 'font-medium text-warning'
+                      : 'text-toned'
+                  "
+                >
+                  {{ shownImage.source }}
+                </span>
+                <span v-if="shownImage.isDefault" class="text-xs text-muted">
+                  Ajoutez une image au concert, à sa salle ou à son lieu.
+                </span>
+                <span class="flex flex-wrap gap-x-3">
+                  <UButton
+                    label="Changer"
+                    color="neutral"
+                    variant="link"
+                    size="xs"
+                    class="px-0"
+                    @click="concertDialog?.open(shown)"
+                  />
+                  <UButton
+                    v-if="shownImage.isDefault"
+                    label="Image par défaut…"
+                    color="neutral"
+                    variant="link"
+                    size="xs"
+                    class="px-0"
+                    @click="defaultImageDialog?.open()"
+                  />
+                </span>
+              </div>
+            </div>
+          </section>
 
           <section class="flex flex-col gap-2">
             <h3 class="font-semibold">Lieu</h3>
@@ -373,6 +455,7 @@ onMounted(() =>
       @deleted="onDeleted"
     />
     <ConcertProgrammeDialog ref="programmeDialog" :pieces="pieces" />
+    <DefaultImageDialog ref="defaultImageDialog" />
   </div>
 
   <UEmpty

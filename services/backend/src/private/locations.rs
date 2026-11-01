@@ -6,10 +6,12 @@ use diesel_async::{
 };
 use poem::web::Data;
 use poem_openapi::{OpenApi, param::Path, payload::Json};
+use uuid::Uuid;
 
 use crate::auth::policies::{Policy, RequireRole};
 use crate::auth::{Principal, Role};
 use crate::error::{ApiError, Result};
+use crate::images::delete_unused_images;
 use crate::{
     AppState,
     models::{
@@ -93,6 +95,28 @@ async fn set_rooms(
             .await?;
     }
     Ok(())
+}
+
+/// Images of a location and of its rooms.
+async fn location_images(conn: &mut AsyncPgConnection, location_id: i32) -> Result<Vec<Uuid>> {
+    let mut ids: Vec<Uuid> = locations::table
+        .find(location_id)
+        .select(locations::image_id)
+        .load::<Option<Uuid>>(conn)
+        .await?
+        .into_iter()
+        .flatten()
+        .collect();
+    ids.extend(
+        rooms::table
+            .filter(rooms::location_id.eq(location_id))
+            .select(rooms::image_id)
+            .load::<Option<Uuid>>(conn)
+            .await?
+            .into_iter()
+            .flatten(),
+    );
+    Ok(ids)
 }
 
 /// Loads locations, with their rooms and contacts.
@@ -221,6 +245,7 @@ impl Api {
             .transaction::<_, ApiError, _>(|conn| {
                 async move {
                     let location_id = update.location.id;
+                    let old_images = location_images(conn, location_id).await?;
                     let found = diesel::update(locations::table.find(location_id))
                         .set(&update.location)
                         .execute(conn)
@@ -230,6 +255,8 @@ impl Api {
                     }
                     set_rooms(conn, location_id, update.rooms).await?;
                     set_contacts(conn, location_id, update.contacts).await?;
+                    // Images replaced or of deleted rooms, if not used elsewhere.
+                    delete_unused_images(conn, &old_images).await?;
                     load_location(conn, location_id).await
                 }
                 .scope_boxed()
@@ -250,13 +277,21 @@ impl Api {
     ) -> Result<()> {
         RequireRole(Role::Bureau).check(&principal)?;
         let mut conn = state.db_connection_pool.get().await.unwrap();
-        // Rooms and contacts are deleted by cascade.
-        let deleted = diesel::delete(locations::table.find(location_id))
-            .execute(&mut conn)
-            .await?;
-        if deleted == 0 {
-            return Err(ApiError::NotFound);
-        }
-        Ok(())
+        conn.transaction::<_, ApiError, _>(|conn| {
+            async move {
+                let images = location_images(conn, location_id).await?;
+                // Rooms and contacts are deleted by cascade.
+                let deleted = diesel::delete(locations::table.find(location_id))
+                    .execute(conn)
+                    .await?;
+                if deleted == 0 {
+                    return Err(ApiError::NotFound);
+                }
+                delete_unused_images(conn, &images).await?;
+                Ok(())
+            }
+            .scope_boxed()
+        })
+        .await
     }
 }

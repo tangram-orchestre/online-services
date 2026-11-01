@@ -23,6 +23,8 @@ pub struct Concert {
     /// Whether the venue confirmed the room booking.
     pub room_booked: bool,
     pub semester_id: i32,
+    /// Replaces the photo of the venue on the showcase website.
+    pub image_id: Option<uuid::Uuid>,
 }
 
 #[derive(Object, Insertable)]
@@ -43,6 +45,8 @@ pub struct NewConcert {
     /// Whether the venue confirmed the room booking.
     pub room_booked: bool,
     pub semester_id: i32,
+    /// Replaces the photo of the venue on the showcase website.
+    pub image_id: Option<uuid::Uuid>,
 }
 
 #[derive(Object, Queryable, Selectable, Identifiable, AsChangeset)]

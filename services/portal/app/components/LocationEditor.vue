@@ -28,6 +28,7 @@ type RoomForm = {
   musician_capacity: NumberInput;
   audience_capacity: NumberInput;
   total_capacity: NumberInput;
+  image_id: string | undefined;
 };
 
 type ContactForm = {
@@ -43,6 +44,7 @@ type Form = {
   zipcode: string;
   city: string;
   notes: string;
+  image_id: string | undefined;
   rooms: RoomForm[];
   contacts: ContactForm[];
 };
@@ -67,6 +69,7 @@ const zRoomForm = z
     musician_capacity: capacity,
     audience_capacity: capacity,
     total_capacity: capacity,
+    image_id: z.string().optional(),
   })
   .superRefine((room, ctx) => {
     const issue = (field: keyof RoomForm, message: string) =>
@@ -103,6 +106,7 @@ const zForm = z.object({
   zipcode: z.string().trim().min(1, "Code postal requis").max(16),
   city: z.string().trim().min(1, "Ville requise").max(128),
   notes: z.string().trim(),
+  image_id: z.string().optional(),
   rooms: z
     .array(zRoomForm)
     .min(1, "Ajoutez au moins une salle")
@@ -142,6 +146,7 @@ const emptyRoom = (name = ""): RoomForm => ({
   musician_capacity: "",
   audience_capacity: "",
   total_capacity: "",
+  image_id: undefined,
 });
 
 const initialForm = (): Form => {
@@ -152,6 +157,8 @@ const initialForm = (): Form => {
     zipcode: l?.zipcode ?? "",
     city: l?.city ?? "",
     notes: l?.notes ?? "",
+    // The API sends null for no image.
+    image_id: l?.image_id ?? undefined,
     rooms: l
       ? l.rooms.map((r) => ({
           id: r.id,
@@ -160,6 +167,7 @@ const initialForm = (): Form => {
           musician_capacity: r.musician_capacity ?? "",
           audience_capacity: r.audience_capacity ?? "",
           total_capacity: r.total_capacity ?? "",
+          image_id: r.image_id ?? undefined,
         }))
       : [emptyRoom("Salle principale")],
     contacts:
@@ -307,6 +315,7 @@ const submit = async () => {
     zipcode: values.zipcode,
     city: values.city,
     notes: values.notes || undefined,
+    image_id: values.image_id,
     rooms: values.rooms.map((r) => ({
       id: r.id,
       name: r.name,
@@ -317,6 +326,7 @@ const submit = async () => {
       total_capacity: r.rehearsal_only
         ? undefined
         : (r.total_capacity ?? undefined),
+      image_id: r.image_id,
     })),
     contacts: values.contacts.map((c) => ({
       name: c.name,
@@ -564,6 +574,22 @@ watch(
             </p>
           </div>
         </section>
+
+        <UFormField
+          label="Photo de la salle"
+          hint="Facultatif"
+          :help="
+            room.rehearsal_only
+              ? undefined
+              : 'Remplace la photo du lieu pour les concerts dans cette salle.'
+          "
+          class="border-t border-default pt-4"
+        >
+          <ImageInput
+            v-model="room.image_id"
+            :alt="`Photo de ${room.name || 'la salle'}`"
+          />
+        </UFormField>
       </div>
 
       <p v-if="submitted && errors.rooms" class="text-sm text-error">
@@ -657,6 +683,14 @@ watch(
         @click="addContact()"
       />
     </fieldset>
+
+    <UFormField
+      label="Photo du lieu"
+      hint="Facultatif"
+      help="Illustre ses concerts sur le site vitrine."
+    >
+      <ImageInput v-model="form.image_id" :alt="`Photo de ${form.name}`" />
+    </UFormField>
 
     <UFormField
       label="Notes pratiques"

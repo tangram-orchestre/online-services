@@ -1,11 +1,13 @@
 use poem_openapi::{OpenApi, Tags};
 
 mod concerts;
+mod images;
 mod locations;
 mod misc;
 mod people;
 mod pieces;
 mod semesters;
+mod settings;
 mod users;
 
 pub(super) fn api() -> impl OpenApi {
@@ -17,6 +19,8 @@ pub(super) fn api() -> impl OpenApi {
         locations::Api,
         pieces::Api,
         people::Api,
+        images::Api,
+        settings::Api,
     )
 }
 
@@ -29,4 +33,6 @@ enum PrivateApiTags {
     Locations,
     Pieces,
     People,
+    Images,
+    Settings,
 }

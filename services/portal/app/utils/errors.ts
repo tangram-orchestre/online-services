@@ -63,6 +63,11 @@ export const onResponseErrorHandler = (
         errorMsg = errorMessageFromCheckViolation(d);
       } else if (d.type === "NotNullViolation") {
         errorMsg = `Un champ requis n'est pas rempli`;
+      } else if (d.type === "InvalidImage") {
+        errorMsg =
+          d.reason === "TooLarge"
+            ? "Image trop lourde : 15 Mo maximum."
+            : "Format non pris en charge : utilisez une image JPEG, PNG ou WebP (les photos HEIC d'iPhone sont à exporter en JPEG).";
       } else if (d.type === "ForeignKeyViolation") {
         errorMsg =
           foreignKeyMessage ??

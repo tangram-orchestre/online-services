@@ -56,6 +56,19 @@ pub struct CheckViolation {
     details: Option<String>,
 }
 
+#[derive(Enum, Debug, PartialEq)]
+pub enum InvalidImageReason {
+    /// Larger than the upload limit.
+    TooLarge,
+    /// Not an image, or in a format that is not supported (e.g. HEIC).
+    Unsupported,
+}
+
+#[derive(Object, Debug, PartialEq)]
+pub struct InvalidImage {
+    pub reason: InvalidImageReason,
+}
+
 #[derive(Union, Debug, PartialEq)]
 #[oai(discriminator_name = "type")]
 pub enum BadRequestReason {
@@ -63,6 +76,7 @@ pub enum BadRequestReason {
     ForeignKeyViolation(ForeignKeyViolation),
     NotNullViolation(NotNullViolation),
     CheckViolation(CheckViolation),
+    InvalidImage(InvalidImage),
 }
 
 fn bad_request_handler(err: poem::Error) -> ApiError {
@@ -70,6 +84,12 @@ fn bad_request_handler(err: poem::Error) -> ApiError {
 }
 
 impl ApiError {
+    pub fn invalid_image(reason: InvalidImageReason) -> Self {
+        Self::BadRequest(Json(BadRequestReason::InvalidImage(InvalidImage {
+            reason,
+        })))
+    }
+
     pub(super) fn internal(text: impl Into<String>) -> Self {
         Self::Internal(PlainText(text.into()))
     }

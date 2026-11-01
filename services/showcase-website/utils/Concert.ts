@@ -9,8 +9,11 @@ export interface Piece {
 }
 
 export interface Concert {
+  /** YYYY-MM-DD */
   date: string;
+  /** HTML (e.g. « Mairie du XIV<sup>ème</sup> »). */
   location: string;
+  /** Local path (bundled image) or URL of an image uploaded to the API. */
   image: string;
   url?: Url;
   program?: Array<Piece>;

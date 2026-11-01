@@ -94,6 +94,7 @@ const [video_url, video_urlProps] = defineField("video_url");
 const [isPublic, isPublicProps] = defineField("public");
 const [room_id] = defineField("room_id");
 const [room_booked] = defineField("room_booked");
+const [image_id] = defineField("image_id");
 
 // Without a room, there is no booking to confirm.
 watch(room_id, (id) => {
@@ -118,6 +119,7 @@ const open = (concert?: Concert | ConcertWithPieces) => {
     isPublic.value = concert.public;
     room_id.value = concert.room_id ?? undefined;
     room_booked.value = concert.room_booked;
+    image_id.value = concert.image_id ?? undefined;
     editedId.value = concert.id;
   } else {
     handleReset();
@@ -154,6 +156,7 @@ const save = (id: number | null) => {
     room_id: room_id.value ?? undefined,
     room_booked: room_id.value != null && (room_booked.value ?? false),
     semester_id: props.semester.id,
+    image_id: image_id.value ?? undefined,
   };
 
   const promise: Promise<number> =
@@ -308,6 +311,14 @@ const removeEdited = () => {
             type="url"
             class="w-full"
           />
+        </UFormField>
+        <UFormField
+          label="Image"
+          hint="Facultatif"
+          help="Remplace la photo de la salle et du lieu sur le site vitrine (une affiche par exemple)."
+          :error="errors.image_id"
+        >
+          <ImageInput v-model="image_id" alt="Image du concert" />
         </UFormField>
         <UFormField :error="errors.public">
           <USwitch v-model="isPublic" v-bind="isPublicProps" label="Public" />
