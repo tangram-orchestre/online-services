@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { useForm } from "vee-validate";
+import { z } from "zod";
 import { toTypedSchema } from "@vee-validate/zod";
 import { zNewConcert } from "#hey-api/zod.gen";
 import type { Concert, ConcertWithPieces, Semester } from "#hey-api/types.gen";
@@ -84,8 +85,18 @@ const onProgrammeSaved = (concertId: number, pieceIds: number[]) => {
   }
 };
 
+/** An optional link: empty, or an http(s) URL. */
+const zLink = z
+  .string()
+  .trim()
+  .refine((v) => !v || /^https?:\/\/\S+\.\S+$/.test(v), {
+    message: "Lien invalide : il doit commencer par https://",
+  })
+  .optional();
+
 const zConcertForm = zNewConcert
   .omit({ semester_id: true })
+  .extend({ tickets_url: zLink, video_url: zLink })
   .refine((obj) => !obj.doors_open_at || obj.doors_open_at < obj.starts_at, {
     path: ["doors_open_at"],
     message:
