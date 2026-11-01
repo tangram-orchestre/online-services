@@ -38,3 +38,13 @@ export const useLocations = () => {
 
 /** A room without audience capacity only hosts rehearsals. */
 export const isRehearsalOnly = (room: Room) => room.audience_capacity == null;
+
+/** Concerts count by room id. */
+export const roomConcertCounts = (concerts: { room_id?: number | null }[]) => {
+  const counts = new Map<number, number>();
+  for (const { room_id } of concerts) {
+    if (room_id == null) continue;
+    counts.set(room_id, (counts.get(room_id) ?? 0) + 1);
+  }
+  return counts;
+};
