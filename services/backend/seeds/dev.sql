@@ -1,3 +1,10 @@
+-- Development data. Runs at every backend start, so each part only inserts
+-- what is missing.
+--
+-- Semesters are computed from the current date: the seed always provides the
+-- semester in progress and the one before, so the dashboard has data whenever
+-- the dev stack is started. Autumn runs from 1 September to 31 January,
+-- spring from 1 February to 31 August, so every day belongs to a semester.
 DO $$
 DECLARE
     loc1_id INTEGER;
@@ -5,21 +12,21 @@ DECLARE
     loc3_id INTEGER;
     room1_id INTEGER;
     room2_id INTEGER;
+    sem_id INTEGER;
     concert1_id INTEGER;
     concert2_id INTEGER;
     piece1_id INTEGER;
     piece2_id INTEGER;
     piece3_id INTEGER;
-    semester_p26_id INTEGER;
+    ref_day DATE;
+    sem_start DATE;
+    sem_end DATE;
+    sem_short_name TEXT;
+    sem_long_name TEXT;
+    anchor DATE;
+    concert1_date DATE;
+    concert2_date DATE;
 BEGIN
-    -- Semesters
-    IF NOT EXISTS (SELECT 1 FROM semesters WHERE short_name = 'P26') THEN
-        INSERT INTO semesters (short_name, long_name, start_date, end_date) VALUES
-            ('P26', 'Printemps 2026', '2026-01-28', '2026-07-04'),
-            ('A25', 'Automne 2025', '2025-09-01', '2026-01-28')
-        ON CONFLICT (short_name) DO NOTHING;
-    END IF;
-
     -- Locations
     IF NOT EXISTS (SELECT 1 FROM locations WHERE city = 'Paris' AND street = '1 Rue de la Paix') THEN
         INSERT INTO locations (name, city, zipcode, street, notes) VALUES
@@ -39,37 +46,89 @@ BEGIN
             (loc3_id, 'Auditorium', 70, 200, 250),
             (loc3_id, 'Salle 12', 60, NULL, NULL);
 
-        SELECT id INTO room1_id FROM rooms WHERE location_id = loc1_id AND name = 'Grande salle';
-        SELECT id INTO room2_id FROM rooms WHERE location_id = loc2_id AND name = 'Grande salle';
-
         INSERT INTO location_contacts (location_id, name, email, phone_number, role) VALUES
             (loc1_id, 'Claire Martin', 'claire.martin@example.com', '01 23 45 67 89', 'Régisseuse'),
             (loc1_id, 'Paul Durand', NULL, '06 12 34 56 78', NULL),
             (loc2_id, 'Sophie Bernard', 'sophie.bernard@example.com', NULL, 'Programmation');
+    END IF;
 
-        -- Concerts
-        SELECT id INTO semester_p26_id FROM semesters WHERE short_name = 'P26';
-        INSERT INTO concerts (date, tickets_url, video_url, meeting_at, doors_open_at, starts_at, public, room_id, semester_id) VALUES
-            ('2026-05-15', 'https://tickets.example.com/spring-concert', NULL, '18:00', '19:30', '20:00', TRUE,  room1_id, semester_p26_id),
-            ('2026-06-20', NULL,                                          NULL, '16:30', NULL,   '18:00', FALSE, room2_id, semester_p26_id);
+    -- Concert rooms (absent if they were removed by hand).
+    SELECT r.id INTO room1_id FROM rooms r JOIN locations l ON l.id = r.location_id
+        WHERE l.street = '1 Rue de la Paix' AND r.name = 'Grande salle' AND r.audience_capacity IS NOT NULL;
+    SELECT r.id INTO room2_id FROM rooms r JOIN locations l ON l.id = r.location_id
+        WHERE l.street = '10 Place Bellecour' AND r.name = 'Grande salle' AND r.audience_capacity IS NOT NULL;
 
-        SELECT id INTO concert1_id FROM concerts WHERE date = '2026-05-15' AND room_id = room1_id;
-        SELECT id INTO concert2_id FROM concerts WHERE date = '2026-06-20' AND room_id = room2_id;
+    -- Semesters: the previous one, then the current one.
+    FOREACH ref_day IN ARRAY ARRAY[
+        -- Last day of the previous semester.
+        (CASE
+            WHEN EXTRACT(MONTH FROM CURRENT_DATE) >= 9
+                THEN make_date(EXTRACT(YEAR FROM CURRENT_DATE)::INT, 8, 31)
+            WHEN EXTRACT(MONTH FROM CURRENT_DATE) = 1
+                THEN make_date(EXTRACT(YEAR FROM CURRENT_DATE)::INT - 1, 8, 31)
+            ELSE make_date(EXTRACT(YEAR FROM CURRENT_DATE)::INT, 1, 31)
+        END),
+        CURRENT_DATE
+    ] LOOP
+        IF EXTRACT(MONTH FROM ref_day) BETWEEN 2 AND 8 THEN
+            sem_start := make_date(EXTRACT(YEAR FROM ref_day)::INT, 2, 1);
+            sem_end := make_date(EXTRACT(YEAR FROM ref_day)::INT, 8, 31);
+            sem_short_name := 'P' || to_char(sem_start, 'YY');
+            sem_long_name := 'Printemps ' || to_char(sem_start, 'YYYY');
+        ELSE
+            sem_start := make_date(EXTRACT(YEAR FROM ref_day)::INT - (EXTRACT(MONTH FROM ref_day) = 1)::INT, 9, 1);
+            sem_end := (sem_start + INTERVAL '5 months' - INTERVAL '1 day')::DATE;
+            sem_short_name := 'A' || to_char(sem_start, 'YY');
+            sem_long_name := 'Automne ' || to_char(sem_start, 'YYYY');
+        END IF;
+
+        -- Leave semesters created by hand alone (they cannot overlap).
+        IF EXISTS (SELECT 1 FROM semesters WHERE start_date <= sem_end AND end_date >= sem_start) THEN
+            CONTINUE;
+        END IF;
+
+        sem_id := NULL;
+        INSERT INTO semesters (short_name, long_name, start_date, end_date)
+            VALUES (sem_short_name, sem_long_name, sem_start, sem_end)
+            ON CONFLICT DO NOTHING
+            RETURNING id INTO sem_id;
+        IF sem_id IS NULL THEN
+            RAISE NOTICE 'Seed: semester % (or %) already exists, skipped', sem_short_name, sem_long_name;
+            CONTINUE;
+        END IF;
 
         -- Pieces
-        INSERT INTO pieces (name, source, composer, arranger, semester_id) VALUES
-            ('Symphony No. 5',    'Op. 67',         'Ludwig van Beethoven', NULL,         semester_p26_id),
-            ('Bohemian Rhapsody', NULL,              'Freddie Mercury',      'John Smith', semester_p26_id),
-            ('Carmen Suite',      'Bizet''s opera',  'Georges Bizet',        'Pierre Dupont', semester_p26_id);
+        INSERT INTO pieces (name, source, composer, arranger, semester_id)
+            VALUES ('Symphony No. 5', 'Op. 67', 'Ludwig van Beethoven', NULL, sem_id)
+            RETURNING id INTO piece1_id;
+        INSERT INTO pieces (name, source, composer, arranger, semester_id)
+            VALUES ('Bohemian Rhapsody', NULL, 'Freddie Mercury', 'John Smith', sem_id)
+            RETURNING id INTO piece2_id;
+        INSERT INTO pieces (name, source, composer, arranger, semester_id)
+            VALUES ('Carmen Suite', 'Bizet''s opera', 'Georges Bizet', 'Pierre Dupont', sem_id)
+            RETURNING id INTO piece3_id;
 
-        SELECT id INTO piece1_id FROM pieces WHERE name = 'Symphony No. 5';
-        SELECT id INTO piece2_id FROM pieces WHERE name = 'Bohemian Rhapsody';
-        SELECT id INTO piece3_id FROM pieces WHERE name = 'Carmen Suite';
+        IF room1_id IS NULL OR room2_id IS NULL THEN
+            CONTINUE;
+        END IF;
+
+        -- Concerts around today: one a few weeks ago, one a few weeks ahead.
+        -- In past semesters, both near the end.
+        anchor := LEAST(GREATEST(CURRENT_DATE, sem_start), sem_end - 28);
+        concert1_date := GREATEST(anchor - 21, sem_start);
+        concert2_date := LEAST(anchor + 28, sem_end);
+
+        INSERT INTO concerts (date, tickets_url, video_url, meeting_at, doors_open_at, starts_at, public, room_id, semester_id)
+            VALUES (concert1_date, 'https://tickets.example.com/' || lower(sem_short_name), NULL, '18:00', '19:30', '20:00', TRUE, room1_id, sem_id)
+            RETURNING id INTO concert1_id;
+        INSERT INTO concerts (date, tickets_url, video_url, meeting_at, doors_open_at, starts_at, public, room_id, semester_id)
+            VALUES (concert2_date, NULL, NULL, '16:30', NULL, '18:00', FALSE, room2_id, sem_id)
+            RETURNING id INTO concert2_id;
 
         INSERT INTO concert_pieces (concert_id, piece_id, position) VALUES
             (concert1_id, piece1_id, 0),
             (concert1_id, piece3_id, 1),
             (concert2_id, piece2_id, 0),
             (concert2_id, piece3_id, 1);
-    END IF;
+    END LOOP;
 END $$;
