@@ -25,7 +25,9 @@ impl Api {
     pub async fn list_concerts(
         &self,
         Data(state): Data<&AppState>,
+        Data(principal): Data<&Principal>,
     ) -> Result<Json<Vec<ConcertWithPieces>>> {
+        RequireRole(Role::Orga).check(principal)?;
         let mut conn = state.db_connection_pool.get().await.unwrap();
         // One snapshot for both queries, so that programmes match concerts.
         let (concerts, links) = conn

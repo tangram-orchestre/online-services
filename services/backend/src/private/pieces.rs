@@ -65,7 +65,9 @@ impl Api {
     pub async fn list_pieces(
         &self,
         Data(state): Data<&AppState>,
+        Data(principal): Data<&Principal>,
     ) -> Result<Json<Vec<PieceWithPeople>>> {
+        RequireRole(Role::Orga).check(principal)?;
         let mut conn = state.db_connection_pool.get().await.unwrap();
         // One snapshot for both queries, so that credits match pieces.
         let (pieces, links) = conn

@@ -4,6 +4,8 @@ import type { RouteLocationRaw } from "vue-router";
 
 definePageMeta({ middleware: "orga" });
 
+const { canEdit } = useRoles();
+
 const { status: semestersStatus, pageLink } = useSemesters();
 const { semester, concerts, pieces, pieceById, loading } = useProgramme();
 const { place, placeName } = useLocations();
@@ -58,7 +60,10 @@ type Todo = {
 
 /** Concerts page, with a concert selected and one of its dialogs opened. */
 const concertLink = (concertId: number, edit: "concert" | "programme") =>
-  pageLink("/concerts", { concert: concertId, edit });
+  pageLink("/concerts", {
+    concert: concertId,
+    edit: canEdit.value ? edit : undefined,
+  });
 
 /** Things the organisers should look at, derived from the semester data. */
 const todos = computed<Todo[]>(() => {
@@ -68,21 +73,21 @@ const todos = computed<Todo[]>(() => {
   if (!concerts.value.length) {
     result.push({
       key: "no-concert",
-      to: pageLink("/concerts", { edit: "new" }),
+      to: pageLink("/concerts", { edit: canEdit.value ? "new" : undefined }),
       tag: "Concerts",
       title: "Aucun concert prévu ce semestre",
       detail: "Ajoutez les dates pour pouvoir construire les programmes.",
-      action: "Ajouter un concert",
+      action: canEdit.value ? "Ajouter un concert" : "Voir les concerts",
     });
   }
   if (!pieces.value.length) {
     result.push({
       key: "no-piece",
-      to: pageLink("/pieces", { edit: "new" }),
+      to: pageLink("/pieces", { edit: canEdit.value ? "new" : undefined }),
       tag: "Morceaux",
       title: "Aucun morceau pour ce semestre",
       detail: "Ajoutez les morceaux travaillés ce semestre.",
-      action: "Ajouter des morceaux",
+      action: canEdit.value ? "Ajouter des morceaux" : "Voir les morceaux",
     });
   }
 
@@ -150,7 +155,7 @@ const todos = computed<Todo[]>(() => {
         unscheduled.length === 1
           ? "Ajoutez-le à un programme ou retirez-le du semestre."
           : names.join(", "),
-      action: "Ajouter aux programmes",
+      action: canEdit.value ? "Ajouter aux programmes" : "Voir les morceaux",
     });
   }
 

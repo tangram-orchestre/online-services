@@ -185,7 +185,9 @@ impl Api {
     pub async fn list_locations(
         &self,
         Data(state): Data<&AppState>,
+        Data(principal): Data<&Principal>,
     ) -> Result<Json<Vec<LocationWithDetails>>> {
+        RequireRole(Role::Orga).check(principal)?;
         let mut conn = state.db_connection_pool.get().await.unwrap();
         // One snapshot for the locations, rooms and contacts queries.
         let locations = conn

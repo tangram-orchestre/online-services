@@ -6,6 +6,8 @@ import type DefaultImageDialogComponent from "~/components/DefaultImageDialog.vu
 
 definePageMeta({ middleware: "orga" });
 
+const { canEdit } = useRoles();
+
 const route = useRoute();
 const router = useRouter();
 
@@ -129,11 +131,14 @@ onMounted(() =>
     [() => route.query.edit, concerts],
     ([edit]) => {
       if (!edit) return;
-      if (edit === "new") concertDialog.value?.open();
-      else if (!selected.value) return;
-      else if (edit === "concert") concertDialog.value?.open(selected.value);
-      else if (edit === "programme")
-        programmeDialog.value?.open(selected.value);
+      // Read-only users only get the concert selected.
+      if (canEdit.value) {
+        if (edit === "new") concertDialog.value?.open();
+        else if (!selected.value) return;
+        else if (edit === "concert") concertDialog.value?.open(selected.value);
+        else if (edit === "programme")
+          programmeDialog.value?.open(selected.value);
+      }
       router.replace({ query: { ...route.query, edit: undefined } });
     },
     { immediate: true },
@@ -153,6 +158,7 @@ onMounted(() =>
           label="Ajouter un concert"
           icon="i-lucide-plus"
           size="lg"
+          :disabled="!canEdit"
           @click="concertDialog?.open()"
         />
       </template>
@@ -315,6 +321,7 @@ onMounted(() =>
                     variant="link"
                     size="xs"
                     class="px-0"
+                    :disabled="!canEdit"
                     @click="concertDialog?.open(shown)"
                   />
                   <UButton
@@ -324,6 +331,7 @@ onMounted(() =>
                     variant="link"
                     size="xs"
                     class="px-0"
+                    :disabled="!canEdit"
                     @click="defaultImageDialog?.open()"
                   />
                 </span>
@@ -384,6 +392,7 @@ onMounted(() =>
                 color="neutral"
                 variant="ghost"
                 size="sm"
+                :disabled="!canEdit"
                 @click="programmeDialog?.open(shown)"
               />
             </div>
@@ -434,6 +443,7 @@ onMounted(() =>
               icon="i-lucide-pencil"
               color="primary"
               variant="outline"
+              :disabled="!canEdit"
               @click="concertDialog?.open(shown)"
             />
             <UButton
@@ -441,6 +451,7 @@ onMounted(() =>
               icon="i-lucide-trash-2"
               color="error"
               variant="ghost"
+              :disabled="!canEdit"
               @click="concertDialog?.remove(shown)"
             />
           </div>

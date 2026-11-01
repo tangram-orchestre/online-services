@@ -15,6 +15,8 @@ export const useSemesters = () => {
   } = getSemesters({
     composable: "useAsyncData",
     key: "getSemesters",
+    // Reserved to the Orga group: not fetched for other members.
+    asyncDataOptions: { immediate: useRoles().isOrga.value },
   });
 
   /** Most recent first. */

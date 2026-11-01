@@ -3,6 +3,8 @@ import type PieceDialogComponent from "~/components/PieceDialog.vue";
 
 definePageMeta({ middleware: "orga" });
 
+const { canEdit } = useRoles();
+
 const route = useRoute();
 const router = useRouter();
 
@@ -62,7 +64,7 @@ const dialog =
 // only: the dialog state is not transferred from the server.
 onMounted(() => {
   if (route.query.edit !== "new") return;
-  dialog.value?.open();
+  if (canEdit.value) dialog.value?.open();
   router.replace({ query: { ...route.query, edit: undefined } });
 });
 </script>
@@ -79,6 +81,7 @@ onMounted(() => {
           label="Ajouter un morceau"
           icon="i-lucide-plus"
           size="lg"
+          :disabled="!canEdit"
           @click="dialog?.open()"
         />
       </template>
@@ -247,6 +250,7 @@ onMounted(() => {
               icon="i-lucide-pencil"
               color="primary"
               variant="outline"
+              :disabled="!canEdit"
               @click="dialog?.open(shown)"
             />
             <UButton
@@ -254,6 +258,7 @@ onMounted(() => {
               icon="i-lucide-trash-2"
               color="error"
               variant="ghost"
+              :disabled="!canEdit"
               @click="dialog?.remove(shown)"
             />
           </div>

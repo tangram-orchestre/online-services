@@ -26,7 +26,9 @@ impl Api {
     pub(crate) async fn semesters(
         &self,
         Data(state): Data<&AppState>,
+        Data(principal): Data<&Principal>,
     ) -> Result<Json<Vec<models::Semester>>> {
+        RequireRole(Role::Orga).check(principal)?;
         let mut conn = state.db_connection_pool.get().await.unwrap();
 
         let semesters = semesters::table

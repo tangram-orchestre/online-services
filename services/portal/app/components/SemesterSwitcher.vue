@@ -3,6 +3,8 @@ import type { DropdownMenuItem } from "@nuxt/ui";
 import type { Semester } from "#hey-api/types.gen";
 import type SemesterDialogComponent from "~/components/SemesterDialog.vue";
 
+const { canEdit } = useRoles();
+
 const toast = useToast();
 
 const {
@@ -79,6 +81,7 @@ const items = computed<DropdownMenuItem[][]>(() => {
       {
         label: "Nouveau semestre",
         icon: "i-lucide-plus",
+        disabled: !canEdit.value,
         onSelect: () => dialog.value?.open(),
       },
       ...(semester
@@ -86,12 +89,14 @@ const items = computed<DropdownMenuItem[][]>(() => {
             {
               label: `Modifier ${semester.short_name}`,
               icon: "i-lucide-pencil",
+              disabled: !canEdit.value,
               onSelect: () => dialog.value?.open(semester),
             },
             {
               label: `Supprimer ${semester.short_name}`,
               icon: "i-lucide-trash-2",
               color: "error" as const,
+              disabled: !canEdit.value,
               onSelect: () => deleteSemester(semester),
             },
           ]
@@ -156,6 +161,7 @@ const items = computed<DropdownMenuItem[][]>(() => {
     color="neutral"
     variant="outline"
     block
+    :disabled="!canEdit"
     @click="dialog?.open()"
   />
 

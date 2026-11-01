@@ -24,7 +24,12 @@ pub struct Api;
 impl Api {
     /// Get the settings of the website
     #[oai(path = "/settings", method = "get", tag = PrivateApiTags::Settings)]
-    pub async fn get_settings(&self, Data(state): Data<&AppState>) -> Result<Json<Settings>> {
+    pub async fn get_settings(
+        &self,
+        Data(state): Data<&AppState>,
+        Data(principal): Data<&Principal>,
+    ) -> Result<Json<Settings>> {
+        RequireRole(Role::Orga).check(principal)?;
         let mut conn = state.db_connection_pool.get().await.unwrap();
         let default_concert_image_id: Option<Uuid> = settings::table
             .select(settings::default_concert_image_id)

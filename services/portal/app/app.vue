@@ -22,7 +22,7 @@ useHead({
 });
 
 const user = await currentUser();
-const isOrga = computed(() => user.value.groups.includes("Orga"));
+const { isOrga } = useRoles();
 
 const route = useRoute();
 const { pageLink } = useSemesters();

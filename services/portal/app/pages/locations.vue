@@ -8,6 +8,8 @@ import type LocationDialogComponent from "~/components/LocationDialog.vue";
 
 definePageMeta({ middleware: "orga" });
 
+const { canEdit } = useRoles();
+
 const route = useRoute();
 const router = useRouter();
 
@@ -84,7 +86,7 @@ const dialog =
 // is not transferred from the server.
 onMounted(() => {
   if (route.query.edit !== "new") return;
-  dialog.value?.open();
+  if (canEdit.value) dialog.value?.open();
   router.replace({ query: { ...route.query, edit: undefined } });
 });
 </script>
@@ -101,6 +103,7 @@ onMounted(() => {
           label="Ajouter un lieu"
           icon="i-lucide-plus"
           size="lg"
+          :disabled="!canEdit"
           @click="dialog?.open()"
         />
       </template>
@@ -338,6 +341,7 @@ onMounted(() => {
               icon="i-lucide-pencil"
               color="primary"
               variant="outline"
+              :disabled="!canEdit"
               @click="dialog?.open(shown)"
             />
             <UButton
@@ -345,11 +349,14 @@ onMounted(() => {
               icon="i-lucide-trash-2"
               color="error"
               variant="ghost"
-              :disabled="hostsConcerts(shown)"
+              :disabled="!canEdit || hostsConcerts(shown)"
               @click="dialog?.remove(shown)"
             />
           </div>
-          <p v-if="hostsConcerts(shown)" class="-mt-4 text-sm text-muted">
+          <p
+            v-if="canEdit && hostsConcerts(shown)"
+            class="-mt-4 text-sm text-muted"
+          >
             Ce lieu accueille des concerts : déplacez-les pour pouvoir le
             supprimer.
           </p>

@@ -22,7 +22,9 @@ impl Api {
     pub async fn list_people(
         &self,
         Data(state): Data<&AppState>,
+        Data(principal): Data<&Principal>,
     ) -> Result<Json<Vec<models::Person>>> {
+        RequireRole(Role::Orga).check(principal)?;
         let mut conn = state.db_connection_pool.get().await.unwrap();
         Ok(Json(
             people::table
