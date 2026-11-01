@@ -34,7 +34,7 @@ You can access the services at the following addresses:
  - `Showcase Website`: https://localhost
  - `Backend`: https://api.localhost
  - `Portal`: https://portal.localhost
- - `Database schema` (SchemaSpy ER diagrams): https://schema.localhost — regenerate after adding migrations with `just db-schema`
+ - `Database schema` (SchemaSpy ER diagrams): https://schema.localhost — regenerated automatically when the schema changes (force it with `just db-schema`)
 
 All apps are configured to hot reload / recompile on change.
 

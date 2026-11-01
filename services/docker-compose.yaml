@@ -122,32 +122,28 @@ services:
       - traefik.http.routers.pgweb.rule=Host(`pgweb.localhost`)
       - traefik.http.routers.pgweb.tls=true
 
-  # Generates an HTML documentation of the database schema (with ER diagrams).
-  # Waits for the backend to listen, which happens after migrations are applied.
-  # Run `just db-schema` to regenerate it after adding migrations.
+  # Generates an HTML documentation of the database schema (with ER diagrams),
+  # and regenerates it whenever the schema changes (see dev/schemaspy/watch.sh).
   schemaspy:
-    image: schemaspy/schemaspy:7.0.2
+    build:
+      context: ./dev/schemaspy
     depends_on:
       - postgres
-      - backend
     volumes:
-      - ./scripts:/opt/scripts:ro
       - schemaspy_output:/output
-    entrypoint:
-      - bash
-      - /opt/scripts/wait-for-it.sh
-      - backend:3000
-      - -t
-      - "0"
-      - --
-      - /usr/local/bin/schemaspy
-    command: -t pgsql11 -host postgres -port 5432 -db portal -u portal -p portal -s public
+    environment:
+      PGHOST: postgres
+      PGPORT: 5432
+      PGDATABASE: portal
+      PGUSER: portal
+      PGPASSWORD: portal
 
   # Serves the SchemaSpy output.
   schema-viewer:
     image: nginx:1.29-alpine
     volumes:
       - schemaspy_output:/usr/share/nginx/html:ro
+      - ./dev/schema-viewer.conf:/etc/nginx/conf.d/default.conf:ro
     labels:
       - traefik.enable=true
       - traefik.http.routers.schema-viewer.rule=Host(`schema.localhost`)

@@ -14,8 +14,9 @@ diesel *diesel_cmd:
     docker compose run --rm backend diesel {{ diesel_cmd }}
 
 # Regenerate the database schema documentation served at https://schema.localhost
+# (`just dev` already does it whenever the schema changes)
 db-schema:
-    docker compose run --rm schemaspy
+    docker compose run --rm --build schemaspy --once
 
 # Screenshot dev stack pages into dev/screenshots (`just screenshot --help`)
 [positional-arguments]

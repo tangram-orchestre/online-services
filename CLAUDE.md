@@ -19,7 +19,7 @@ just lint-backend
 just lint-showcase-website
 just lint-portal
 just diesel <cmd>             # Run Diesel CLI (e.g. migration run/revert/generate)
-just db-schema                # Regenerate DB schema docs (https://schema.localhost)
+just db-schema                # Force-regenerate DB schema docs (https://schema.localhost)
 just screenshot [opts] <path>  # Screenshot dev stack pages into dev/screenshots (--help)
 just generate-certs           # Regenerate mkcert HTTPS certificates
 ```
@@ -93,7 +93,7 @@ Portal uses Nuxt 4 conventions: source lives in `app/` (pages, components, asset
 - **fake-auth** — mock Authentik OIDC for local development
 - **postgres** — PostgreSQL 17, seeded from `backend/seeds/dev.sql`
 - **pgweb** at `https://pgweb.localhost`
-- **schemaspy** + **schema-viewer** — DB schema docs / ER diagrams at `https://schema.localhost` (regenerate with `just db-schema`)
+- **schemaspy** + **schema-viewer** — DB schema docs / ER diagrams at `https://schema.localhost`, regenerated automatically when the schema changes
 - **maildev** at `https://maildev.localhost`
 - **lgtm** (Grafana LGTM stack) at `https://grafana.localhost`
 
