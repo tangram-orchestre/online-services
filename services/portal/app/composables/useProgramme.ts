@@ -59,19 +59,3 @@ export const useProgramme = () => {
     refreshPieces,
   };
 };
-
-/**
- * The id of the item selected in the `key` query parameter, so that it
- * survives reloads and can be linked to (from the dashboard, from the other
- * page).
- */
-export const useSelectedId = (key: string) => {
-  const route = useRoute();
-  const router = useRouter();
-  return computed<number | undefined>({
-    get: () => Number(route.query[key]) || undefined,
-    set: (id) => {
-      router.replace({ query: { ...route.query, [key]: id } });
-    },
-  });
-};

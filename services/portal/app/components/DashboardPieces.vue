@@ -1,59 +1,7 @@
 <script setup lang="ts">
-import type { ConcertWithPieces, Piece } from "#hey-api/types.gen";
-
-const props = defineProps<{
-  pieces: Piece[];
-  concerts: ConcertWithPieces[];
-}>();
-
-const route = useRoute();
-
-/** A concert id, or the special filters. */
-type Filter = number | "all" | "unscheduled";
-const filter = ref<Filter>("all");
-
-const concertsOf = (piece: Piece) =>
-  props.concerts.filter((c) => c.piece_ids.includes(piece.id));
-
-const unscheduled = computed(() =>
-  props.pieces.filter((p) => concertsOf(p).length === 0),
-);
-
-const filters = computed(() => [
-  { value: "all" as Filter, label: `Tous (${props.pieces.length})` },
-  ...props.concerts.map((c) => ({
-    value: c.id as Filter,
-    label: concertShortName(c),
-  })),
-  ...(unscheduled.value.length
-    ? [
-        {
-          value: "unscheduled" as Filter,
-          label: `Hors programme (${unscheduled.value.length})`,
-        },
-      ]
-    : []),
-]);
-
-// Reset when the selected concert disappears (e.g. semester change).
-watch(filters, (items) => {
-  if (!items.some((f) => f.value === filter.value)) filter.value = "all";
-});
-
-const rows = computed(() => {
-  const f = filter.value;
-  const pieces =
-    f === "all"
-      ? props.pieces
-      : f === "unscheduled"
-        ? unscheduled.value
-        : props.pieces.filter((p) =>
-            props.concerts.find((c) => c.id === f)?.piece_ids.includes(p.id),
-          );
-  return [...pieces]
-    .sort((a, b) => a.name.localeCompare(b.name, "fr"))
-    .map((piece) => ({ piece, concerts: concertsOf(piece) }));
-});
+const { pageLink } = useSemesters();
+const { pieces, concertsOf } = useProgramme();
+const { filter, filters, filtered } = usePieceFilter();
 </script>
 
 <template>
@@ -64,76 +12,52 @@ const rows = computed(() => {
           Morceaux du semestre
         </h2>
         <ULink
-          :to="{ path: '/pieces', query: { semester: route.query.semester } }"
+          :to="pageLink('/pieces')"
           class="text-sm font-medium text-secondary hover:text-highlighted"
         >
           Tous les morceaux
         </ULink>
       </div>
-      <div
+      <FilterChips
         v-if="pieces.length"
-        role="group"
-        aria-label="Filtrer par concert"
-        class="flex flex-wrap gap-2"
-      >
-        <UButton
-          v-for="f in filters"
-          :key="f.value"
-          :label="f.label"
-          :aria-pressed="filter === f.value"
-          :color="filter === f.value ? 'primary' : 'neutral'"
-          :variant="filter === f.value ? 'solid' : 'outline'"
-          class="rounded-full"
-          @click="filter = f.value"
-        />
-      </div>
+        v-model="filter"
+        :items="filters"
+        label="Filtrer par concert"
+      />
     </div>
 
-    <div class="rounded-lg border border-default bg-default">
-      <div
-        class="hidden gap-4 border-b border-default px-5 py-3 text-xs font-semibold tracking-wider text-muted uppercase sm:grid sm:grid-cols-[3fr_2fr]"
-      >
+    <ListCard
+      header-class="sm:grid sm:grid-cols-[3fr_2fr]"
+      :empty="filtered.length ? undefined : 'Aucun morceau pour ce semestre'"
+    >
+      <template #header>
         <span>Morceau</span>
         <span>Concerts</span>
-      </div>
-      <ul>
-        <li
-          v-for="{ piece, concerts: pieceConcerts } in rows"
-          :key="piece.id"
-          class="grid gap-2 border-b border-muted px-5 py-3.5 last:border-b-0 sm:grid-cols-[3fr_2fr] sm:items-center sm:gap-4"
-        >
-          <div class="flex min-w-0 flex-col gap-0.5">
-            <span class="font-display text-lg leading-snug font-semibold">
-              {{ piece.name }}
-            </span>
-            <span
-              v-if="piece.composer || piece.arranger"
-              class="text-sm text-muted"
-            >
-              {{ piece.composer }}
-              <template v-if="piece.arranger">
-                <template v-if="piece.composer">·</template>
-                arr. {{ piece.arranger }}
-              </template>
-            </span>
-          </div>
-          <div class="flex flex-wrap gap-1.5">
-            <span
-              v-for="concert in pieceConcerts"
-              :key="concert.id"
-              class="rounded-full bg-tertiary-200 px-2.5 py-0.5 text-sm font-medium text-on-tertiary"
-            >
-              {{ concertShortName(concert) }}
-            </span>
-            <span v-if="!pieceConcerts.length" class="text-sm text-dimmed">
-              Hors programme
-            </span>
-          </div>
-        </li>
-        <li v-if="!rows.length" class="px-5 py-6 text-center text-muted">
-          Aucun morceau pour ce semestre
-        </li>
-      </ul>
-    </div>
+      </template>
+      <li
+        v-for="piece in filtered"
+        :key="piece.id"
+        class="grid gap-2 px-5 py-3.5 sm:grid-cols-[3fr_2fr] sm:items-center sm:gap-4"
+      >
+        <div class="flex min-w-0 flex-col gap-0.5">
+          <span class="font-display text-lg leading-snug font-semibold">
+            {{ piece.name }}
+          </span>
+          <span v-if="pieceCredits(piece)" class="text-sm text-muted">
+            {{ pieceCredits(piece) }}
+          </span>
+        </div>
+        <div class="flex flex-wrap gap-1.5">
+          <ConcertChip
+            v-for="concert in concertsOf(piece.id)"
+            :key="concert.id"
+            :concert="concert"
+          />
+          <span v-if="!concertsOf(piece.id).length" class="text-sm text-dimmed">
+            Hors programme
+          </span>
+        </div>
+      </li>
+    </ListCard>
   </section>
 </template>

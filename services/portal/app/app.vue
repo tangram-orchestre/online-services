@@ -1,6 +1,5 @@
 <script lang="ts" setup>
 import { NuxtPage } from "#components";
-import { client } from "#hey-api/client.gen";
 import { fr } from "@nuxt/ui/locale";
 
 import i18next from "i18next";
@@ -16,15 +15,6 @@ i18next.init({
 });
 z.setErrorMap(zodI18nMap);
 
-const runtimeConfig = useRuntimeConfig();
-
-// configure internal service client
-client.setConfig({
-  // set default base url for requests
-  baseURL: runtimeConfig.public.api_base_url,
-  credentials: "include",
-});
-
 useHead({
   htmlAttrs: {
     lang: "fr",
@@ -35,7 +25,7 @@ const user = await currentUser();
 const isOrga = computed(() => user.value.groups.includes("Orga"));
 
 const route = useRoute();
-const { selectedSemesterId } = useSemesters();
+const { pageLink } = useSemesters();
 
 type NavItem = { label: string; icon: string; path: string };
 
@@ -63,12 +53,6 @@ const navigation = computed<{ title: string; items: NavItem[] }[]>(() =>
       ]
     : [],
 );
-
-// Keep the selected semester when moving between pages.
-const linkTo = (path: string) => ({
-  path,
-  query: selectedSemesterId.value ? { semester: selectedSemesterId.value } : {},
-});
 </script>
 
 <template>
@@ -87,7 +71,7 @@ const linkTo = (path: string) => ({
         }"
       >
         <template #header>
-          <NuxtLink :to="linkTo('/')" class="rounded-md">
+          <NuxtLink :to="pageLink('/')" class="rounded-md">
             <AppLogo
               :subtitle="isOrga ? 'Espace organisation' : 'Espace membre'"
             />
@@ -110,7 +94,7 @@ const linkTo = (path: string) => ({
             <NuxtLink
               v-for="item in group.items"
               :key="item.path"
-              :to="linkTo(item.path)"
+              :to="pageLink(item.path)"
               :aria-current="route.path === item.path ? 'page' : undefined"
               class="flex min-h-11 items-center gap-3 rounded-lg px-3.5 text-[15px] transition-colors hover:bg-elevated aria-[current=page]:bg-inverted aria-[current=page]:font-semibold aria-[current=page]:text-inverted"
             >

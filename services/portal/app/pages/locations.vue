@@ -1,5 +1,8 @@
 <script setup lang="ts">
-import type { LocationWithDetails as Location } from "#hey-api/types.gen";
+import type {
+  ConcertWithPieces,
+  LocationWithDetails as Location,
+} from "#hey-api/types.gen";
 
 const route = useRoute();
 const router = useRouter();
@@ -7,47 +10,30 @@ const toast = useToast();
 
 const { locations, refresh, status, place } = useLocations();
 
-const { data: allConcerts } = getConcerts({
-  composable: "useAsyncData",
-  key: "getConcerts",
-});
+definePageMeta({ middleware: "orga" });
 
-const { selectedSemester: semester } = useSemesters();
+const { allConcerts, concerts, semester } = useProgramme();
 
 const search = ref("");
 
-const normalize = (value: string) =>
-  value
-    .normalize("NFD")
-    .replace(/\p{Diacritic}/gu, "")
-    .toLowerCase();
-
-const filteredLocations = computed(() => {
-  const query = normalize(search.value.trim());
-  return [...(locations.value ?? [])]
-    .filter(
-      (l) =>
-        !query ||
-        normalize(
-          [
-            l.name,
-            l.city,
-            l.street,
-            l.zipcode,
-            ...l.rooms.map((r) => r.name),
-          ].join(" "),
-        ).includes(query),
+const filteredLocations = computed(() =>
+  [...(locations.value ?? [])]
+    .filter((l) =>
+      matchesSearch(search.value, [
+        l.name,
+        l.city,
+        l.street,
+        l.zipcode,
+        ...l.rooms.map((r) => r.name),
+      ]),
     )
-    .sort((a, b) => a.name.localeCompare(b.name, "fr"));
-});
+    .sort((a, b) => a.name.localeCompare(b.name, "fr")),
+);
 
 /** Concerts of the selected semester, by location. */
 const semesterConcerts = computed(() => {
-  const concerts = (allConcerts.value ?? [])
-    .filter((c) => c.semester_id === semester.value?.id)
-    .sort((a, b) => a.date.localeCompare(b.date));
-  const byLocation = new Map<number, typeof concerts>();
-  for (const concert of concerts) {
+  const byLocation = new Map<number, ConcertWithPieces[]>();
+  for (const concert of concerts.value) {
     const locationId = place(concert.room_id)?.location.id;
     if (locationId === undefined) continue;
     byLocation.set(locationId, [
@@ -131,28 +117,20 @@ const deleteLocation = (location: Location) => {
 
 <template>
   <div class="flex flex-col gap-7">
-    <header class="flex flex-wrap items-end justify-between gap-5">
-      <div class="flex flex-col gap-1.5">
-        <span class="text-sm font-semibold tracking-wider text-muted uppercase">
-          Tous semestres
-        </span>
-        <h1
-          class="text-4xl leading-none font-bold tracking-tight text-highlighted sm:text-5xl"
-        >
-          Lieux
-        </h1>
-        <p class="text-muted">
-          Les lieux de répétition et de concert de Tangram, partagés par tous
-          les semestres.
-        </p>
-      </div>
-      <UButton
-        label="Ajouter un lieu"
-        icon="i-lucide-plus"
-        size="xl"
-        @click="selection = 'new'"
-      />
-    </header>
+    <PageHeader
+      overline="Tous semestres"
+      title="Lieux"
+      description="Les lieux de répétition et de concert de Tangram, partagés par tous les semestres."
+    >
+      <template #actions>
+        <UButton
+          label="Ajouter un lieu"
+          icon="i-lucide-plus"
+          size="xl"
+          @click="selection = 'new'"
+        />
+      </template>
+    </PageHeader>
 
     <div
       class="grid items-start gap-6 lg:grid-cols-[minmax(16rem,20rem)_minmax(0,1fr)]"
@@ -275,11 +253,9 @@ const deleteLocation = (location: Location) => {
                 <span class="w-32 font-semibold first-letter:uppercase">
                   {{ formatLongDay(concert.date) }}
                 </span>
-                <span
-                  class="rounded-full bg-tertiary-200 px-2.5 py-0.5 text-sm font-medium text-on-tertiary"
-                >
+                <ConcertChip :concert="concert">
                   {{ concert.name || "Concert" }}
-                </span>
+                </ConcertChip>
                 <span class="text-toned">
                   {{ place(concert.room_id)?.room.name }} · Début
                   {{

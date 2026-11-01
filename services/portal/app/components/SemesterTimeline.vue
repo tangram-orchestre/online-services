@@ -106,11 +106,10 @@ watch(
   { flush: "post" },
 );
 
+const { pageLink } = useSemesters();
 /** Concerts page, with the concert selected. */
-const concertLink = (concert: ConcertWithPieces) => ({
-  path: "/concerts",
-  query: { semester: props.semester.id, concert: concert.id },
-});
+const concertLink = (concert: ConcertWithPieces) =>
+  pageLink("/concerts", { concert: concert.id });
 
 const programmeLabel = (concert: ConcertWithPieces) => {
   const n = concert.piece_ids.length;
@@ -276,7 +275,7 @@ const concertLabel = (concert: ConcertWithPieces) =>
                       </div>
                       <UBadge
                         v-if="concert.room_id != null && !concert.room_booked"
-                        label="Salle non confirmée"
+                        label="Réservation à confirmer"
                         icon="i-lucide-clock"
                         color="warning"
                         variant="subtle"

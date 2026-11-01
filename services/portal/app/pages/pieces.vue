@@ -1,119 +1,40 @@
 <script setup lang="ts">
-import type { Piece } from "#hey-api/types.gen";
 import type PieceDialogComponent from "~/components/PieceDialog.vue";
 
-// Reserved to the Orga group; others land on their profile.
-const user = await currentUser();
-if (!user.value.groups.includes("Orga")) {
-  await navigateTo("/profile", { replace: true });
-}
+definePageMeta({ middleware: "orga" });
 
 const route = useRoute();
 const router = useRouter();
 
-const { status: semestersStatus } = useSemesters();
-const { semester, concerts, pieces, concertsOf, loading } = useProgramme();
+const { status: semestersStatus, pageLink } = useSemesters();
+const { semester, pieces, concertsOf, loading } = useProgramme();
 const { placeName } = useLocations();
 
-/** A concert id, or the special filters. */
-type Filter = number | "all" | "unscheduled";
 // `?filter=unscheduled` comes from the dashboard.
-const filter = ref<Filter>(
+const { filter, filters, filtered } = usePieceFilter(
   route.query.filter === "unscheduled" ? "unscheduled" : "all",
 );
 const search = ref("");
 
-const unscheduled = computed(() =>
-  pieces.value.filter((p) => !concertsOf(p.id).length),
-);
-
-const filters = computed(() => [
-  { value: "all" as Filter, label: `Tous (${pieces.value.length})` },
-  ...concerts.value.map((c) => ({
-    value: c.id as Filter,
-    label: concertShortName(c),
-  })),
-  ...(unscheduled.value.length
-    ? [
-        {
-          value: "unscheduled" as Filter,
-          label: `Hors programme (${unscheduled.value.length})`,
-        },
-      ]
-    : []),
-]);
-
-// Back to all pieces when the filtered concert disappears (e.g. semester
-// change), once loaded.
-watch(filters, (items) => {
-  if (!loading.value && !items.some((f) => f.value === filter.value)) {
-    filter.value = "all";
-  }
-});
-
-/** Lowercase, without accents: « Dvořák » matches « dvorak ». */
-const normalize = (value: string) =>
-  value
-    .normalize("NFD")
-    .replace(/\p{Diacritic}/gu, "")
-    .toLowerCase();
-
-const rows = computed(() => {
-  const f = filter.value;
-  const query = normalize(search.value.trim());
-  return pieces.value
+const rows = computed(() =>
+  filtered.value
     .filter((p) =>
-      f === "all"
-        ? true
-        : f === "unscheduled"
-          ? !concertsOf(p.id).length
-          : concertsOf(p.id).some((c) => c.id === f),
+      matchesSearch(search.value, [p.name, p.composer, p.arranger]),
     )
-    .filter(
-      (p) =>
-        !query ||
-        [p.name, p.composer, p.arranger].some(
-          (field) => field && normalize(field).includes(query),
-        ),
-    )
-    .map((piece) => ({ piece, concerts: concertsOf(piece.id) }));
-});
-
-const selectedId = useSelectedId("piece");
-const selected = computed(() =>
-  pieces.value.find((p) => p.id === selectedId.value),
+    .map((piece) => ({ piece, concerts: concertsOf(piece.id) })),
 );
-/** On large screens, the first piece is shown until another is selected. */
-const shown = computed(() => selected.value ?? rows.value[0]?.piece);
+
+const { selectedId, shown, detailOpen, rowState, onDeleted } = useListSelection(
+  "piece",
+  pieces,
+  () => rows.value[0]?.piece,
+);
 const shownConcerts = computed(() =>
   shown.value ? concertsOf(shown.value.id) : [],
 );
-/** The default item is only highlighted next to the large screen panel. */
-const rowClass = (id: number) =>
-  selected.value?.id === id
-    ? "border-secondary bg-secondary/10 hover:bg-secondary/15"
-    : shown.value?.id === id
-      ? "border-transparent lg:border-secondary lg:bg-secondary/10 lg:hover:bg-secondary/15"
-      : "border-transparent";
-const detailOpen = computed({
-  get: () => !!selected.value,
-  set: (open) => {
-    if (!open) selectedId.value = undefined;
-  },
-});
-
-/** « Beethoven · arr. Jean Dupont » */
-const credits = (piece: Piece) =>
-  [piece.composer, piece.arranger && `arr. ${piece.arranger}`]
-    .filter(Boolean)
-    .join(" · ");
 
 const dialog =
   useTemplateRef<InstanceType<typeof PieceDialogComponent>>("pieceDialog");
-
-const onDeleted = (id: number) => {
-  if (selectedId.value === id) selectedId.value = undefined;
-};
 
 // `?edit=new` (from the dashboard) opens the creation dialog. Client side
 // only: the dialog state is not transferred from the server.
@@ -121,11 +42,6 @@ onMounted(() => {
   if (route.query.edit !== "new") return;
   dialog.value?.open();
   router.replace({ query: { ...route.query, edit: undefined } });
-});
-
-const concertLink = (concertId: number) => ({
-  path: "/concerts",
-  query: { semester: semester.value?.id, concert: concertId },
 });
 </script>
 
@@ -167,62 +83,50 @@ const concertLink = (concertId: number) => ({
       class="grid items-start gap-6 lg:grid-cols-[minmax(0,1fr)_minmax(0,22rem)] xl:grid-cols-[minmax(0,1fr)_minmax(0,26rem)]"
     >
       <USkeleton v-if="loading" class="h-80 rounded-lg" />
-      <div
+      <ListCard
         v-else
-        class="@container overflow-hidden rounded-lg border border-default bg-default"
+        header-class="@xl:grid @xl:grid-cols-[minmax(0,3fr)_minmax(0,2fr)]"
+        :empty="
+          rows.length
+            ? undefined
+            : pieces.length
+              ? 'Aucun morceau ne correspond'
+              : 'Aucun morceau pour ce semestre'
+        "
       >
-        <div
-          class="hidden gap-4 border-b border-default px-5 py-3 text-xs font-semibold tracking-wider text-muted uppercase @xl:grid @xl:grid-cols-[minmax(0,3fr)_minmax(0,2fr)]"
-        >
+        <template #header>
           <span>Morceau</span>
           <span>Concerts</span>
-        </div>
-        <ul>
-          <li
-            v-for="{ piece, concerts: pieceConcerts } in rows"
-            :key="piece.id"
-            class="border-b border-muted last:border-b-0"
-          >
-            <button
-              type="button"
-              class="grid w-full gap-2 border-s-3 px-5 py-3.5 text-start transition-colors hover:bg-muted focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-primary @xl:grid-cols-[minmax(0,3fr)_minmax(0,2fr)] @xl:items-center @xl:gap-4"
-              :class="rowClass(piece.id)"
-              :aria-current="shown?.id === piece.id ? 'true' : undefined"
-              @click="selectedId = piece.id"
+        </template>
+        <ListRow
+          v-for="{ piece, concerts: pieceConcerts } in rows"
+          :key="piece.id"
+          :state="rowState(piece.id)"
+          class="grid gap-2 @xl:grid-cols-[minmax(0,3fr)_minmax(0,2fr)] @xl:items-center @xl:gap-4"
+          @click="selectedId = piece.id"
+        >
+          <span class="flex min-w-0 flex-col gap-0.5">
+            <span
+              class="font-display text-lg leading-snug font-semibold text-highlighted"
             >
-              <span class="flex min-w-0 flex-col gap-0.5">
-                <span
-                  class="font-display text-lg leading-snug font-semibold text-highlighted"
-                >
-                  {{ piece.name }}
-                </span>
-                <span v-if="credits(piece)" class="text-sm text-muted">
-                  {{ credits(piece) }}
-                </span>
-              </span>
-              <span class="flex flex-wrap gap-1.5">
-                <span
-                  v-for="concert in pieceConcerts"
-                  :key="concert.id"
-                  class="rounded-full bg-tertiary-200 px-2.5 py-0.5 text-sm font-medium text-on-tertiary"
-                >
-                  {{ concertShortName(concert) }}
-                </span>
-                <span v-if="!pieceConcerts.length" class="text-sm text-dimmed">
-                  Hors programme
-                </span>
-              </span>
-            </button>
-          </li>
-          <li v-if="!rows.length" class="px-5 py-8 text-center text-muted">
-            {{
-              pieces.length
-                ? "Aucun morceau ne correspond"
-                : "Aucun morceau pour ce semestre"
-            }}
-          </li>
-        </ul>
-      </div>
+              {{ piece.name }}
+            </span>
+            <span v-if="pieceCredits(piece)" class="text-sm text-muted">
+              {{ pieceCredits(piece) }}
+            </span>
+          </span>
+          <span class="flex flex-wrap gap-1.5">
+            <ConcertChip
+              v-for="concert in pieceConcerts"
+              :key="concert.id"
+              :concert="concert"
+            />
+            <span v-if="!pieceConcerts.length" class="text-sm text-dimmed">
+              Hors programme
+            </span>
+          </span>
+        </ListRow>
+      </ListCard>
 
       <DetailPanel
         v-if="shown"
@@ -252,7 +156,7 @@ const concertLink = (concertId: number) => ({
             <ul v-if="shownConcerts.length" class="flex flex-col gap-1">
               <li v-for="concert in shownConcerts" :key="concert.id">
                 <ULink
-                  :to="concertLink(concert.id)"
+                  :to="pageLink('/concerts', { concert: concert.id })"
                   class="-mx-2 flex items-center gap-3 rounded-md px-2 py-1.5 hover:bg-muted"
                 >
                   <span class="flex min-w-0 flex-col">
@@ -277,7 +181,7 @@ const concertLink = (concertId: number) => ({
               Au programme d’aucun concert pour l’instant. Les programmes se
               construisent depuis la page
               <ULink
-                :to="{ path: '/concerts', query: { semester: semester.id } }"
+                :to="pageLink('/concerts')"
                 class="font-medium text-secondary hover:text-highlighted"
               >
                 Concerts</ULink

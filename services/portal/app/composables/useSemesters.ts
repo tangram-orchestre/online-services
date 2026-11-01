@@ -51,7 +51,14 @@ export const useSemesters = () => {
     sortedSemesters.value.find((s) => s.id === selectedSemesterId.value),
   );
 
+  /** A link to `path` that keeps the selected semester. */
+  const pageLink = (
+    path: string,
+    query: Record<string, string | number | undefined> = {},
+  ) => ({ path, query: { semester: selectedSemesterId.value, ...query } });
+
   return {
+    pageLink,
     semesters,
     sortedSemesters,
     selectedSemesterId,

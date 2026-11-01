@@ -66,40 +66,14 @@ const remaining = computed(() => countdown(props.concert.date));
     </div>
 
     <div class="flex flex-wrap items-center gap-2">
-      <UBadge
-        :label="concert.public ? 'Public' : 'Privé'"
-        :icon="concert.public ? 'i-lucide-globe' : 'i-lucide-lock'"
-        :color="concert.public ? 'success' : 'neutral'"
-        variant="subtle"
-        class="rounded-full"
-      />
+      <ConcertPublicity :concert="concert" />
       <UBadge
         v-if="place && !concert.room_booked"
-        label="Salle non confirmée"
+        label="Réservation à confirmer"
         icon="i-lucide-clock"
         color="warning"
         variant="subtle"
         class="rounded-full"
-      />
-      <UButton
-        v-if="concert.tickets_url"
-        :to="concert.tickets_url"
-        target="_blank"
-        label="Billetterie"
-        icon="i-lucide-ticket"
-        color="neutral"
-        variant="link"
-        size="sm"
-      />
-      <UButton
-        v-if="concert.video_url"
-        :to="concert.video_url"
-        target="_blank"
-        label="Vidéo"
-        icon="i-lucide-circle-play"
-        color="neutral"
-        variant="link"
-        size="sm"
       />
     </div>
   </article>

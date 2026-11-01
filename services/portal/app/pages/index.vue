@@ -2,13 +2,9 @@
 import { eachWeekOfInterval, isAfter, isBefore } from "date-fns";
 import type { RouteLocationRaw } from "vue-router";
 
-// The dashboard is reserved to the Orga group; others land on their profile.
-const user = await currentUser();
-if (!user.value.groups.includes("Orga")) {
-  await navigateTo("/profile", { replace: true });
-}
+definePageMeta({ middleware: "orga" });
 
-const { status: semestersStatus } = useSemesters();
+const { status: semestersStatus, pageLink } = useSemesters();
 const { semester, concerts, pieces, pieceById, loading } = useProgramme();
 const { place, placeName } = useLocations();
 
@@ -45,15 +41,6 @@ const stats = computed(() => {
       ? [{ value: countdown(next.date), label: "prochain concert" }]
       : []),
   ];
-});
-
-/** A page of the semester, with extra query parameters. */
-const pageLink = (
-  path: string,
-  query: Record<string, string | number> = {},
-) => ({
-  path,
-  query: { semester: semester.value?.id, ...query },
 });
 
 type TodoItem = { label: string; icon: string; to: RouteLocationRaw };
@@ -177,32 +164,27 @@ const todoCount = computed(() =>
 
 <template>
   <div v-if="semester" class="flex flex-col gap-7">
-    <header class="flex flex-wrap items-end justify-between gap-5">
-      <div class="flex flex-col gap-1.5">
-        <span class="text-sm font-semibold tracking-wider text-muted uppercase">
-          Semestre {{ semester.short_name }}
-        </span>
-        <h1
-          class="text-4xl leading-none font-bold tracking-tight text-highlighted sm:text-5xl"
-        >
-          {{ semester.long_name }}
-        </h1>
-        <p class="text-muted">{{ period }}</p>
-      </div>
-      <dl class="flex flex-wrap gap-3">
-        <div
-          v-for="stat in stats"
-          :key="stat.label"
-          class="flex min-w-23 flex-col-reverse gap-0.5 rounded-lg border border-default bg-default px-4 py-2"
-        >
-          <dt class="text-sm text-muted">{{ stat.label }}</dt>
-          <dd class="font-display text-3xl leading-tight font-semibold">
-            <USkeleton v-if="loading" class="my-1 h-7 w-10" />
-            <template v-else>{{ stat.value }}</template>
-          </dd>
-        </div>
-      </dl>
-    </header>
+    <PageHeader
+      :overline="`Semestre ${semester.short_name}`"
+      :title="semester.long_name"
+      :description="period"
+    >
+      <template #actions>
+        <dl class="flex flex-wrap gap-3">
+          <div
+            v-for="stat in stats"
+            :key="stat.label"
+            class="flex min-w-23 flex-col-reverse gap-0.5 rounded-lg border border-default bg-default px-4 py-2"
+          >
+            <dt class="text-sm text-muted">{{ stat.label }}</dt>
+            <dd class="font-display text-3xl leading-tight font-semibold">
+              <USkeleton v-if="loading" class="my-1 h-7 w-10" />
+              <template v-else>{{ stat.value }}</template>
+            </dd>
+          </div>
+        </dl>
+      </template>
+    </PageHeader>
 
     <section
       v-if="todos.length"
@@ -305,7 +287,7 @@ const todoCount = computed(() =>
       </section>
 
       <USkeleton v-if="loading" class="h-56 rounded-lg" />
-      <DashboardPieces v-else :pieces="pieces" :concerts="concerts" />
+      <DashboardPieces v-else />
     </div>
   </div>
 
