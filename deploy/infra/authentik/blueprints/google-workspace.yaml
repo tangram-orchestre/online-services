@@ -1,0 +1,59 @@
+# yaml-language-server: $schema=https://goauthentik.io/blueprints/schema.json
+# Single sign-on into the organisation's Google Workspace, over SAML. Google
+# identifies users by the `google_workspace_email` attribute of their Authentik
+# account. The Google side is configured in the Workspace admin console.
+version: 1
+metadata:
+  name: Tangram - Google Workspace
+  labels:
+    blueprints.goauthentik.io/description: SAML single sign-on into Google Workspace, for the Orga group
+entries:
+  - model: authentik_blueprints.metaapplyblueprint
+    attrs:
+      identifiers:
+        name: Tangram - Groups
+      required: true
+
+  - model: authentik_providers_saml.samlpropertymapping
+    id: google-workspace-email
+    identifiers:
+      name: Google Workspace Email
+    attrs:
+      saml_name: NameID
+      friendly_name: Google Workspace Email
+      expression: return request.user.attributes.get("google_workspace_email", "none")
+
+  - model: authentik_providers_saml.samlprovider
+    id: provider-google-workspace
+    identifiers:
+      name: Provider for Google Workspace
+    attrs:
+      authentication_flow: !Find [authentik_flows.flow, [slug, default-authentication-flow]]
+      authorization_flow: !Find [authentik_flows.flow, [slug, default-provider-authorization-implicit-consent]]
+      invalidation_flow: !Find [authentik_flows.flow, [slug, default-provider-invalidation-flow]]
+      acs_url: https://accounts.google.com/samlrp/022mrf0e2tnansw/acs
+      audience: https://accounts.google.com/samlrp/022mrf0e2tnansw/acs
+      issuer_override: authentik
+      sp_binding: post
+      signing_kp: !Find [authentik_crypto.certificatekeypair, [name, authentik Self-signed Certificate]]
+      sign_assertion: true
+      sign_response: false
+      name_id_mapping: !KeyOf google-workspace-email
+      property_mappings:
+        - !Find [authentik_providers_saml.samlpropertymapping, [managed, goauthentik.io/providers/saml/groups]]
+      session_valid_not_on_or_after: minutes=86400
+
+  - model: authentik_core.application
+    id: google-workspace
+    identifiers:
+      slug: google-workspace
+    attrs:
+      name: Google Workspace
+      provider: !KeyOf provider-google-workspace
+      group: ""
+  - model: authentik_policies.policybinding
+    identifiers:
+      target: !KeyOf google-workspace
+      group: !Find [authentik_core.group, [name, Orga]]
+    attrs:
+      order: 0

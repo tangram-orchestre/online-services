@@ -50,6 +50,8 @@ The organization team also uses Authentik to log into their Google Workspace acc
 
 Authentik is available at `auth.tangram-orchestre.fr` and runs its own PostgreSQL database.
 
+Its groups, applications and the `X-App-*` headers are configured as code, in [`authentik/blueprints/`](./authentik/blueprints/README.md): change them there rather than in the Authentik admin.
+
 ### Observability
 
 Monitoring is handled by a Grafana-based stack:
