@@ -50,7 +50,7 @@ The organization team also uses Authentik to log into their Google Workspace acc
 
 Authentik is available at `auth.tangram-orchestre.fr` and runs its own PostgreSQL database.
 
-Its groups, applications, the `X-App-*` headers and the Google login are configured as code, in [`authentik/blueprints/`](./authentik/blueprints/README.md): change them there rather than in the Authentik admin.
+Its groups, applications, the `X-App-*` headers, the Google login, the login, sign-up and recovery flows and the branding are configured as code, in [`authentik/blueprints/`](./authentik/blueprints/README.md): change them there rather than in the Authentik admin.
 
 ### Observability
 

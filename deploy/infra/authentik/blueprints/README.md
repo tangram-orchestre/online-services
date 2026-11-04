@@ -8,6 +8,7 @@ The Authentik configuration the apps rely on, as [blueprints](https://docs.goaut
 | [`applications.yaml`](applications.yaml) | The forward auth providers and applications of production and staging, who may open each one, the `X-App-*` headers and the embedded outpost |
 | [`google-workspace.yaml`](google-workspace.yaml) | SAML single sign-on into Google Workspace |
 | [`google-login.yaml`](google-login.yaml) | "Log in with Google" on the Authentik login page |
+| [`flows.yaml`](flows.yaml) | Login, sign-up (with email confirmation), sign-up through Google, password recovery, account deletion and the Tangram branding |
 
 ## How they are applied
 
@@ -27,13 +28,15 @@ Staging and production share the one Authentik instance, run by production. A st
 ## What stays in the Authentik admin
 
 - users, their passwords and the members of the groups
-- the flows, stages, prompts and branding
+- the images of the branding (Customization → Files)
+- the user settings page, which is Authentik's default
 
 ## Rules
 
 - **Change these objects here, not in the admin.** A blueprint sets the fields it lists back to their value each time it is applied. A field it does not list is left as it is.
 - **Deleting an entry does not delete the object.** To delete it, keep the entry with `state: absent` until the next deploy, then remove it.
-- Objects that come with Authentik (flows, default mappings, certificates…) are referenced with `!Find`, objects of the same blueprint with `!KeyOf`.
+- Objects that come with Authentik (flows, default mappings, certificates…) are referenced with `!Find`, objects of the same blueprint with `!KeyOf`, which must come after the object they point to.
+- **Do not change the fields Authentik's own blueprints set on its default objects** (in `/blueprints/default` of the Authentik image). They are applied again when they change in a new Authentik version, and would silently undo ours, which are only applied again when our files change. Use our own object instead, like the `source-enrollment` flow.
 
 ## Testing a change locally
 

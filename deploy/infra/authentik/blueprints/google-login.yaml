@@ -16,8 +16,10 @@ context:
     enabled: true
     consumer_key: 225993530637-igter518jg3t2pb4bslsmoqo0v7n9ngf.apps.googleusercontent.com
     authorization_code_auth_method: basic_auth
+    # Authentik would otherwise switch it to S256 when applying the blueprint
+    pkce: none
     authentication_flow: !Find [authentik_flows.flow, [slug, default-source-authentication]]
-    enrollment_flow: !Find [authentik_flows.flow, [slug, default-source-enrollment]]
+    enrollment_flow: !Find [authentik_flows.flow, [slug, source-enrollment]]
     # A user who already has an account with that email address must link
     # their Google account from their settings first.
     user_matching_mode: email_deny
@@ -25,6 +27,12 @@ context:
     # to forbid them to change their email address.
     user_path_template: users/%(slug)s
 entries:
+  - model: authentik_blueprints.metaapplyblueprint
+    attrs:
+      identifiers:
+        name: Tangram - Flows
+      required: true
+
   - model: authentik_sources_oauth.oauthsource
     conditions:
       - !Env GOOGLE_CLIENT_SECRET
@@ -39,3 +47,12 @@ entries:
     identifiers:
       slug: google
     attrs: *source
+
+  # The "Log in with Google" button of the login page.
+  - model: authentik_stages_identification.identificationstage
+    identifiers:
+      name: default-authentication-identification
+    attrs:
+      user_fields: [email, username]
+      sources:
+        - !Find [authentik_sources_oauth.oauthsource, [slug, google]]
