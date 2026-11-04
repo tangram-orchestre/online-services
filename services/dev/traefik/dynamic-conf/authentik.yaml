@@ -1,0 +1,13 @@
+# Used instead of fake-auth by `just dev-authentik` (dev/authentik), like in
+# production (deploy/infra/traefik/dynamic-conf/authentik-middleware.yaml).
+http:
+  middlewares:
+    authentik:
+      forwardAuth:
+        address: "http://authentik-server:9000/outpost.goauthentik.io/auth/traefik"
+        trustForwardHeader: true
+        authResponseHeaders:
+          - X-App-UserId
+          - X-App-User
+          - X-App-Email
+          - X-App-Groups

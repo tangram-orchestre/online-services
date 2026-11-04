@@ -75,10 +75,7 @@ pub(super) fn extract_principal_from_headers(headers: &HeaderMap) -> Option<Prin
     let user = super::User {
         id: get_header("X-App-UserId")?.parse().ok()?,
         username: get_header("X-App-User")?,
-        first_name: get_header("X-App-FirstName")?,
-        last_name: get_header("X-App-LastName")?,
         email: get_header("X-App-Email")?,
-        phone_number: get_header("X-App-PhoneNumber")?,
         groups: get_header("X-App-Groups")?
             .split(',')
             .map(|s| s.to_string())

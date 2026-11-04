@@ -18,15 +18,6 @@ const runtimeConfig = useRuntimeConfig();
       <UFormField label="Email">
         <UInput :model-value="user.email" disabled class="w-full" />
       </UFormField>
-      <UFormField label="Prénom">
-        <UInput :model-value="user.first_name" disabled class="w-full" />
-      </UFormField>
-      <UFormField label="Nom">
-        <UInput :model-value="user.last_name" disabled class="w-full" />
-      </UFormField>
-      <UFormField label="Téléphone">
-        <UInput :model-value="user.phone_number" disabled class="w-full" />
-      </UFormField>
     </div>
 
     <UButton

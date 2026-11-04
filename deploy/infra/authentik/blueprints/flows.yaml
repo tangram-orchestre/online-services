@@ -1,0 +1,623 @@
+# yaml-language-server: $schema=https://goauthentik.io/blueprints/schema.json
+# What members go through on auth.tangram-orchestre.fr: logging in, signing
+# up, recovering their password, deleting their account, and the Tangram
+# branding of these pages. Their texts are in French, Authentik translates
+# the rest of its pages after the browser's language.
+#
+# Authentik's own blueprints manage its default flows and stages, and apply
+# them again whenever they change in a new Authentik version, resetting the
+# fields they list, such as their titles. This blueprint therefore uses its
+# own flows, and only changes fields of default stages that they leave alone.
+version: 1
+metadata:
+  name: Tangram - Flows
+  labels:
+    blueprints.goauthentik.io/description: Login, sign-up, password recovery, logout, account deletion and branding
+entries:
+  # ------------------------------------------------------------------ Shared
+
+  # Every new password, on sign-up and recovery. Its message is shown when one
+  # of the rules is not met; the strength and leak checks have their own.
+  - model: authentik_policies_password.passwordpolicy
+    id: password-rules
+    identifiers:
+      name: password-rules
+    attrs:
+      password_field: password
+      error_message: >-
+        Le mot de passe doit faire au moins 8 caractères, avec une minuscule,
+        une majuscule, un chiffre et un caractère spécial.
+      check_static_rules: true
+      length_min: 8
+      amount_lowercase: 1
+      amount_uppercase: 1
+      amount_digits: 1
+      amount_symbols: 1
+      symbol_charset: "!\\\"#$%&'()*+,-./:;<=>?@[\\]^_`{|}~"
+      check_zxcvbn: true
+      zxcvbn_score_threshold: 2
+      check_have_i_been_pwned: true
+      hibp_allowed_count: 0
+
+  - model: authentik_stages_prompt.prompt
+    id: field-username
+    identifiers:
+      name: field-username
+    attrs:
+      field_key: username
+      label: Nom d'utilisateur
+      placeholder: Nom d'utilisateur
+      type: username
+      required: true
+      order: 100
+  - model: authentik_stages_prompt.prompt
+    id: field-password
+    identifiers:
+      name: default-recovery-field-password
+    attrs:
+      field_key: password
+      label: Mot de passe
+      placeholder: Mot de passe
+      type: password
+      required: true
+      order: 300
+  - model: authentik_stages_prompt.prompt
+    id: field-password-repeat
+    identifiers:
+      name: default-recovery-field-password-repeat
+    attrs:
+      field_key: password_repeat
+      label: Confirmation du mot de passe
+      placeholder: Confirmation du mot de passe
+      type: password
+      required: true
+      order: 301
+
+  # Login is by username or email address, so both must be unique.
+  - model: authentik_policies_expression.expressionpolicy
+    id: enrollment-validation
+    identifiers:
+      name: enrollment-validation
+    attrs:
+      expression: |-
+        from authentik.core.models import User
+
+        data = request.context["prompt_data"]
+        if data.get("email") and User.objects.filter(email__iexact=data["email"]).exists():
+            ak_message("Cette adresse e-mail est déjà utilisée.")
+            return False
+        if not regex_match(data["username"], "^[a-z0-9_-]+$"):
+            ak_message("Le nom d'utilisateur ne peut contenir que des lettres minuscules, des chiffres, « - » et « _ ».")
+            return False
+        return True
+
+  # Sent on sign-up, and again when an account that was never confirmed logs in.
+  - model: authentik_stages_email.emailstage
+    id: email-validation
+    identifiers:
+      name: email-validation
+    attrs:
+      use_global_settings: true
+      subject: Confirmez votre inscription à Tangram
+      template: email/account_confirmation.html
+      activate_user_on_success: true
+      token_expiry: minutes=30
+
+  # ----------------------------------------------------------------- Sign-up
+
+  # Linked from the login page. The account stays inactive until its email
+  # address is confirmed.
+  - model: authentik_flows.flow
+    id: enrollment
+    identifiers:
+      slug: enrollment
+    attrs:
+      name: Inscription
+      title: Bienvenue à Tangram, renseignez vos informations !
+      designation: enrollment
+      authentication: none
+      compatibility_mode: true
+  - model: authentik_stages_prompt.prompt
+    id: enrollment-field-email
+    identifiers:
+      name: enrollment-field-email
+    attrs:
+      field_key: email
+      label: Adresse e-mail
+      placeholder: Adresse e-mail
+      type: email
+      required: true
+      order: 101
+  - model: authentik_stages_prompt.prompt
+    id: enrollment-field-name
+    identifiers:
+      name: enrollment-field-name
+    attrs:
+      field_key: name
+      label: Nom
+      placeholder: Prénom Nom
+      type: text
+      required: true
+      order: 102
+  - model: authentik_stages_prompt.promptstage
+    id: enrollment-prompt
+    identifiers:
+      name: enrollment-prompt
+    attrs:
+      fields:
+        - !KeyOf field-username
+        - !KeyOf enrollment-field-email
+        - !KeyOf enrollment-field-name
+        - !KeyOf field-password
+        - !KeyOf field-password-repeat
+      validation_policies:
+        - !KeyOf password-rules
+        - !KeyOf enrollment-validation
+  - model: authentik_stages_user_write.userwritestage
+    id: enrollment-write
+    identifiers:
+      name: enrollment-write
+    attrs:
+      user_creation_mode: always_create
+      create_users_as_inactive: true
+      user_type: internal
+  - model: authentik_stages_user_login.userloginstage
+    id: enrollment-login
+    identifiers:
+      name: enrollment-login
+  - model: authentik_flows.flowstagebinding
+    identifiers:
+      target: !KeyOf enrollment
+      stage: !KeyOf enrollment-prompt
+    attrs:
+      order: 0
+  - model: authentik_flows.flowstagebinding
+    identifiers:
+      target: !KeyOf enrollment
+      stage: !KeyOf enrollment-write
+    attrs:
+      order: 10
+  - model: authentik_flows.flowstagebinding
+    identifiers:
+      target: !KeyOf enrollment
+      stage: !KeyOf email-validation
+    attrs:
+      order: 15
+  - model: authentik_flows.flowstagebinding
+    identifiers:
+      target: !KeyOf enrollment
+      stage: !KeyOf enrollment-login
+    attrs:
+      order: 20
+
+  # Sign-up through a source, "Log in with Google" (production/google-login.yaml):
+  # the name and email address come from it, only the username is asked when
+  # it does not provide one. Authentik's default stages otherwise.
+  - model: authentik_flows.flow
+    id: source-enrollment
+    identifiers:
+      slug: source-enrollment
+    attrs:
+      name: Inscription avec un compte externe
+      title: Bienvenue à Tangram, choisissez votre nom d'utilisateur !
+      designation: enrollment
+      authentication: none
+  - model: authentik_stages_prompt.promptstage
+    id: source-enrollment-prompt
+    identifiers:
+      name: source-enrollment-prompt
+    attrs:
+      fields:
+        - !KeyOf field-username
+      validation_policies:
+        - !KeyOf enrollment-validation
+  - model: authentik_flows.flowstagebinding
+    id: source-enrollment-prompt-binding
+    identifiers:
+      target: !KeyOf source-enrollment
+      stage: !KeyOf source-enrollment-prompt
+    attrs:
+      order: 0
+  - model: authentik_policies.policybinding
+    identifiers:
+      target: !KeyOf source-enrollment-prompt-binding
+      policy: !Find [authentik_policies_expression.expressionpolicy, [name, default-source-enrollment-if-username]]
+    attrs:
+      order: 0
+  - model: authentik_flows.flowstagebinding
+    identifiers:
+      target: !KeyOf source-enrollment
+      stage: !Find [authentik_stages_user_write.userwritestage, [name, default-source-enrollment-write]]
+    attrs:
+      order: 1
+  - model: authentik_flows.flowstagebinding
+    identifiers:
+      target: !KeyOf source-enrollment
+      stage: !Find [authentik_stages_user_login.userloginstage, [name, default-source-enrollment-login]]
+    attrs:
+      order: 2
+  # Only reachable from a source login
+  - model: authentik_policies.policybinding
+    identifiers:
+      target: !KeyOf source-enrollment
+      policy: !Find [authentik_policies_expression.expressionpolicy, [name, default-source-enrollment-if-sso]]
+    attrs:
+      order: 0
+
+  # Login through a source, for members whose account is already linked:
+  # Authentik's default stage, only reachable from a source login.
+  - model: authentik_flows.flow
+    id: source-login
+    identifiers:
+      slug: source-login
+    attrs:
+      name: Connexion avec un compte externe
+      title: Bienvenue à Tangram !
+      designation: authentication
+      authentication: require_unauthenticated
+  - model: authentik_flows.flowstagebinding
+    identifiers:
+      target: !KeyOf source-login
+      stage: !Find [authentik_stages_user_login.userloginstage, [name, default-source-authentication-login]]
+    attrs:
+      order: 0
+  - model: authentik_policies.policybinding
+    identifiers:
+      target: !KeyOf source-login
+      policy: !Find [authentik_policies_expression.expressionpolicy, [name, default-source-authentication-if-sso]]
+    attrs:
+      order: 0
+
+  # --------------------------------------------------------- Password recovery
+
+  # Linked from the login page: an email with a link to choose a new password.
+  - model: authentik_flows.flow
+    id: recovery
+    identifiers:
+      slug: default-recovery-flow
+    attrs:
+      name: Mot de passe oublié
+      title: Réinitialisez votre mot de passe
+      designation: recovery
+      authentication: require_unauthenticated
+  - model: authentik_stages_identification.identificationstage
+    id: recovery-identification
+    identifiers:
+      name: default-recovery-identification
+    attrs:
+      user_fields: [email, username]
+      case_insensitive_matching: true
+      pretend_user_exists: true
+      show_matched_user: true
+  - model: authentik_stages_email.emailstage
+    id: recovery-email
+    identifiers:
+      name: default-recovery-email
+    attrs:
+      use_global_settings: true
+      subject: Réinitialisez votre mot de passe Tangram
+      template: email/password_reset.html
+      activate_user_on_success: true
+      token_expiry: minutes=30
+  - model: authentik_stages_prompt.promptstage
+    id: recovery-prompt
+    identifiers:
+      name: Change your password
+    attrs:
+      fields:
+        - !KeyOf field-password
+        - !KeyOf field-password-repeat
+      validation_policies:
+        - !KeyOf password-rules
+  - model: authentik_stages_user_write.userwritestage
+    id: recovery-write
+    identifiers:
+      name: default-recovery-user-write
+    attrs:
+      user_creation_mode: never_create
+  - model: authentik_stages_user_login.userloginstage
+    id: recovery-login
+    identifiers:
+      name: default-recovery-user-login
+  # Skipped when the flow is resumed from the email's link
+  - model: authentik_policies_expression.expressionpolicy
+    id: recovery-skip-if-restored
+    identifiers:
+      name: default-recovery-skip-if-restored
+    attrs:
+      expression: return bool(request.context.get('is_restored', True))
+  - model: authentik_flows.flowstagebinding
+    id: recovery-identification-binding
+    identifiers:
+      target: !KeyOf recovery
+      stage: !KeyOf recovery-identification
+    attrs:
+      order: 10
+      evaluate_on_plan: true
+      re_evaluate_policies: true
+  - model: authentik_policies.policybinding
+    identifiers:
+      target: !KeyOf recovery-identification-binding
+      policy: !KeyOf recovery-skip-if-restored
+    attrs:
+      order: 0
+  - model: authentik_flows.flowstagebinding
+    identifiers:
+      target: !KeyOf recovery
+      stage: !KeyOf recovery-email
+    attrs:
+      order: 20
+      evaluate_on_plan: true
+      re_evaluate_policies: true
+  - model: authentik_flows.flowstagebinding
+    identifiers:
+      target: !KeyOf recovery
+      stage: !KeyOf recovery-prompt
+    attrs:
+      order: 30
+      evaluate_on_plan: true
+      re_evaluate_policies: false
+  - model: authentik_flows.flowstagebinding
+    identifiers:
+      target: !KeyOf recovery
+      stage: !KeyOf recovery-write
+    attrs:
+      order: 40
+      evaluate_on_plan: true
+      re_evaluate_policies: false
+  - model: authentik_flows.flowstagebinding
+    identifiers:
+      target: !KeyOf recovery
+      stage: !KeyOf recovery-login
+    attrs:
+      order: 100
+      evaluate_on_plan: true
+      re_evaluate_policies: false
+
+  # ------------------------------------------------------------------- Login
+
+  # The login page of the brand and of the applications. Authentik's default
+  # stages, with the sign-up and recovery links, and the Google button added
+  # by production/google-login.yaml.
+  - model: authentik_flows.flow
+    id: login
+    identifiers:
+      slug: login
+    attrs:
+      name: Connexion
+      title: Bienvenue à Tangram !
+      designation: authentication
+      authentication: none
+      compatibility_mode: true
+  - model: authentik_stages_identification.identificationstage
+    id: login-identification
+    identifiers:
+      name: default-authentication-identification
+    attrs:
+      # Authentik's default, required to validate the stage
+      user_fields: [email, username]
+      case_insensitive_matching: false
+      pretend_user_exists: false
+      show_matched_user: false
+      show_source_labels: true
+      enrollment_flow: !KeyOf enrollment
+      recovery_flow: !KeyOf recovery
+  - model: authentik_stages_password.passwordstage
+    id: login-password
+    identifiers:
+      name: default-authentication-password
+    attrs:
+      allow_show_password: true
+  - model: authentik_stages_authenticator_validate.authenticatorvalidatestage
+    id: login-mfa
+    identifiers:
+      name: default-authentication-mfa-validation
+    attrs:
+      device_classes: [static, totp, webauthn, duo, sms]
+  - model: authentik_flows.flowstagebinding
+    identifiers:
+      target: !KeyOf login
+      stage: !KeyOf login-identification
+    attrs:
+      order: 10
+  # Skipped when a source (Google) already authenticated the user
+  - model: authentik_flows.flowstagebinding
+    id: login-password-binding
+    identifiers:
+      target: !KeyOf login
+      stage: !KeyOf login-password
+    attrs:
+      order: 20
+  - model: authentik_policies.policybinding
+    identifiers:
+      target: !KeyOf login-password-binding
+      policy: !Find [authentik_policies_expression.expressionpolicy, [name, default-authentication-flow-password-stage]]
+    attrs:
+      order: 10
+  # Members whose sign-up was never confirmed get the email again instead of
+  # logging in.
+  - model: authentik_policies_expression.expressionpolicy
+    id: user-inactive
+    identifiers:
+      name: user-inactive
+    attrs:
+      expression: |-
+        from authentik.core.models import User
+
+        user = User.objects.get(email=context['pending_user'].email)
+        return not user.is_active
+  - model: authentik_flows.flowstagebinding
+    id: login-email-validation-binding
+    identifiers:
+      target: !KeyOf login
+      stage: !KeyOf email-validation
+    attrs:
+      order: 20
+  - model: authentik_policies.policybinding
+    identifiers:
+      target: !KeyOf login-email-validation-binding
+      policy: !KeyOf user-inactive
+    attrs:
+      order: 0
+  # Only for members who set up a second factor
+  - model: authentik_flows.flowstagebinding
+    id: login-mfa-binding
+    identifiers:
+      target: !KeyOf login
+      stage: !KeyOf login-mfa
+    attrs:
+      order: 30
+  - model: authentik_policies.policybinding
+    identifiers:
+      target: !KeyOf login-mfa-binding
+      policy: !Find [authentik_policies_expression.expressionpolicy, [name, default-authentication-flow-authenticator-validate-stage]]
+    attrs:
+      order: 10
+  - model: authentik_flows.flowstagebinding
+    identifiers:
+      target: !KeyOf login
+      stage: !Find [authentik_stages_user_login.userloginstage, [name, default-authentication-login]]
+    attrs:
+      order: 100
+
+  # ------------------------------------------------------------------ Logout
+
+  # Shown after logging out of an application, with a link to also log out of
+  # Authentik.
+  - model: authentik_flows.flow
+    id: logged-out
+    identifiers:
+      slug: logged-out
+    attrs:
+      name: Déconnexion d'une application
+      title: Vous êtes déconnecté de %(app)s.
+      designation: invalidation
+      authentication: none
+
+  # --------------------------------------------------------- Account deletion
+
+  # From the user settings, after a confirmation.
+  - model: authentik_flows.flow
+    id: unenrollment
+    identifiers:
+      slug: default-unenrollment
+    attrs:
+      name: Suppression du compte
+      title: Supprimer mon compte
+      designation: unenrollment
+      authentication: require_authenticated
+  - model: authentik_stages_consent.consentstage
+    id: unenrollment-consent
+    identifiers:
+      name: Delete account? All data will be lost!
+    attrs:
+      mode: always_require
+  - model: authentik_stages_user_delete.userdeletestage
+    id: unenrollment-delete
+    identifiers:
+      name: Delete account
+  - model: authentik_flows.flowstagebinding
+    identifiers:
+      target: !KeyOf unenrollment
+      stage: !KeyOf unenrollment-consent
+    attrs:
+      order: 0
+  - model: authentik_flows.flowstagebinding
+    identifiers:
+      target: !KeyOf unenrollment
+      stage: !KeyOf unenrollment-delete
+    attrs:
+      order: 10
+  # Administrators cannot delete their own account.
+  - model: authentik_policies.policybinding
+    identifiers:
+      target: !KeyOf unenrollment
+      group: !Find [authentik_core.group, [name, authentik Admins]]
+    attrs:
+      order: 0
+      negate: true
+
+  # ---------------------------------------------------------------- Branding
+
+  # Authentik's own brand, for other domains. Only one brand is the default.
+  - model: authentik_brands.brand
+    identifiers:
+      domain: authentik-default
+    attrs:
+      default: false
+
+  # Applies to auth.tangram-orchestre.fr. The images are uploaded in the
+  # Authentik admin (Customization → Files).
+  - model: authentik_brands.brand
+    identifiers:
+      domain: tangram-orchestre.fr
+    attrs:
+      default: true
+      # Language of the pages and emails when the browser does not ask for one
+      attributes:
+        settings:
+          locale: fr
+      branding_title: Tangram
+      branding_logo: branding/LOGO2025.png
+      branding_favicon: branding/LOGO2024.ico
+      branding_default_flow_background: branding/MPAA_2023.jpeg
+      branding_custom_css: |-
+        .branding-logo {
+          width: 30%;
+        }
+      flow_authentication: !KeyOf login
+      flow_invalidation: !Find [authentik_flows.flow, [slug, default-invalidation-flow]]
+      flow_recovery: !KeyOf recovery
+      flow_unenrollment: !KeyOf unenrollment
+      flow_user_settings: !Find [authentik_flows.flow, [slug, default-user-settings-flow]]
+
+  # ------------------------------------------------------------------ Cleanup
+
+  # Former customisations, which can go once deployed: the first and last name
+  # and phone number of the former sign-up, the changes to Authentik's default
+  # login flow, replaced by `login`, and the password rules set on Authentik's
+  # default policy, replaced by `password-rules`. That policy is still used to
+  # change one's password from the user settings, with Authentik's rules.
+  - model: authentik_stages_prompt.prompt
+    state: absent
+    identifiers:
+      name: first_name
+  - model: authentik_stages_prompt.prompt
+    state: absent
+    identifiers:
+      name: last_name
+  - model: authentik_stages_prompt.prompt
+    state: absent
+    identifiers:
+      name: phone_number
+  - model: authentik_stages_prompt.prompt
+    state: absent
+    identifiers:
+      name: google_workspace_email
+  - model: authentik_policies_expression.expressionpolicy
+    state: absent
+    identifiers:
+      name: extra-user-validation
+  - model: authentik_policies_expression.expressionpolicy
+    state: absent
+    identifiers:
+      name: remove-google-workspace-address-if-empty
+  - model: authentik_flows.flowstagebinding
+    state: absent
+    identifiers:
+      target: !Find [authentik_flows.flow, [slug, default-authentication-flow]]
+      stage: !KeyOf email-validation
+  - model: authentik_flows.flow
+    identifiers:
+      slug: default-authentication-flow
+    attrs:
+      compatibility_mode: false
+  - model: authentik_policies_password.passwordpolicy
+    identifiers:
+      name: default-password-change-password-policy
+    attrs:
+      amount_digits: 0
+      amount_lowercase: 0
+      amount_uppercase: 0
+      amount_symbols: 0
+      check_have_i_been_pwned: false

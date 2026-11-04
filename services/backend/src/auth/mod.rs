@@ -12,10 +12,7 @@ use crate::auth::principal::extract_principal_from_headers;
 pub struct User {
     pub id: u32,
     pub username: String,
-    pub first_name: String,
-    pub last_name: String,
     pub email: String,
-    pub phone_number: String,
     pub groups: Vec<String>,
 }
 

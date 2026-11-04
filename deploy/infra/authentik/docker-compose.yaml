@@ -53,6 +53,9 @@ services:
       - /opt/docker-volumes/authentik/data:/data
       - /opt/docker-volumes/authentik/certs:/certs
       - /opt/docker-volumes/authentik/custom-templates:/templates
+      # Our configuration as code, applied by the worker next to the built-in
+      # blueprints of /blueprints (see blueprints/README.md)
+      - ./blueprints:/blueprints/tangram:ro
     env_file:
       - .env
     depends_on:

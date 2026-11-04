@@ -18,6 +18,7 @@
 #   3. snapshot the databases
 #   4. start the target release and wait for every container to be healthy
 #   5. check the routes answer as expected through Traefik (DEPLOY_SMOKE_TESTS)
+#      and Authentik applied its blueprints (DEPLOY_AUTHENTIK_BLUEPRINTS)
 #   6. on failure: restore the snapshots and start the previous release again
 #
 # --reset-db (staging only) recreates empty databases before starting.
@@ -109,6 +110,15 @@ prepare_release() {
     fi
     echo "IMAGE_TAG=sha-$sha" >"$dir/release.env"
     check_secrets "$dir"
+
+    # The release is uploaded without access for others, but Docker is
+    # rootless: the Authentik worker's user is "others" to the mounted
+    # blueprints, which hold no secrets.
+    local blueprints
+    blueprints=$(config "$dir" DEPLOY_AUTHENTIK_BLUEPRINTS)
+    if [ -n "$blueprints" ]; then
+        chmod -R o+rX "${dir:?}/$blueprints"
+    fi
 }
 
 env_keys() {
@@ -230,6 +240,33 @@ smoke_test() {
     done <<<"$tests"
 }
 
+# Waits for the Authentik worker of the release in $1 to apply the blueprints of
+# its DEPLOY_AUTHENTIK_BLUEPRINTS folder, mounted at /blueprints/tangram. A
+# blueprint that fails to apply leaves Authentik as it was, so it must fail the
+# deploy rather than go unnoticed.
+check_blueprints() {
+    local dir=$1 folder file path hash result deadline
+    folder=$(config "$dir" DEPLOY_AUTHENTIK_BLUEPRINTS)
+    [ -n "$folder" ] || return 0
+
+    log "Checking Authentik blueprints"
+    while read -r file; do
+        path=tangram/${file#"$dir/$folder/"}
+        hash=$(sha512sum "$file" | cut -d' ' -f1)
+        deadline=$((SECONDS + 120))
+        # Authentik records the SHA-512 of the file it last applied
+        until result=$(compose "$dir" exec -T authentik-postgresql sh -c \
+            "psql -U \"\$POSTGRES_USER\" -d \"\$POSTGRES_DB\" -tA -c \"select status, last_applied_hash = '$hash' from authentik_blueprints_blueprintinstance where path = '$path'\"") &&
+            [ "$result" = "successful|t" ]; do
+            if [ $SECONDS -ge $deadline ]; then
+                echo "Authentik blueprint $path was not applied (${result:-not found}), see Customization > Blueprints in Authentik" >&2
+                return 1
+            fi
+            sleep 2
+        done
+    done < <(find "$dir/$folder" -name '*.yaml' | sort)
+}
+
 cleanup() {
     local current dir
     current=$(current_release)
@@ -281,7 +318,7 @@ switch_release() {
     fi
 
     log "Starting release $sha"
-    if start_release "$target" && smoke_test "$target"; then
+    if start_release "$target" && smoke_test "$target" && check_blueprints "$target"; then
         ln -sfn "releases/$sha" "$ROOT/current"
         cleanup
         log "$ENV_NAME is now running $sha"

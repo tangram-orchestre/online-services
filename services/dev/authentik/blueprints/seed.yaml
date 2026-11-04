@@ -1,0 +1,113 @@
+# yaml-language-server: $schema=https://goauthentik.io/blueprints/schema.json
+# Development only: completes the production blueprints for `just dev-authentik`
+# with a user per role. Their password is their username.
+#
+# Each also has an app password, also their username, which tools without a
+# browser session send as HTTP basic auth: `curl -u bureau:bureau …`,
+# `just screenshot --user bureau …`.
+version: 1
+metadata:
+  name: Tangram - Dev seed
+  labels:
+    blueprints.goauthentik.io/description: Local users and outpost of `just dev-authentik`
+entries:
+  - model: authentik_blueprints.metaapplyblueprint
+    attrs:
+      identifiers:
+        name: Tangram - Applications
+      required: true
+
+  # In production, production/infrastructure.yaml also lists the staging and
+  # infrastructure applications.
+  - model: authentik_outposts.outpost
+    identifiers:
+      managed: goauthentik.io/outposts/embedded
+    attrs:
+      providers:
+        - !Find [authentik_providers_proxy.proxyprovider, [name, Provider for Portal]]
+        - !Find [authentik_providers_proxy.proxyprovider, [name, Provider for Backend]]
+      # Where it sends browsers to log in
+      config:
+        authentik_host: https://auth.localhost
+
+  # Can edit in the portal
+  - model: authentik_core.user
+    id: user-bureau
+    identifiers:
+      username: bureau
+    attrs:
+      name: Beatrice Bureau
+      email: bureau@tangram.localhost
+      password: bureau
+      groups:
+        - !Find [authentik_core.group, [name, Orga]]
+        - !Find [authentik_core.group, [name, Bureau]]
+
+  # Sees the portal's organisation pages, read only
+  - model: authentik_core.user
+    id: user-orga
+    identifiers:
+      username: orga
+    attrs:
+      name: Olivier Orga
+      email: orga@tangram.localhost
+      password: orga
+      groups:
+        - !Find [authentik_core.group, [name, Orga]]
+
+  # Only sees their profile, like someone who just signed up
+  - model: authentik_core.user
+    id: user-membre
+    identifiers:
+      username: membre
+    attrs:
+      name: Mathilde Membre
+      email: membre@tangram.localhost
+      password: membre
+      groups: []
+
+  # Developers: the API domain (api.localhost)
+  - model: authentik_core.user
+    id: user-dev
+    identifiers:
+      username: dev
+    attrs:
+      name: Dominique Dev
+      email: dev@tangram.localhost
+      password: dev
+      groups:
+        - !Find [authentik_core.group, [name, Orga]]
+        - !Find [authentik_core.group, [name, Devs]]
+
+  - model: authentik_core.token
+    identifiers:
+      identifier: dev-bureau
+    attrs:
+      user: !KeyOf user-bureau
+      intent: app_password
+      expiring: false
+      key: bureau
+  - model: authentik_core.token
+    identifiers:
+      identifier: dev-orga
+    attrs:
+      user: !KeyOf user-orga
+      intent: app_password
+      expiring: false
+      key: orga
+  - model: authentik_core.token
+    identifiers:
+      identifier: dev-membre
+    attrs:
+      user: !KeyOf user-membre
+      intent: app_password
+      expiring: false
+      key: membre
+  - model: authentik_core.token
+    identifiers:
+      identifier: dev-dev
+    attrs:
+      user: !KeyOf user-dev
+      intent: app_password
+      expiring: false
+      key: dev

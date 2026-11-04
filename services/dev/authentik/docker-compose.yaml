@@ -1,0 +1,91 @@
+# A real Authentik instead of fake-auth, configured by the production
+# blueprints and seeded with a few users. Added to docker-compose.yaml by
+# `just dev-authentik`, see dev/authentik/README.md.
+x-authentik: &authentik
+  # Same version as in production (deploy/infra/authentik/docker-compose.yaml)
+  image: ghcr.io/goauthentik/server:2026.8.5
+  depends_on:
+    authentik-postgres:
+      condition: service_healthy
+  environment:
+    AUTHENTIK_POSTGRESQL__HOST: authentik-postgres
+    AUTHENTIK_POSTGRESQL__USER: authentik
+    AUTHENTIK_POSTGRESQL__NAME: authentik
+    AUTHENTIK_POSTGRESQL__PASSWORD: authentik
+    AUTHENTIK_SECRET_KEY: dev-only-secret-key-never-used-outside-of-localhost
+    # Admin account: akadmin / admin
+    AUTHENTIK_BOOTSTRAP_PASSWORD: admin
+    AUTHENTIK_BOOTSTRAP_EMAIL: akadmin@tangram.localhost
+    AUTHENTIK_EMAIL__HOST: maildev
+    AUTHENTIK_EMAIL__PORT: 1025
+    AUTHENTIK_EMAIL__FROM: authentik@tangram.localhost
+    AUTHENTIK_DISABLE_UPDATE_CHECK: "true"
+    AUTHENTIK_ERROR_REPORTING__ENABLED: "false"
+    # Domain of the applications of the blueprints: portal.localhost…
+    TANGRAM_DOMAIN: localhost
+  volumes:
+    - authentik_data:/data
+    # The production blueprints, without those of production/ (the staging
+    # and infrastructure applications, Google), hidden by an empty folder.
+    - ../deploy/infra/authentik/blueprints:/blueprints/tangram:ro
+    - type: tmpfs
+      target: /blueprints/tangram/production
+    - ./dev/authentik/blueprints:/blueprints/tangram-dev:ro
+    # Stand-ins for the branding images uploaded in production (flows.yaml)
+    - ./dev/authentik/branding/LOGO2025.png:/data/media/public/branding/LOGO2025.png:ro
+    - ./showcase-website/public/favicon.ico:/data/media/public/branding/LOGO2024.ico:ro
+    - ./showcase-website/public/images/groupe-a24.jpg:/data/media/public/branding/MPAA_2023.jpeg:ro
+
+services:
+  authentik-server:
+    <<: *authentik
+    command: server
+    labels:
+      - traefik.enable=true
+      - traefik.http.routers.authentik.rule=Host(`auth.localhost`)
+      - traefik.http.services.authentik.loadbalancer.server.port=9000
+      - traefik.http.routers.authentik.tls=true
+
+  authentik-worker:
+    <<: *authentik
+    command: worker
+
+  authentik-postgres:
+    image: docker.io/library/postgres:16-alpine
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -d $${POSTGRES_DB} -U $${POSTGRES_USER}"]
+      start_period: 20s
+      interval: 5s
+      retries: 10
+      timeout: 5s
+    volumes:
+      - ./docker-data/authentik-db:/var/lib/postgresql/data
+    environment:
+      POSTGRES_PASSWORD: authentik
+      POSTGRES_USER: authentik
+      POSTGRES_DB: authentik
+
+  backend:
+    labels:
+      # The private API goes through Authentik, the public one is open like in
+      # production.
+      - "traefik.http.routers.backend.rule=(Host(`portal.localhost`) && PathPrefix(`/api`)) || Host(`api.localhost`)"
+      - traefik.http.routers.backend.middlewares=backend-stripprefix,authentik@file
+      - "traefik.http.routers.backend-public.rule=Host(`localhost`) && PathPrefix(`/api`)"
+      - traefik.http.routers.backend-public.service=backend
+      - traefik.http.routers.backend-public.tls=true
+      - traefik.http.routers.backend-public.middlewares=backend-stripprefix
+
+  portal:
+    labels:
+      # Redirects to the Authentik login page, like in production
+      - traefik.http.routers.portal.middlewares=authentik@file
+      # Except the dev server's modules and hot reload websocket, which do not
+      # need a check each, and which tools sending basic auth (screenshot)
+      # cannot authenticate.
+      - "traefik.http.routers.portal-dev-assets.rule=Host(`portal.localhost`) && PathPrefix(`/_nuxt`)"
+      - traefik.http.routers.portal-dev-assets.service=portal
+      - traefik.http.routers.portal-dev-assets.tls=true
+
+volumes:
+  authentik_data:

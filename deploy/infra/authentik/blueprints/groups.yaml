@@ -1,0 +1,21 @@
+# yaml-language-server: $schema=https://goauthentik.io/blueprints/schema.json
+# Groups the applications rely on. Their members are managed in the Authentik
+# UI, the blueprint only makes sure the groups exist.
+version: 1
+metadata:
+  name: Tangram - Groups
+  labels:
+    blueprints.goauthentik.io/description: Groups used by the applications' access rules and the X-App-Groups header
+entries:
+  # Members of the orchestra organisation: see the portal's organisation pages.
+  - model: authentik_core.group
+    identifiers:
+      name: Orga
+  # Board members: can edit in the portal.
+  - model: authentik_core.group
+    identifiers:
+      name: Bureau
+  # Maintainers: infrastructure tools and staging.
+  - model: authentik_core.group
+    identifiers:
+      name: Devs

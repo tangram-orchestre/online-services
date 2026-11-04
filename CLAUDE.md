@@ -12,6 +12,7 @@ All tasks run via `just` from the `services/` directory.
 
 ```bash
 just dev                      # Start complete local dev environment
+just dev-authentik            # Same with a real Authentik instead of fake-auth (services/dev/authentik)
 just build-env                # Build Docker images
 just lint                     # Lint all three services
 just lint-fix                 # Auto-fix lint issues in all services
@@ -42,7 +43,7 @@ yarn openapi-ts               # Showcase only: regenerate API client from OpenAP
 
 There are no unit tests — linting is the primary code quality gate.
 
-After frontend changes, check them visually with `just screenshot` (dev stack must be running) and read the resulting PNGs. It also reports console errors, page errors and failed requests. Use `--click '<selector>'` to open dialogs or menus, `--fill '<selector> => <text>'` to type into fields, `--hover '<selector>'` to show tooltips, `--dark` / `--mobile` / `--full` for variants.
+After frontend changes, check them visually with `just screenshot` (dev stack must be running) and read the resulting PNGs. It also reports console errors, page errors and failed requests. Use `--click '<selector>'` to open dialogs or menus, `--fill '<selector> => <text>'` to type into fields, `--hover '<selector>'` to show tooltips, `--dark` / `--mobile` / `--full` for variants. With `just dev-authentik`, `--user <bureau|orga|membre|dev>` browses as that seeded user.
 
 While `just dev` runs, run portal/showcase commands with `docker compose exec <service> ...` rather than `docker compose run`, to avoid disturbing the running Nuxt dev server.
 
@@ -90,7 +91,7 @@ Portal uses Nuxt 4 conventions: source lives in `app/` (pages, components, asset
 
 `services/docker-compose.yaml` runs everything:
 - **Traefik** terminates TLS and routes `*.localhost` domains
-- **fake-auth** — mock Authentik OIDC for local development
+- **fake-auth** — mock Authentik OIDC for local development; `just dev-authentik` runs a real Authentik with seeded users instead (`services/dev/authentik/README.md`)
 - **postgres** — PostgreSQL 17, seeded from `backend/seeds/dev.sql`
 - **pgweb** at `https://pgweb.localhost`
 - **schemaspy** + **schema-viewer** — DB schema docs / ER diagrams at `https://schema.localhost`, regenerated automatically when the schema changes
