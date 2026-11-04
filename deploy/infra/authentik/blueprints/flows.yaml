@@ -15,50 +15,6 @@ metadata:
 entries:
   # ------------------------------------------------------- Shared validations
 
-  # Checks the details members fill in when signing up.
-  - model: authentik_policies_expression.expressionpolicy
-    id: extra-user-validation
-    identifiers:
-      name: extra-user-validation
-    attrs:
-      expression: |-
-        from authentik.core.models import User
-
-        try:
-          email = request.context["prompt_data"]["email"]
-          other = User.objects.get(email=email)
-        except:
-          other = None
-        if other and (not request.user or request.user.pk != other.pk) :
-          ak_message("Email address in use.")
-          return False
-
-        if request.user and hasattr(request.user, 'path') and request.user.path != 'users':
-            if context['prompt_data'].get("email") != request.user.email:
-                ak_message("Not allowed to change email address when connected with External Provider (Google...)")
-                return False
-
-        if not regex_match(context['prompt_data']['username'], '^[a-z0-9-_]+$'):
-          ak_message("Username must only contain lowercase letters, numbers and special characters `-` and `_`.")
-          return False
-        if not regex_match(context['prompt_data']['attributes']['first_name'], "^[a-zA-ZÀ-ú- ']+$"):
-          ak_message("First Name can only contain letters.")
-          return False
-        if not regex_match(context['prompt_data']['attributes']['last_name'], "^[a-zA-ZÀ-ú- ']+$"):
-          ak_message("Last Name can only contain letters.")
-          return False
-        if not regex_match(context['prompt_data']['attributes']['phone_number'], "^\+?[0-9](?:[-\s\.]?[0-9])+$"):
-          ak_message("Invalid phone number.")
-          return False
-
-        context['prompt_data']['attributes']['phone_number'] = context['prompt_data']['attributes']['phone_number'].replace(' ', '').replace('.', '')
-
-        # Auto fill name with first and last name
-        context['prompt_data']['name'] = f"{context['prompt_data']['attributes']['first_name']} {context['prompt_data']['attributes']['last_name']}"
-
-
-        return True
-
   # Used for every new password: on sign-up, recovery and password change.
   - model: authentik_policies_password.passwordpolicy
     identifiers:
@@ -70,59 +26,6 @@ entries:
       amount_symbols: 1
       symbol_charset: "!\\\"#$%&'()*+,-./:;<=>?@[\\]^_`{|}~"
       check_have_i_been_pwned: true
-
-  # Read into the X-App-* headers (applications.yaml).
-  - model: authentik_stages_prompt.prompt
-    id: first-name
-    identifiers:
-      name: first_name
-    attrs:
-      field_key: attributes.first_name
-      label: First Name
-      placeholder: First Name
-      type: text
-      required: true
-      order: 250
-      initial_value_expression: true
-      initial_value: |-
-        try:
-            return user.attributes.get("first_name", '')
-        except:
-            return ''
-  - model: authentik_stages_prompt.prompt
-    id: last-name
-    identifiers:
-      name: last_name
-    attrs:
-      field_key: attributes.last_name
-      label: Last Name
-      placeholder: Last Name
-      type: text
-      required: true
-      order: 251
-      initial_value_expression: true
-      initial_value: |-
-        try:
-            return user.attributes.get("last_name", '')
-        except:
-            return ''
-  - model: authentik_stages_prompt.prompt
-    id: phone-number
-    identifiers:
-      name: phone_number
-    attrs:
-      field_key: attributes.phone_number
-      label: Phone Number
-      placeholder: Phone Number
-      type: text
-      required: true
-      order: 275
-      initial_value_expression: true
-      initial_value: |-
-        try:
-            return user.attributes.get("phone_number", '')
-        except:
-            return ''
 
   # Sent on sign-up, and again when an account that was never confirmed logs in.
   - model: authentik_stages_email.emailstage
@@ -196,6 +99,17 @@ entries:
       authentication: none
       compatibility_mode: true
   - model: authentik_stages_prompt.prompt
+    id: enrollment-field-name
+    identifiers:
+      name: enrollment-field-name
+    attrs:
+      field_key: name
+      label: Nom
+      placeholder: Prénom Nom
+      type: text
+      required: true
+      order: 102
+  - model: authentik_stages_prompt.prompt
     id: enrollment-field-email
     identifiers:
       name: enrollment-field-email
@@ -228,22 +142,37 @@ entries:
       type: password
       required: true
       order: 301
+  # Login is by username or email address, so both must be unique.
+  - model: authentik_policies_expression.expressionpolicy
+    id: enrollment-validation
+    identifiers:
+      name: enrollment-validation
+    attrs:
+      expression: |-
+        from authentik.core.models import User
+
+        data = request.context["prompt_data"]
+        if User.objects.filter(email__iexact=data["email"]).exists():
+            ak_message("Email address in use.")
+            return False
+        if not regex_match(data["username"], "^[a-z0-9_-]+$"):
+            ak_message("Username must only contain lowercase letters, numbers, `-` and `_`.")
+            return False
+        return True
   - model: authentik_stages_prompt.promptstage
     id: enrollment-prompt
     identifiers:
       name: enrollment-prompt
     attrs:
       fields:
+        - !KeyOf enrollment-field-name
         - !Find [authentik_stages_prompt.prompt, [name, default-source-enrollment-field-username]]
         - !KeyOf enrollment-field-email
-        - !KeyOf first-name
-        - !KeyOf last-name
-        - !KeyOf phone-number
         - !KeyOf enrollment-field-password
         - !KeyOf enrollment-field-password-repeat
       validation_policies:
         - !Find [authentik_policies_password.passwordpolicy, [name, default-password-change-password-policy]]
-        - !KeyOf extra-user-validation
+        - !KeyOf enrollment-validation
   - model: authentik_stages_user_write.userwritestage
     id: enrollment-write
     identifiers:
@@ -280,56 +209,6 @@ entries:
       stage: !KeyOf enrollment-login
     attrs:
       order: 20
-
-  # Sign-up through "Log in with Google" (google-login.yaml): the email address
-  # comes from Google. Replaces Authentik's default source enrollment flow,
-  # which only asks for a username.
-  - model: authentik_flows.flow
-    id: source-enrollment
-    identifiers:
-      slug: source-enrollment
-    attrs:
-      name: Welcome to Tangram! Fill in your details.
-      title: Welcome to Tangram! Fill in your details.
-      designation: enrollment
-      authentication: none
-  - model: authentik_stages_prompt.promptstage
-    id: source-enrollment-prompt
-    identifiers:
-      name: source-enrollment-prompt
-    attrs:
-      fields:
-        - !Find [authentik_stages_prompt.prompt, [name, default-source-enrollment-field-username]]
-        - !KeyOf first-name
-        - !KeyOf last-name
-        - !KeyOf phone-number
-      validation_policies:
-        - !KeyOf extra-user-validation
-  - model: authentik_flows.flowstagebinding
-    identifiers:
-      target: !KeyOf source-enrollment
-      stage: !KeyOf source-enrollment-prompt
-    attrs:
-      order: 0
-  - model: authentik_flows.flowstagebinding
-    identifiers:
-      target: !KeyOf source-enrollment
-      stage: !Find [authentik_stages_user_write.userwritestage, [name, default-source-enrollment-write]]
-    attrs:
-      order: 1
-  - model: authentik_flows.flowstagebinding
-    identifiers:
-      target: !KeyOf source-enrollment
-      stage: !Find [authentik_stages_user_login.userloginstage, [name, default-source-enrollment-login]]
-    attrs:
-      order: 2
-  # Only reachable from a source login
-  - model: authentik_policies.policybinding
-    identifiers:
-      target: !KeyOf source-enrollment
-      policy: !Find [authentik_policies_expression.expressionpolicy, [name, default-source-enrollment-if-sso]]
-    attrs:
-      order: 0
 
   # --------------------------------------------------------- Password recovery
 
@@ -499,6 +378,35 @@ entries:
     attrs:
       order: 0
       negate: true
+
+  # ------------------------------------------------------------------ Cleanup
+
+  # Objects of the former sign-up, which also asked for first and last name
+  # and phone number. These entries can go once deployed.
+  - model: authentik_stages_prompt.prompt
+    state: absent
+    identifiers:
+      name: first_name
+  - model: authentik_stages_prompt.prompt
+    state: absent
+    identifiers:
+      name: last_name
+  - model: authentik_stages_prompt.prompt
+    state: absent
+    identifiers:
+      name: phone_number
+  - model: authentik_stages_prompt.prompt
+    state: absent
+    identifiers:
+      name: google_workspace_email
+  - model: authentik_policies_expression.expressionpolicy
+    state: absent
+    identifiers:
+      name: extra-user-validation
+  - model: authentik_policies_expression.expressionpolicy
+    state: absent
+    identifiers:
+      name: remove-google-workspace-address-if-empty
 
   # ---------------------------------------------------------- The login page
 

@@ -19,7 +19,9 @@ context:
     # Authentik would otherwise switch it to S256 when applying the blueprint
     pkce: none
     authentication_flow: !Find [authentik_flows.flow, [slug, default-source-authentication]]
-    enrollment_flow: !Find [authentik_flows.flow, [slug, source-enrollment]]
+    # Authentik's default: the name and email address come from Google, it
+    # only asks for a username.
+    enrollment_flow: !Find [authentik_flows.flow, [slug, default-source-enrollment]]
     # A user who already has an account with that email address must link
     # their Google account from their settings first.
     user_matching_mode: email_deny
@@ -31,6 +33,13 @@ entries:
     attrs:
       identifiers:
         name: Tangram - Flows
+      required: true
+  # Resets the default sign-up through a source, which used to also ask for
+  # first and last name and phone number.
+  - model: authentik_blueprints.metaapplyblueprint
+    attrs:
+      identifiers:
+        name: Default - Source enrollment flow
       required: true
 
   - model: authentik_sources_oauth.oauthsource

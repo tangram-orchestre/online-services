@@ -60,9 +60,12 @@ entries:
                         "X-App-User": request.user.username,
                         "X-App-Email": request.user.email,
                         "X-App-Groups": ",".join([group.name for group in user.groups.all()]),
-                        "X-App-LastName": request.user.attributes.get("last_name", None),
-                        "X-App-FirstName": request.user.attributes.get("first_name", None),
-                        "X-App-PhoneNumber": request.user.attributes.get("phone_number", None),
+                        # Required by the backend. Sign-up only asks for a
+                        # display name now: members who signed up before
+                        # still have these attributes.
+                        "X-App-FirstName": request.user.attributes.get("first_name", request.user.name),
+                        "X-App-LastName": request.user.attributes.get("last_name", ""),
+                        "X-App-PhoneNumber": request.user.attributes.get("phone_number", ""),
                     }
                 }
             }
