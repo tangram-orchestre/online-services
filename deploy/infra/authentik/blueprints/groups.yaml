@@ -19,3 +19,16 @@ entries:
   - model: authentik_core.group
     identifiers:
       name: Devs
+    attrs:
+      # Sent to Kopia by its provider (applications.yaml), so its own login
+      # never shows up. From infra/authentik/.env, the same as in infra/kopia/.env.
+      attributes:
+        kopia-username: !Env KOPIA_WEB_USERNAME
+        kopia-password: !Env KOPIA_WEB_PASSWORD
+
+  # Built into Authentik. Its attributes used to hold the Kopia credentials.
+  - model: authentik_core.group
+    identifiers:
+      name: authentik Admins
+    attrs:
+      attributes: {}

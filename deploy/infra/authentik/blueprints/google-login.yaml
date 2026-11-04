@@ -1,0 +1,41 @@
+# yaml-language-server: $schema=https://goauthentik.io/blueprints/schema.json
+# "Log in with Google" on the Authentik login page. Its OAuth client is in the
+# Google Cloud console of the organisation's Workspace.
+#
+# The client secret is only set when GOOGLE_CLIENT_SECRET is, in
+# infra/authentik/.env: left empty, the one stored in Authentik is kept.
+version: 1
+metadata:
+  name: Tangram - Google login
+  labels:
+    blueprints.goauthentik.io/description: Log into Authentik with a Google account
+context:
+  source: &source
+    name: Google
+    provider_type: google
+    enabled: true
+    consumer_key: 225993530637-igter518jg3t2pb4bslsmoqo0v7n9ngf.apps.googleusercontent.com
+    authorization_code_auth_method: basic_auth
+    authentication_flow: !Find [authentik_flows.flow, [slug, default-source-authentication]]
+    enrollment_flow: !Find [authentik_flows.flow, [slug, default-source-enrollment]]
+    # A user who already has an account with that email address must link
+    # their Google account from their settings first.
+    user_matching_mode: email_deny
+    # The `extra-user-validation` policy tells these users apart by their path,
+    # to forbid them to change their email address.
+    user_path_template: users/%(slug)s
+entries:
+  - model: authentik_sources_oauth.oauthsource
+    conditions:
+      - !Env GOOGLE_CLIENT_SECRET
+    identifiers:
+      slug: google
+    attrs:
+      <<: *source
+      consumer_secret: !Env GOOGLE_CLIENT_SECRET
+  - model: authentik_sources_oauth.oauthsource
+    conditions:
+      - !Condition [NOR, !Env GOOGLE_CLIENT_SECRET]
+    identifiers:
+      slug: google
+    attrs: *source

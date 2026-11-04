@@ -50,7 +50,7 @@ The organization team also uses Authentik to log into their Google Workspace acc
 
 Authentik is available at `auth.tangram-orchestre.fr` and runs its own PostgreSQL database.
 
-Its groups, applications and the `X-App-*` headers are configured as code, in [`authentik/blueprints/`](./authentik/blueprints/README.md): change them there rather than in the Authentik admin.
+Its groups, applications, the `X-App-*` headers and the Google login are configured as code, in [`authentik/blueprints/`](./authentik/blueprints/README.md): change them there rather than in the Authentik admin.
 
 ### Observability
 
@@ -134,6 +134,6 @@ Every deploy also dumps both databases to `/opt/services/db-dumps/<service>/` be
 | `/opt/services` | The deployed releases, their secrets and the pre-deploy database snapshots |
 | `/opt/db-backups` | The PostgreSQL dumps from both databases |
 
-The Kopia web UI is available at `kopia.tangram-orchestre.fr`, protected by Authentik.
+The Kopia web UI is available at `kopia.tangram-orchestre.fr` to the `Devs` group. Authentik logs them into it with Kopia's own credentials, through the [`authentik-basic-auth`](./traefik/dynamic-conf/authentik-middleware.yaml) middleware.
 
 To explore a backup dump locally, see the [Backup Explorer](../README.md#backup-explorer-backup-explorer) in the deploy README.

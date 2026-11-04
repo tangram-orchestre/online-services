@@ -40,7 +40,8 @@ The [deploy workflow](../.github/workflows/deploy.yml) runs these steps:
    3. snapshots the databases to `<server folder>/db-dumps/`
    4. starts the release and waits for every container to be healthy (database migrations run here)
    5. checks the main routes answer as expected through Traefik (`DEPLOY_SMOKE_TESTS` in the environment configuration), which catches broken routing that healthchecks cannot see
-   6. if anything is not healthy or a route is wrong, restores the snapshots and starts the previous release again, and the workflow fails
+   6. in production, waits for Authentik to apply its [blueprints](infra/authentik/blueprints/README.md) (`DEPLOY_AUTHENTIK_BLUEPRINTS`)
+   7. if anything is not healthy, a route is wrong or a blueprint failed, restores the snapshots and starts the previous release again, and the workflow fails
 
 Infrastructure updates (Traefik, Authentik…) go through the same steps: the Authentik database is part of the snapshots, and a broken Traefik fails its healthcheck or the route checks. Traefik serves the maintenance page itself, so the page is unavailable for the few seconds Traefik restarts; it only restarts when its image or configuration changes.
 4. **Promote**: only once the release is healthy, the `production` / `staging` image tags are moved to it. They therefore always point to what is running.

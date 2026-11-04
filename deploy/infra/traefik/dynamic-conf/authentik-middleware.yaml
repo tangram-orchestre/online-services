@@ -26,3 +26,14 @@ http:
           - X-App-LastName
           - X-App-FirstName
           - X-App-PhoneNumber
+
+    # The same, also passing on the HTTP basic auth that Authentik sends for
+    # providers with basic auth enabled (Kopia). Kept apart from `authentik` as
+    # Traefik replaces the listed headers of the request with Authentik's, which
+    # would drop the Authorization header the other services receive.
+    authentik-basic-auth:
+      forwardAuth:
+        address: "http://authentik-server:9000/outpost.goauthentik.io/auth/traefik"
+        trustForwardHeader: true
+        authResponseHeaders:
+          - Authorization

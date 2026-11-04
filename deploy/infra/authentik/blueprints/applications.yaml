@@ -312,7 +312,9 @@ entries:
     attrs:
       order: 0
 
-  # Its basic auth settings stay in the UI, as they hold credentials.
+  # Logs into Kopia's web UI with HTTP basic auth, from the credentials set on
+  # the Devs group (groups.yaml). Traefik passes the header on through the
+  # `authentik-basic-auth` middleware.
   - model: authentik_providers_proxy.proxyprovider
     id: provider-kopia
     identifiers:
@@ -321,6 +323,9 @@ entries:
       <<: *provider
       external_host: https://kopia.tangram-orchestre.fr
       property_mappings: *scopes
+      basic_auth_enabled: true
+      basic_auth_user_attribute: kopia-username
+      basic_auth_password_attribute: kopia-password
   - model: authentik_core.application
     id: kopia
     identifiers:

@@ -4,20 +4,29 @@ The Authentik configuration the apps rely on, as [blueprints](https://docs.goaut
 
 | File | Content |
 |---|---|
-| [`groups.yaml`](groups.yaml) | The `Orga`, `Bureau` and `Devs` groups, without their members |
+| [`groups.yaml`](groups.yaml) | The `Orga`, `Bureau` and `Devs` groups, without their members, and the Kopia credentials of `Devs` |
 | [`applications.yaml`](applications.yaml) | The forward auth providers and applications of production and staging, who may open each one, the `X-App-*` headers and the embedded outpost |
 | [`google-workspace.yaml`](google-workspace.yaml) | SAML single sign-on into Google Workspace |
+| [`google-login.yaml`](google-login.yaml) | "Log in with Google" on the Authentik login page |
 
 ## How they are applied
 
-The folder is mounted read-only in the Authentik worker at `/blueprints/tangram`. A production deploy recreates the worker, which applies the blueprints whose content changed. Each blueprint is applied in a single transaction: one that fails leaves the configuration as it was, and shows its error in the Authentik admin, under **Customization → Blueprints**. A blueprint can also be applied again from there.
+The folder is mounted read-only in the Authentik worker at `/blueprints/tangram`. A production deploy recreates the worker, which applies the blueprints whose content changed. Each blueprint is applied in a single transaction: one that fails leaves the configuration as it was, and shows its error in the Authentik admin, under **Customization → Blueprints**.
+
+The deploy then waits until Authentik has applied the current version of every blueprint (`DEPLOY_AUTHENTIK_BLUEPRINTS` in `production.env`), and rolls back if one fails.
+
+Secrets come from [`infra/authentik/.env`](../sample.env) through `!Env`:
+
+| Variable | Used for |
+|---|---|
+| `KOPIA_WEB_USERNAME`, `KOPIA_WEB_PASSWORD` | Kopia's web UI login, sent by Authentik so Devs never see it. The same values as in `infra/kopia/.env` |
+| `GOOGLE_CLIENT_SECRET` | The Google login's OAuth client secret. Leave it empty to keep the one stored in Authentik |
 
 Staging and production share the one Authentik instance, run by production. A staging deploy does not apply the blueprints, so even changes for the staging applications go live with the next production deploy.
 
 ## What stays in the Authentik admin
 
 - users, their passwords and the members of the groups
-- secrets: the Google login source and the Kopia basic auth settings
 - the flows, stages, prompts and branding
 
 ## Rules
