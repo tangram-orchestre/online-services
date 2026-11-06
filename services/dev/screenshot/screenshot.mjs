@@ -22,6 +22,8 @@ Options:
                      Type text into a field (repeatable, run in order with
                      --click), e.g. '[data-path="name"] input => Salle'
   --wait <ms>        Extra delay before capturing (default: 500)
+  --user <username>  With \`just dev-authentik\`: browse as this seeded user
+                     (bureau, orga, membre or dev), through their app password
   --name <name>      Output file name (single path only)
   -h, --help         Show this help
 
@@ -30,6 +32,8 @@ Examples:
   just screenshot --dark --mobile / /locations
   just screenshot --click '[aria-label="Modifier le concert"] >> nth=0' /
   just screenshot --click 'text=Ajouter un lieu' --fill 'input >> nth=1 => x' /locations
+  just screenshot --user orga /concerts
+  just screenshot --host auth.localhost /if/flow/enrollment/
 `;
 
 const {
@@ -48,6 +52,7 @@ const {
     fill: { type: "string", multiple: true, default: [] },
     hover: { type: "string", multiple: true, default: [] },
     wait: { type: "string", default: "500" },
+    user: { type: "string" },
     name: { type: "string" },
     help: { type: "boolean", short: "h", default: false },
   },
@@ -117,6 +122,16 @@ const context = await browser.newContext({
   locale: "fr-FR",
   timezoneId: "Europe/Paris",
 });
+
+if (opts.user) {
+  // Authentik accepts HTTP basic auth with an app password instead of a
+  // session; the seeded users' app password is their username. Only sent to
+  // the dev stack: other sites would refuse it in CORS preflights.
+  const authorization = `Basic ${Buffer.from(`${opts.user}:${opts.user}`).toString("base64")}`;
+  await context.route(/^https:\/\/([^/]+\.)?localhost\//, (route) =>
+    route.continue({ headers: { ...route.request().headers(), authorization } }),
+  );
+}
 
 let failed = false;
 

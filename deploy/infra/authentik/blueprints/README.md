@@ -4,11 +4,14 @@ The Authentik configuration the apps rely on, as [blueprints](https://docs.goaut
 
 | File | Content |
 |---|---|
-| [`groups.yaml`](groups.yaml) | The `Orga`, `Bureau` and `Devs` groups, without their members, and the Kopia credentials of `Devs` |
-| [`applications.yaml`](applications.yaml) | The forward auth providers and applications of production and staging, who may open each one, the `X-App-*` headers and the embedded outpost |
-| [`google-workspace.yaml`](google-workspace.yaml) | SAML single sign-on into Google Workspace |
-| [`google-login.yaml`](google-login.yaml) | "Log in with Google" on the Authentik login page, and Authentik's default sign-up for new Google accounts |
+| [`groups.yaml`](groups.yaml) | The `Orga`, `Bureau` and `Devs` groups, without their members |
+| [`applications.yaml`](applications.yaml) | The portal and the backend, who may open them, and the `X-App-*` headers they read |
 | [`flows.yaml`](flows.yaml) | Login, sign-up (with email confirmation), password recovery, account deletion and the Tangram branding |
+| [`production/infrastructure.yaml`](production/infrastructure.yaml) | The staging and infrastructure applications, who may open each one, Kopia's credentials and the embedded outpost |
+| [`production/google-workspace.yaml`](production/google-workspace.yaml) | SAML single sign-on into Google Workspace |
+| [`production/google-login.yaml`](production/google-login.yaml) | "Log in with Google" on the Authentik login page, and Authentik's default sign-up for new Google accounts |
+
+The local Authentik of `just dev-authentik` ([`services/dev/authentik`](../../../../services/dev/authentik/README.md)) applies the same blueprints, except those of `production/`, with the domain of `TANGRAM_DOMAIN` (`tangram-orchestre.fr` when unset).
 
 ## How they are applied
 
@@ -40,4 +43,6 @@ Staging and production share the one Authentik instance, run by production. A st
 
 ## Testing a change locally
 
-Apply them to a throwaway Authentik of the same version, loaded with a copy of the production configuration (`ak export_blueprint` on the server), then compare a new export with that copy: only the intended changes should show up.
+`just dev-authentik` applies the blueprints outside `production/` on startup and whenever they change, and shows the result at `https://auth.localhost` (see Customization → Blueprints for errors).
+
+For a change to production, apply them to a throwaway Authentik of the same version, loaded with a copy of the production configuration (`ak export_blueprint` on the server), then compare a new export with that copy: only the intended changes should show up.

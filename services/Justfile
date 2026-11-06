@@ -2,6 +2,11 @@
 dev: ensure-certs build-env
     docker compose up --remove-orphans
 
+# Start development environment with a real Authentik instead of fake-auth
+# (https://auth.localhost, see dev/authentik/README.md)
+dev-authentik: ensure-certs build-env
+    docker compose -f docker-compose.yaml -f dev/authentik/docker-compose.yaml up --remove-orphans
+
 # Build development environment
 build-env:
     #!/usr/bin/env bash
@@ -84,7 +89,7 @@ generate-certs:
     mkcert \
         -cert-file ./dev/traefik/certs/localhost.pem \
         -key-file ./dev/traefik/certs/localhost-key.pem \
-        localhost api.localhost portal.localhost traefik.localhost maildev.localhost pgweb.localhost schema.localhost
+        localhost api.localhost portal.localhost traefik.localhost maildev.localhost pgweb.localhost schema.localhost auth.localhost
 
 # Ensure local dev certificates exist
 [group('certs')]
@@ -93,6 +98,7 @@ ensure-certs:
     set -e
     # Ensure certificates exist
     CERT_FILE="./dev/traefik/certs/localhost.pem"
-    if [ ! -f "$CERT_FILE" ]; then
+    # Also regenerated when a domain was added since (auth.localhost)
+    if [ ! -f "$CERT_FILE" ] || ! openssl x509 -in "$CERT_FILE" -noout -ext subjectAltName | grep -q auth.localhost; then
         just generate-certs
     fi

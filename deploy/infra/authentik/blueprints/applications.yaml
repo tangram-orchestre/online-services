@@ -1,7 +1,8 @@
 # yaml-language-server: $schema=https://goauthentik.io/blueprints/schema.json
-# Applications protected by Traefik's `authentik` forward-auth middleware
-# (deploy/infra/traefik/dynamic-conf/authentik-middleware.yaml), for both
-# production and staging since they share this Authentik instance.
+# The portal and the backend, protected by Traefik's `authentik` forward-auth
+# middleware (deploy/infra/traefik/dynamic-conf/authentik-middleware.yaml).
+# Also used by the local Authentik of `just dev-authentik`, on the domain of
+# TANGRAM_DOMAIN. The other applications are in production/infrastructure.yaml.
 #
 # Each one is a proxy provider in forward auth mode, served by the embedded
 # outpost, and an application whose policy bindings decide who may open it.
@@ -10,8 +11,9 @@ version: 1
 metadata:
   name: Tangram - Applications
   labels:
-    blueprints.goauthentik.io/description: Forward auth applications, the X-App-* headers and who may open each application
+    blueprints.goauthentik.io/description: The portal and the backend, the X-App-* headers and who may open them
 context:
+  domain: &domain !Env [TANGRAM_DOMAIN, tangram-orchestre.fr]
   # Shared by the providers below, through YAML anchors.
   provider: &provider
     mode: forward_single
@@ -71,15 +73,13 @@ entries:
             }
         }
 
-  # ---------------------------------------------------------------- Production
-
   - model: authentik_providers_proxy.proxyprovider
     id: provider-portal
     identifiers:
       name: Provider for Portal
     attrs:
       <<: *provider
-      external_host: https://portal.tangram-orchestre.fr
+      external_host: !Format ["https://portal.%s", *domain]
       property_mappings: *scopes_with_app_headers
   - model: authentik_core.application
     id: portal
@@ -98,7 +98,7 @@ entries:
       name: Provider for Backend
     attrs:
       <<: *provider
-      external_host: https://api.tangram-orchestre.fr
+      external_host: !Format ["https://api.%s", *domain]
       property_mappings: *scopes_with_app_headers
   - model: authentik_core.application
     id: backend
@@ -108,258 +108,11 @@ entries:
       name: Backend
       provider: !KeyOf provider-backend
       group: ""
-  # The portal reaches the backend through portal.tangram-orchestre.fr/api, the
-  # API domain is for developers.
+  # The portal reaches the backend through portal.<domain>/api, the API domain
+  # is for developers.
   - model: authentik_policies.policybinding
     identifiers:
       target: !KeyOf backend
       group: !Find [authentik_core.group, [name, Devs]]
     attrs:
       order: 0
-
-  # ------------------------------------------------------------------- Staging
-
-  - model: authentik_providers_proxy.proxyprovider
-    id: provider-portal-staging
-    identifiers:
-      name: Provider for Portal Staging
-    attrs:
-      <<: *provider
-      external_host: https://portal.staging.tangram-orchestre.fr
-      property_mappings: *scopes_with_app_headers
-  - model: authentik_core.application
-    id: portal-staging
-    identifiers:
-      slug: portal-staging
-    attrs:
-      name: Portal Staging
-      provider: !KeyOf provider-portal-staging
-      group: Staging
-  - model: authentik_policies.policybinding
-    identifiers:
-      target: !KeyOf portal-staging
-      group: !Find [authentik_core.group, [name, Orga]]
-    attrs:
-      order: 0
-  - model: authentik_policies.policybinding
-    identifiers:
-      target: !KeyOf portal-staging
-      group: !Find [authentik_core.group, [name, Devs]]
-    attrs:
-      order: 0
-
-  - model: authentik_providers_proxy.proxyprovider
-    id: provider-backend-staging
-    identifiers:
-      name: Provider for Backend Staging
-    attrs:
-      <<: *provider
-      external_host: https://api.staging.tangram-orchestre.fr
-      property_mappings: *scopes_with_app_headers
-  - model: authentik_core.application
-    id: backend-staging
-    identifiers:
-      slug: backend-staging
-    attrs:
-      name: Backend Staging
-      provider: !KeyOf provider-backend-staging
-      group: Staging
-  - model: authentik_policies.policybinding
-    identifiers:
-      target: !KeyOf backend-staging
-      group: !Find [authentik_core.group, [name, Orga]]
-    attrs:
-      order: 0
-  - model: authentik_policies.policybinding
-    identifiers:
-      target: !KeyOf backend-staging
-      group: !Find [authentik_core.group, [name, Devs]]
-    attrs:
-      order: 0
-
-  # Staging's website and public API, private unlike in production.
-  - model: authentik_providers_proxy.proxyprovider
-    id: provider-showcase-website-staging
-    identifiers:
-      name: Provider for Showcase Website Staging
-    attrs:
-      <<: *provider
-      external_host: https://www.staging.tangram-orchestre.fr
-      property_mappings: *scopes
-  - model: authentik_core.application
-    id: showcase-website-staging
-    identifiers:
-      slug: showcase-website-staging
-    attrs:
-      name: Showcase Website Staging
-      provider: !KeyOf provider-showcase-website-staging
-      group: Staging
-  - model: authentik_policies.policybinding
-    identifiers:
-      target: !KeyOf showcase-website-staging
-      group: !Find [authentik_core.group, [name, Orga]]
-    attrs:
-      order: 0
-  - model: authentik_policies.policybinding
-    identifiers:
-      target: !KeyOf showcase-website-staging
-      group: !Find [authentik_core.group, [name, Devs]]
-    attrs:
-      order: 0
-
-  - model: authentik_providers_proxy.proxyprovider
-    id: provider-maildev
-    identifiers:
-      name: Provider for Maildev
-    attrs:
-      <<: *provider
-      external_host: https://maildev.tangram-orchestre.fr
-      property_mappings: *scopes
-  - model: authentik_core.application
-    id: maildev
-    identifiers:
-      slug: maildev
-    attrs:
-      name: Maildev
-      provider: !KeyOf provider-maildev
-      group: IT
-  - model: authentik_policies.policybinding
-    identifiers:
-      target: !KeyOf maildev
-      group: !Find [authentik_core.group, [name, Orga]]
-    attrs:
-      order: 0
-  - model: authentik_policies.policybinding
-    identifiers:
-      target: !KeyOf maildev
-      group: !Find [authentik_core.group, [name, Devs]]
-    attrs:
-      order: 0
-
-  # Shows the forwarded headers, to debug them.
-  - model: authentik_providers_proxy.proxyprovider
-    id: provider-whoami
-    identifiers:
-      name: Provider for whoami
-    attrs:
-      <<: *provider
-      external_host: https://whoami.tangram-orchestre.fr
-      property_mappings: *scopes_with_app_headers
-  - model: authentik_core.application
-    id: whoami
-    identifiers:
-      slug: whoami
-    attrs:
-      name: whoami
-      provider: !KeyOf provider-whoami
-      group: IT
-  - model: authentik_policies.policybinding
-    identifiers:
-      target: !KeyOf whoami
-      group: !Find [authentik_core.group, [name, Devs]]
-    attrs:
-      order: 0
-
-  # ------------------------------------------------------------ Infrastructure
-
-  - model: authentik_providers_proxy.proxyprovider
-    id: provider-traefik
-    identifiers:
-      name: Provider for Traefik
-    attrs:
-      <<: *provider
-      external_host: https://traefik.tangram-orchestre.fr
-      property_mappings: *scopes
-  - model: authentik_core.application
-    id: traefik
-    identifiers:
-      slug: traefik
-    attrs:
-      name: Traefik
-      provider: !KeyOf provider-traefik
-      group: IT
-  - model: authentik_policies.policybinding
-    identifiers:
-      target: !KeyOf traefik
-      group: !Find [authentik_core.group, [name, authentik Admins]]
-    attrs:
-      order: 0
-  - model: authentik_policies.policybinding
-    identifiers:
-      target: !KeyOf traefik
-      group: !Find [authentik_core.group, [name, Devs]]
-    attrs:
-      order: 0
-
-  - model: authentik_providers_proxy.proxyprovider
-    id: provider-dozzle
-    identifiers:
-      name: Provider for Dozzle
-    attrs:
-      <<: *provider
-      external_host: https://dozzle.tangram-orchestre.fr
-      property_mappings: *scopes
-  - model: authentik_core.application
-    id: dozzle
-    identifiers:
-      slug: dozzle
-    attrs:
-      name: Dozzle
-      provider: !KeyOf provider-dozzle
-      group: IT
-      meta_launch_url: https://dozzle.tangram-orchestre.fr
-  - model: authentik_policies.policybinding
-    identifiers:
-      target: !KeyOf dozzle
-      group: !Find [authentik_core.group, [name, Devs]]
-    attrs:
-      order: 0
-
-  # Logs into Kopia's web UI with HTTP basic auth, from the credentials set on
-  # the Devs group (groups.yaml). Traefik passes the header on through the
-  # `authentik-basic-auth` middleware.
-  - model: authentik_providers_proxy.proxyprovider
-    id: provider-kopia
-    identifiers:
-      name: Provider for Kopia
-    attrs:
-      <<: *provider
-      external_host: https://kopia.tangram-orchestre.fr
-      property_mappings: *scopes
-      basic_auth_enabled: true
-      basic_auth_user_attribute: kopia-username
-      basic_auth_password_attribute: kopia-password
-  - model: authentik_core.application
-    id: kopia
-    identifiers:
-      slug: kopia
-    attrs:
-      name: Kopia
-      provider: !KeyOf provider-kopia
-      group: IT
-  - model: authentik_policies.policybinding
-    identifiers:
-      target: !KeyOf kopia
-      group: !Find [authentik_core.group, [name, Devs]]
-    attrs:
-      order: 0
-
-  # ------------------------------------------------------------------- Outpost
-
-  # The outpost built into the Authentik server answers Traefik's forward auth
-  # requests, for exactly these providers.
-  - model: authentik_outposts.outpost
-    identifiers:
-      managed: goauthentik.io/outposts/embedded
-    attrs:
-      providers:
-        - !KeyOf provider-portal
-        - !KeyOf provider-backend
-        - !KeyOf provider-portal-staging
-        - !KeyOf provider-backend-staging
-        - !KeyOf provider-showcase-website-staging
-        - !KeyOf provider-maildev
-        - !KeyOf provider-whoami
-        - !KeyOf provider-traefik
-        - !KeyOf provider-dozzle
-        - !KeyOf provider-kopia

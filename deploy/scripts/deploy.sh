@@ -241,8 +241,8 @@ check_blueprints() {
     [ -n "$folder" ] || return 0
 
     log "Checking Authentik blueprints"
-    for file in "$dir/$folder"/*.yaml; do
-        path=tangram/$(basename "$file")
+    while read -r file; do
+        path=tangram/${file#"$dir/$folder/"}
         hash=$(sha512sum "$file" | cut -d' ' -f1)
         deadline=$((SECONDS + 120))
         # Authentik records the SHA-512 of the file it last applied
@@ -255,7 +255,7 @@ check_blueprints() {
             fi
             sleep 2
         done
-    done
+    done < <(find "$dir/$folder" -name '*.yaml' | sort)
 }
 
 cleanup() {

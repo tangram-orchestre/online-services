@@ -411,7 +411,7 @@ entries:
   # ---------------------------------------------------------- The login page
 
   # Its first step, with the sign-up and recovery links, below the flows they
-  # point to. The Google button is added by google-login.yaml.
+  # point to. The Google button is added by production/google-login.yaml.
   - model: authentik_stages_identification.identificationstage
     identifiers:
       name: default-authentication-identification
