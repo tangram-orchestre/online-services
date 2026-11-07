@@ -111,7 +111,7 @@ const navigation = computed<{ title: string; items: NavItem[] }[]>(() =>
 
         <template #footer>
           <UButton
-            :label="`${user.first_name} ${user.last_name}`"
+            :label="user.username"
             icon="i-lucide-circle-user"
             color="neutral"
             variant="ghost"

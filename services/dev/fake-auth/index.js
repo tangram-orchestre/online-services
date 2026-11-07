@@ -65,9 +65,6 @@ const server = http.createServer((req, res) => {
         "X-App-Groups",
         user.groups_obj.map((g) => g.name).join(",")
       );
-      res.setHeader("X-App-LastName", user.attributes.last_name);
-      res.setHeader("X-App-FirstName", user.attributes.first_name);
-      res.setHeader("X-App-PhoneNumber", user.attributes.phone_number);
       res.writeHead(200, { "Content-Type": "application/json" });
       res.end();
       return;

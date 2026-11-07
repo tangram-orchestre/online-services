@@ -42,10 +42,6 @@ entries:
       groups:
         - !Find [authentik_core.group, [name, Orga]]
         - !Find [authentik_core.group, [name, Bureau]]
-      attributes:
-        first_name: Beatrice
-        last_name: Bureau
-        phone_number: "+33600000001"
 
   # Sees the portal's organisation pages, read only
   - model: authentik_core.user
@@ -58,10 +54,6 @@ entries:
       password: orga
       groups:
         - !Find [authentik_core.group, [name, Orga]]
-      attributes:
-        first_name: Olivier
-        last_name: Orga
-        phone_number: "+33600000002"
 
   # Only sees their profile, like someone who just signed up
   - model: authentik_core.user

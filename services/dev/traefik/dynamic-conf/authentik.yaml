@@ -11,6 +11,3 @@ http:
           - X-App-User
           - X-App-Email
           - X-App-Groups
-          - X-App-LastName
-          - X-App-FirstName
-          - X-App-PhoneNumber
