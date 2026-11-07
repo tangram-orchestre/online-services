@@ -13,6 +13,11 @@ entries:
       identifiers:
         name: Tangram - Groups
       required: true
+  - model: authentik_blueprints.metaapplyblueprint
+    attrs:
+      identifiers:
+        name: Tangram - Flows
+      required: true
 
   - model: authentik_providers_saml.samlpropertymapping
     id: google-workspace-email
@@ -28,9 +33,9 @@ entries:
     identifiers:
       name: Provider for Google Workspace
     attrs:
-      authentication_flow: !Find [authentik_flows.flow, [slug, default-authentication-flow]]
+      authentication_flow: !Find [authentik_flows.flow, [slug, login]]
       authorization_flow: !Find [authentik_flows.flow, [slug, default-provider-authorization-implicit-consent]]
-      invalidation_flow: !Find [authentik_flows.flow, [slug, default-provider-invalidation-flow]]
+      invalidation_flow: !Find [authentik_flows.flow, [slug, logged-out]]
       acs_url: https://accounts.google.com/samlrp/022mrf0e2tnansw/acs
       audience: https://accounts.google.com/samlrp/022mrf0e2tnansw/acs
       issuer_override: authentik

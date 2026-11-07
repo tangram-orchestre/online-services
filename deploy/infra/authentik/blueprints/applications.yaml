@@ -17,9 +17,9 @@ context:
   # Shared by the providers below, through YAML anchors.
   provider: &provider
     mode: forward_single
-    authentication_flow: !Find [authentik_flows.flow, [slug, default-authentication-flow]]
+    authentication_flow: !Find [authentik_flows.flow, [slug, login]]
     authorization_flow: !Find [authentik_flows.flow, [slug, default-provider-authorization-implicit-consent]]
-    invalidation_flow: !Find [authentik_flows.flow, [slug, default-provider-invalidation-flow]]
+    invalidation_flow: !Find [authentik_flows.flow, [slug, logged-out]]
     access_token_validity: hours=24
     intercept_header_auth: true
   scopes: &scopes
@@ -41,6 +41,12 @@ entries:
     attrs:
       identifiers:
         name: Tangram - Groups
+      required: true
+  # The login and logout pages
+  - model: authentik_blueprints.metaapplyblueprint
+    attrs:
+      identifiers:
+        name: Tangram - Flows
       required: true
 
   # Identity headers forwarded to the backend and the portal. Traefik only
