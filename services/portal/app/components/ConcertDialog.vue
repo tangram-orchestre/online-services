@@ -1,7 +1,6 @@
 <script setup lang="ts">
 import { useForm } from "vee-validate";
 import { z } from "zod";
-import { toTypedSchema } from "@vee-validate/zod";
 import { zNewConcert } from "#hey-api/zod.gen";
 import type { Concert, ConcertWithPieces, Semester } from "#hey-api/types.gen";
 

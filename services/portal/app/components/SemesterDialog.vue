@@ -1,7 +1,6 @@
 <script setup lang="ts">
 import { add } from "date-fns";
 import { useForm } from "vee-validate";
-import { toTypedSchema } from "@vee-validate/zod";
 import { zNewSemester } from "#hey-api/zod.gen";
 import type { Semester } from "#hey-api/types.gen";
 

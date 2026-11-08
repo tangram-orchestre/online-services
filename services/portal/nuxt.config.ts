@@ -6,7 +6,7 @@ export default defineNuxtConfig({
   // Shown until the app loads, then set by `app.vue` and the pages.
   app: { head: { title: "Portail Tangram" } },
 
-  modules: ["@vueuse/nuxt", "@nuxt/eslint", "@nuxt/image", "@nuxt/ui"],
+  modules: ["@vueuse/nuxt", "@nuxt/eslint", "@nuxt/ui"],
   css: ["~/assets/css/main.css"],
   ui: {
     theme: {

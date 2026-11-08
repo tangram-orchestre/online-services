@@ -59,7 +59,7 @@ const concertsIn = (room: RoomForm) =>
 const capacity = z.preprocess(
   (v) => (v === "" || v === undefined ? null : v),
   z
-    .number({ invalid_type_error: "Nombre attendu" })
+    .number({ error: "Nombre attendu" })
     .int("Nombre entier attendu")
     .min(1, "Doit être supérieure à 0")
     .nullable(),
@@ -77,7 +77,7 @@ const zRoomForm = z
   })
   .superRefine((room, ctx) => {
     const issue = (field: keyof RoomForm, message: string) =>
-      ctx.addIssue({ code: z.ZodIssueCode.custom, path: [field], message });
+      ctx.addIssue({ code: "custom", path: [field], message });
 
     if (room.rehearsal_only) {
       if (room.id !== undefined && roomConcerts.value.get(room.id)) {
@@ -120,7 +120,7 @@ const zForm = z.object({
         const key = room.name.trim().toLowerCase();
         if (key && seen.has(key)) {
           ctx.addIssue({
-            code: z.ZodIssueCode.custom,
+            code: "custom",
             path: [i, "name"],
             message: "Deux salles ont ce nom",
           });
@@ -136,7 +136,7 @@ const zForm = z.object({
         .string()
         .trim()
         .max(254)
-        .refine((v) => !v || z.string().email().safeParse(v).success, {
+        .refine((v) => !v || z.email().safeParse(v).success, {
           message: "Adresse e-mail invalide",
         }),
       phone_number: z.string().trim().max(32),

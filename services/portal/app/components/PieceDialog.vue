@@ -1,6 +1,5 @@
 <script setup lang="ts">
 import { useForm } from "vee-validate";
-import { toTypedSchema } from "@vee-validate/zod";
 import { zNewPieceWithPeople } from "#hey-api/zod.gen";
 import type { Person, PieceWithPeople, Semester } from "#hey-api/types.gen";
 import type PersonDialogComponent from "~/components/PersonDialog.vue";

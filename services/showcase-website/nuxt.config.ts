@@ -46,13 +46,6 @@ export default defineNuxtConfig({
         },
       },
     },
-    css: {
-      preprocessorOptions: {
-        scss: {
-          api: "modern-compiler", // or "modern"
-        },
-      },
-    },
   },
   nitro: {
     compressPublicAssets: true,

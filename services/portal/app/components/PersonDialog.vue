@@ -1,7 +1,6 @@
 <script setup lang="ts">
 import { useForm } from "vee-validate";
 import { z } from "zod";
-import { toTypedSchema } from "@vee-validate/zod";
 import type { Person } from "#hey-api/types.gen";
 
 const emit = defineEmits<{
@@ -17,7 +16,7 @@ const { allPeople, refresh } = usePeople();
 
 const zName = (max: number) =>
   z
-    .string({ required_error: "Champ requis" })
+    .string({ error: "Champ requis" })
     .trim()
     .min(1, "Champ requis")
     .max(max, `${max} caractères maximum`);

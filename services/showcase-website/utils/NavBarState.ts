@@ -46,7 +46,7 @@ export function useNavBar() {
     current,
     set: (index: number) => {
       const elementBoundingRect =
-        elements[index].value?.getBoundingClientRect();
+        elements[index]?.value?.getBoundingClientRect();
       if (elementBoundingRect) {
         let yTarget = elementBoundingRect.top + window.scrollY;
 

@@ -57,7 +57,10 @@ const focusConcert = (index: number) => {
   if (focus.value) {
     nextFocus.value = index;
   } else {
-    const element = concertRefs.value[index].$el as HTMLDivElement;
+    const element = concertRefs.value[index]?.$el as HTMLDivElement | undefined;
+    if (!element) {
+      return;
+    }
 
     updateFocusedSource(element);
     focus.value = { index, element, leaving: false };
@@ -90,6 +93,10 @@ const concerts = computed<Concert[]>(() =>
   (publicConcerts.value ?? []).map((c) => fromPublicConcert(c, apiBaseUrl)),
 );
 
+const focusedConcert = computed(() =>
+  focus.value ? concerts.value[focus.value.index] : undefined,
+);
+
 /** Only concerts with a programme flip, to show it. */
 const canFlip = (concert: Concert) => !!concert.program;
 </script>
@@ -112,14 +119,14 @@ const canFlip = (concert: Concert) => !!concert.program;
     <Transition name="focus" @after-leave="focus = null">
       <Teleport to="body">
         <div
-          v-if="focus && !focus.leaving"
+          v-if="focus && focusedConcert && !focus.leaving"
           class="focused-container z-20"
-          :class="{ 'small-card': !concerts[focus.index].program }"
+          :class="{ 'small-card': !focusedConcert.program }"
           @click="focus.leaving = true"
         >
           <div class="focused-container-inner">
             <ConcertCard
-              :concert="concerts[focus.index]"
+              :concert="focusedConcert"
               class="backface-hidden absolute size-full overflow-hidden"
             />
             <div
@@ -134,13 +141,13 @@ const canFlip = (concert: Concert) => !!concert.program;
                 class="no-scrollbar flex size-full grow flex-col overflow-auto"
               >
                 <div
-                  v-if="concerts[focus.index].program"
+                  v-if="focusedConcert.program"
                   class="mb-4 flex h-full flex-col gap-8"
                 >
                   <h2 class="lilita-one-regular mt-8 text-5xl">Programme</h2>
                   <ul class="raleway flex grow flex-col">
                     <div
-                      v-for="program in concerts[focus.index].program"
+                      v-for="program in focusedConcert.program"
                       :key="program.name"
                       class="my-3"
                     >

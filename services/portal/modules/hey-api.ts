@@ -17,7 +17,7 @@ import { findExports, findTypeExports } from "mlly";
 //
 // The client is written to `client/` rather than `.nuxt/`, which Nuxt wipes
 // on `nuxt prepare` and on config changes. Generation is skipped when neither
-// the spec, the config nor the openapi-ts version changed since the last run.
+// the spec, the config nor the dependencies changed since the last run.
 
 export interface ModuleOptions {
   /** Path to the OpenAPI spec. */
@@ -46,23 +46,21 @@ export default defineNuxtModule<ModuleOptions>({
     const config: UserConfig = {
       ...options.config,
       input: options.input,
-      output,
+      output: {
+        path: output,
+        // The client runtime, copied from openapi-ts (files without a
+        // `file`), does not type-check against Nuxt >= 4.5 (`cache: false`).
+        header: ({ defaultValue, file }) =>
+          file ? defaultValue : ["// @ts-nocheck", ...defaultValue],
+      },
       logs: { level: "warn" },
     };
 
-    const openapiTsVersion = JSON.parse(
-      fs.readFileSync(
-        path.join(
-          nuxt.options.rootDir,
-          "node_modules/@hey-api/openapi-ts/package.json",
-        ),
-        "utf-8",
-      ),
-    ).version;
     const hash = createHash("sha256")
       .update(fs.readFileSync(options.input))
       .update(JSON.stringify(options.config ?? {}))
-      .update(openapiTsVersion)
+      // openapi-ts, and Zod whose version the generated code targets.
+      .update(fs.readFileSync(path.join(nuxt.options.rootDir, "yarn.lock")))
       .digest("hex");
 
     const hashFile = path.join(output, HASH_FILE);

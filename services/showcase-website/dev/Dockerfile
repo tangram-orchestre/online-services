@@ -1,4 +1,4 @@
-FROM node:22.13
+FROM node:24.22.2
 
 ARG UID=1000
 ARG GID=1000
