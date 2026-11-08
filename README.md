@@ -1,6 +1,6 @@
 # Tangram Online Services
 
-![CI Status](https://github.com/tangram-orchestre/showcase-website/actions/workflows/ci.yml/badge.svg)
+![CI Status](https://github.com/tangram-orchestre/showcase-website/actions/workflows/deploy.yml/badge.svg)
 ![Website](https://img.shields.io/badge/Showcase_Website-Online-blue?link=https://www.tangram-orchestre.fr)
 
 This repository contains source code for every online services deployed for the [**Tangram Orchestra**](https://www.tangram-orchestre.fr) non-profit.
