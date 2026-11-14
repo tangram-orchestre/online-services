@@ -21,7 +21,7 @@
     "@nuxt/image": "^2.2.1",
     "@vueuse/core": "^13.0.0",
     "@vueuse/nuxt": "^13.0.0",
-    "altcha": "^1.1.1",
+    "altcha": "^2.3.0",
     "nuxt": "^4.6.4",
     "ts-pattern": "^5.6.1",
     "vue": "^3.4.32",
