@@ -2619,10 +2619,10 @@ alien-signals@^1.0.3:
   resolved "https://registry.yarnpkg.com/alien-signals/-/alien-signals-1.0.13.tgz#8d6db73462f742ee6b89671fbd8c37d0b1727a7e"
   integrity sha512-OGj9yyTnJEttvzhTUWuscOvtqxq5vrhF7vL9oS0xJ2mK0ItPYP1/y+vCFebfxoEyAz0++1AIwJ5CMr+Fk3nDmg==
 
-altcha@^1.1.1:
-  version "1.5.1"
-  resolved "https://registry.yarnpkg.com/altcha/-/altcha-1.5.1.tgz#2a174f7c2b31c3435daf7cdb25e9a3b283c5fda0"
-  integrity sha512-o3+k9uETJ/p5FgzsG8sbRFqtzMbywAh2bAcsHanfMUUj0WXT8+h87dZ8ZISM7E/ufidZLUI5TCiO97eJDTwayg==
+altcha@^2.3.0:
+  version "2.3.0"
+  resolved "https://registry.yarnpkg.com/altcha/-/altcha-2.3.0.tgz#4433f0206ccc4207624821d1acad12292cecb016"
+  integrity sha512-vl8I0dQvSQB7/Mx09XuWZ1+LdSP7vEda6OLbg9kUQ2ZO2LT7MzgUyLK7Iips+GAV6c0ntVcS1XWOqhEPpwbDhQ==
   dependencies:
     "@altcha/crypto" "^0.0.1"
   optionalDependencies:
