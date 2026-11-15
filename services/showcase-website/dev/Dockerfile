@@ -3,9 +3,6 @@ FROM node:24.22.2
 ARG UID=1000
 ARG GID=1000
 
-# Install tools
-RUN apt-get update && apt-get install -y inotify-tools
-
 # pnpm, at the version of the packageManager field of package.json (from the
 # `project` build context). `pnpm run` installs the dependencies when they are
 # out of date (verifyDepsBeforeRun).

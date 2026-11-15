@@ -38,7 +38,6 @@ pnpm dev
 pnpm build
 pnpm lint
 pnpm lint:fix
-pnpm openapi-ts               # Showcase only: regenerate API client from OpenAPI spec
 ```
 
 There are no unit tests — linting is the primary code quality gate.
@@ -63,9 +62,9 @@ The backend auto-generates two OpenAPI specs at startup:
 - `/public/spec` → consumed by showcase-website
 - `/spec` → consumed by portal
 
-Frontend API clients are generated from these specs via `@hey-api/openapi-ts` into `services/*/client/` (gitignored). In dev, both regenerate automatically when the backend spec changes:
-- showcase-website: `dev/generate-client.sh` (or `pnpm openapi-ts` manually)
-- portal: the local Nuxt module `portal/modules/hey-api.ts`, run on `nuxt dev`/`prepare`/`generate`. It skips generation when the spec, config and openapi-ts version are unchanged, and auto-imports the SDK (`#hey-api` alias).
+In dev, the backend writes them to `services/openapi/` (`backend/dev/fetch-api-specs.sh`), replacing a file only when it changed.
+
+Frontend API clients are generated from these specs via `@hey-api/openapi-ts` into `services/*/client/` (gitignored), by the same local Nuxt module in both apps, `modules/hey-api.ts` (configured by `heyApi` in `nuxt.config.ts`). It runs on `nuxt dev`/`prepare`/`build`/`generate`, skips generation when the spec, config and lockfile are unchanged, and auto-imports the SDK (`#hey-api` alias). `nuxt.config.ts` watches the spec, so the dev server restarts and regenerates the client when the backend spec changes.
 
 openapi-ts is pinned to 0.97.x: 0.98+ generates Nuxt SDK return types that don't type-check.
 
