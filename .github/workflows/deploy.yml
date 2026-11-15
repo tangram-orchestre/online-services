@@ -133,7 +133,7 @@ jobs:
           # Files unchanged since the current release are hard-linked, not copied
           rsync -rlptz --mkpath --delete --chmod=go-w,o-rwx \
             --link-dest="$DEPLOY_ROOT/current/" \
-            --exclude ansible/ --exclude backup-explorer/ --exclude Justfile \
+            --exclude ansible/ --exclude backup-explorer/ \
             deploy/ "server:$DEPLOY_ROOT/releases/$RELEASE/"
 
       - name: Deploy release

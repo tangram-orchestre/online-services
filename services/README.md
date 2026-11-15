@@ -24,7 +24,7 @@ This folder contains, the source code of all custom services made for Tangram.
 
 #### Starting the development environment
 
-A complete development environment can be spawned running `just dev` from the `services` folder.
+A complete development environment can be spawned running `just dev` from the repository root.
 
 Using this script ensures docker **containers will run as your user**. This will allow you to **modify and remove work files** such as `node_modules` or `.nuxt`.
 

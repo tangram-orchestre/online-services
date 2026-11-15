@@ -8,7 +8,7 @@ Monorepo for Tangram Orchestra's web presence. Contains three services (backend,
 
 ## Commands
 
-All tasks run via `just` from the `services/` directory.
+All tasks run via `just` from the repository root (recipes run in `services/` unless noted).
 
 ```bash
 just dev                      # Start complete local dev environment

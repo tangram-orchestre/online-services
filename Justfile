@@ -1,9 +1,12 @@
+# Recipes run from services/ unless they cd elsewhere
+set working-directory := 'services'
+
 # Start development environment
 dev: ensure-certs build-env
     docker compose up --remove-orphans
 
 # Start development environment with a real Authentik instead of fake-auth
-# (https://auth.localhost, see dev/authentik/README.md)
+# (https://auth.localhost, see services/dev/authentik/README.md)
 dev-authentik: ensure-certs build-env
     docker compose -f docker-compose.yaml -f dev/authentik/docker-compose.yaml up --remove-orphans
 
@@ -23,7 +26,7 @@ diesel *diesel_cmd:
 db-schema:
     docker compose run --rm --build schemaspy --once
 
-# Screenshot dev stack pages into dev/screenshots (`just screenshot --help`)
+# Screenshot dev stack pages into services/dev/screenshots (`just screenshot --help`)
 [positional-arguments]
 screenshot *args:
     mkdir -p dev/screenshots
@@ -100,5 +103,29 @@ ensure-certs:
     CERT_FILE="./dev/traefik/certs/localhost.pem"
     # Also regenerated when a domain was added since (auth.localhost)
     if [ ! -f "$CERT_FILE" ] || ! openssl x509 -in "$CERT_FILE" -noout -ext subjectAltName | grep -q auth.localhost; then
-        just generate-certs
+        {{ just_executable() }} generate-certs
     fi
+
+### Deploy
+
+# Browse a PostgreSQL backup dump with pgweb (see deploy/README.md)
+explore_backup backup_dump:
+    #!/usr/bin/env bash
+    export BACKUP_LOCATION=$(realpath {{ quote(join(invocation_directory(), backup_dump)) }})
+
+    cd {{ quote(justfile_directory() / 'deploy/backup-explorer') }}
+
+    # Clean up any existing containers and start new ones
+    docker compose down
+
+    # Build and start the containers
+    docker compose up -d --build
+
+    # Open pgweb in the default web browser
+    xdg-open http://localhost:8081
+
+    # Wait for any key press to stop the containers
+    read -n 1 -s -r -p "Press any key to stop the backup explorer..."
+    echo ""
+    echo "Stopping backup explorer..."
+    docker compose down
