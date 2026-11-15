@@ -14,7 +14,7 @@ generate_if_modified () {
     NEW_HASH=$(md5sum "$SPEC_FILE" "$CONFIG_FILE")
     if [ "$HASH" != "$NEW_HASH" ]; then
         echo "Generating client"
-        if yarn run openapi-ts -f $CONFIG_FILE; then
+        if pnpm openapi-ts -f $CONFIG_FILE; then
             echo "$NEW_HASH" > "$HASH_FILE"
         fi
     fi
