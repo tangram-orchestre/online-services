@@ -1,0 +1,9 @@
+# Install the dependencies before `pnpm run`/`pnpm exec` when they are out of
+# date (the default, set explicitly as the dev environment relies on it).
+verifyDepsBeforeRun: install
+
+# Dependencies allowed to run their install scripts, which pnpm blocks
+# otherwise.
+allowBuilds:
+  esbuild: true
+  vue-demi: true

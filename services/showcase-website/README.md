@@ -21,13 +21,14 @@ cd showcase-website
 - Install the dependencies
 
 ```
-yarn install
+corepack enable pnpm
+pnpm install
 ```
 
 - Run the dev instance
 
 ```
-yarn dev
+pnpm dev
 ```
 
 ## Contributing

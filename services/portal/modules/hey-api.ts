@@ -81,7 +81,9 @@ export default defineNuxtModule<ModuleOptions>({
       .update(fs.readFileSync(options.input))
       .update(JSON.stringify(options.config ?? {}))
       // openapi-ts, and Zod whose version the generated code targets.
-      .update(fs.readFileSync(path.join(nuxt.options.rootDir, "yarn.lock")))
+      .update(
+        fs.readFileSync(path.join(nuxt.options.rootDir, "pnpm-lock.yaml")),
+      )
       .digest("hex");
 
     const hashFile = path.join(output, HASH_FILE);

@@ -6,6 +6,20 @@ ARG GID=1000
 # Install tools
 RUN apt-get update && apt-get install -y inotify-tools
 
+# pnpm, at the version of the packageManager field of package.json (from the
+# `project` build context). `pnpm run` installs the dependencies when they are
+# out of date (verifyDepsBeforeRun).
+ENV COREPACK_HOME=/opt/corepack
+ENV COREPACK_ENABLE_DOWNLOAD_PROMPT=0
+COPY --from=project package.json /tmp/project/
+RUN corepack enable pnpm && cd /tmp/project && corepack install \
+    # Downloads its native binary on first run
+    && pnpm --version
+
+# Shared by the containers through a volume, see docker-compose.yaml.
+ENV PNPM_CONFIG_STORE_DIR=/opt/pnpm-store
+RUN mkdir ${PNPM_CONFIG_STORE_DIR}
+
 # Set env variables
 ENV WORKDIR=/opt/backend
 WORKDIR ${WORKDIR}
@@ -24,12 +38,10 @@ RUN mkdir ${CLIENT}
 
 # Set permissions
 RUN chown -R ${UID}:${GID} \
+    ${COREPACK_HOME} \
+    ${PNPM_CONFIG_STORE_DIR} \
     ${NODE_MODULES_DIR} \
     ${NUXT_DIR} \
     ${OUTPUT_DIR} \
     ${CLIENT}
 
-COPY entrypoint.sh /usr/local/bin/
-RUN chmod +x /usr/local/bin/entrypoint.sh
-
-ENTRYPOINT ["/usr/local/bin/entrypoint.sh"]

@@ -48,11 +48,11 @@ lint-fix-backend: build-env
 
 [group('lint')]
 lint-showcase-website: build-env
-    docker compose run --rm showcase-website yarn lint
+    docker compose run --rm showcase-website pnpm lint
 
 [group('lint-fix')]
 lint-fix-showcase-website: build-env
-    docker compose run --rm showcase-website yarn lint:fix
+    docker compose run --rm showcase-website pnpm lint:fix
 
 ### Portal
 
@@ -61,11 +61,11 @@ portal *cmd:
 
 [group('lint')]
 lint-portal: build-env
-    docker compose run --rm portal yarn lint
+    docker compose run --rm portal pnpm lint
 
 [group('lint-fix')]
 lint-fix-portal: build-env
-    docker compose run --rm portal yarn lint:fix
+    docker compose run --rm portal pnpm lint:fix
 
 ### Global
 

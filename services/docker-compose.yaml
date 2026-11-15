@@ -47,17 +47,19 @@ services:
   showcase-website:
     build:
       context: ./showcase-website/dev
+      additional_contexts:
+        project: ./showcase-website
       args:
         - UID=${UID-1000}
         - GID=${UID-1000}
     volumes:
       - ./scripts:/opt/scripts:ro
       - ./showcase-website:/opt/showcase-website
+      - pnpm_store:/opt/pnpm-store
       - ./openapi:/opt/openapi # dev.sh will write spec.json here.
     user: ${UID-1000}:${GID-1000}
     working_dir: /opt/showcase-website
-    entrypoint:
-    command: yarn run dev2
+    command: pnpm dev2
     environment:
       - PRIVATE_API_BASE_URL=http://backend:3000
       - PUBLIC_API_BASE_URL=https://localhost/api
@@ -73,6 +75,8 @@ services:
   portal:
     build:
       context: ./portal/dev
+      additional_contexts:
+        project: ./portal
       args:
         - UID=${UID-1000}
         - GID=${UID-1000}
@@ -82,10 +86,11 @@ services:
     volumes:
       - ./scripts:/opt/scripts:ro
       - ./portal:/opt/portal
+      - pnpm_store:/opt/pnpm-store
       - ./openapi:/opt/openapi # dev.sh will write spec.json here.
     user: ${UID-1000}:${GID-1000}
     working_dir: /opt/portal
-    command: yarn run dev
+    command: pnpm dev
     environment:
       - FORCE_COLOR=1
     tmpfs:
@@ -219,3 +224,4 @@ volumes:
   backend_cargo_target_dir:
   backend_cargo_registry:
   schemaspy_output:
+  pnpm_store:
