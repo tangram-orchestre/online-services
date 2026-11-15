@@ -48,6 +48,10 @@ export default defineNuxtModule<ModuleOptions>({
       input: options.input,
       output: {
         path: output,
+        // Only read to pick import extensions for NodeNext module resolution,
+        // which Nuxt doesn't use. tsconfig.json extends .nuxt/tsconfig.json,
+        // which doesn't exist yet when this runs on a fresh `.nuxt/`.
+        tsConfigPath: null,
         // The client runtime, copied from openapi-ts (files without a
         // `file`), does not type-check against Nuxt >= 4.5 (`cache: false`).
         header: ({ defaultValue, file }) =>
@@ -55,6 +59,23 @@ export default defineNuxtModule<ModuleOptions>({
       },
       logs: { level: "warn" },
     };
+
+    // The backend writes the spec once it has compiled and started, which
+    // takes a while on a fresh dev environment.
+    if (!fs.existsSync(options.input)) {
+      if (nuxt.options._prepare) {
+        logger.warn(
+          `${options.input} not found, skipping API client generation`,
+        );
+        return;
+      }
+      if (nuxt.options.dev) {
+        logger.start(`Waiting for ${options.input} (written by the backend)`);
+        while (!fs.existsSync(options.input)) {
+          await new Promise((resolve) => setTimeout(resolve, 1000));
+        }
+      }
+    }
 
     const hash = createHash("sha256")
       .update(fs.readFileSync(options.input))
