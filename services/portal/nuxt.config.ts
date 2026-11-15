@@ -52,4 +52,15 @@ export default defineNuxtConfig({
   typescript: {
     typeCheck: true,
   },
+  vite: {
+    optimizeDeps: {
+      include: [
+        "date-fns",
+        "ts-pattern",
+        "vee-validate",
+        "vue-draggable-plus",
+        "zod",
+      ],
+    },
+  },
 });

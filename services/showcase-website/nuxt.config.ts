@@ -53,6 +53,11 @@ export default defineNuxtConfig({
   },
   vite: {
     plugins: [svgLoader()],
+    // Imported only by pages and components, so Vite discovers them on the
+    // first page load and reloads the page, unless they are pre-bundled.
+    optimizeDeps: {
+      include: ["altcha", "ts-pattern", "zod"],
+    },
     vue: {
       template: {
         compilerOptions: {
