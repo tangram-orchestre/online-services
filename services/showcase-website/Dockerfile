@@ -13,10 +13,9 @@ ENV PRIVATE_API_BASE_URL=placeholder
 ENV PUBLIC_API_BASE_URL=placeholder
 
 RUN mkdir /opt/openapi && mv public-spec.json /opt/openapi
-RUN pnpm openapi-ts
 
-# The install's `nuxt prepare` ran without the sources: generate the types
-# again, which the build type-checks against.
+# The install's `nuxt prepare` ran without the sources and the spec: generate
+# the types and the API client again, which the build type-checks against.
 RUN pnpm nuxt prepare && pnpm build
 RUN pnpm lint
 

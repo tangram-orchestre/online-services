@@ -11,9 +11,7 @@
     "lint": "pnpm lint:eslint && pnpm lint:prettier",
     "lint:eslint": "eslint .",
     "lint:prettier": "prettier . --check",
-    "lint:fix": "eslint . --fix && prettier --write --list-different .",
-    "openapi-ts": "openapi-ts",
-    "dev2": "concurrently -n nuxt-dev,client-gen -c green,blue --kill-others \"pnpm dev\" \"./dev/generate-client.sh\""
+    "lint:fix": "eslint . --fix && prettier --write --list-different ."
   },
   "dependencies": {
     "@nuxt/fonts": "^0.10.3",
@@ -36,11 +34,11 @@
     "@nuxt/eslint": "^1.17.0",
     "@types/node": "^24.0.0",
     "autoprefixer": "^10.4.20",
-    "concurrently": "^9.1.2",
     "eslint": "^10.14.0",
     "eslint-config-prettier": "^10.0.1",
     "eslint-plugin-prettier": "^5.2.3",
     "eslint-plugin-tailwindcss": "^3.18.0",
+    "mlly": "^1.8.2",
     "postcss": "^8.5.0",
     "prettier": "^3.4.2",
     "sass": "^1.83.4",
