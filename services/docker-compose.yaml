@@ -147,7 +147,14 @@ services:
   schema-viewer:
     image: nginx:1.29-alpine
     volumes:
-      - schemaspy_output:/usr/share/nginx/html:ro
+      # nocopy: otherwise, when it is mounted here first, the volume gets
+      # nginx's root-owned default pages, and schemaspy can't write to it.
+      - type: volume
+        source: schemaspy_output
+        target: /usr/share/nginx/html
+        read_only: true
+        volume:
+          nocopy: true
       - ./dev/schema-viewer.conf:/etc/nginx/conf.d/default.conf:ro
     labels:
       - traefik.enable=true
