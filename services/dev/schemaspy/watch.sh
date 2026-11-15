@@ -31,11 +31,14 @@ SELECT md5(coalesce(string_agg(item, '|' ORDER BY item), '')) FROM (
 ) AS schema(item);"
 
 generate() {
-  local tmp
+  local tmp log
   tmp=$(mktemp -d)
-  # The image launcher writes to $SCHEMASPY_OUTPUT.
-  if ! SCHEMASPY_OUTPUT=$tmp /usr/local/bin/schemaspy -t pgsql11 -host "$PGHOST" \
-    -port "${PGPORT:-5432}" -db "$PGDATABASE" -u "$PGUSER" -p "$PGPASSWORD" -s public; then
+  # The image launcher writes to $SCHEMASPY_OUTPUT. Its output (banner,
+  # progress) is only shown when it fails.
+  if ! log=$(SCHEMASPY_OUTPUT=$tmp /usr/local/bin/schemaspy -t pgsql11 -host "$PGHOST" \
+    -port "${PGPORT:-5432}" -db "$PGDATABASE" -u "$PGUSER" -p "$PGPASSWORD" -s public 2>&1); then
+    echo "$log"
+    echo "Documentation generation failed"
     rm -rf "$tmp"
     return 1
   fi
@@ -66,8 +69,10 @@ last=""
 while true; do
   current=$(fingerprint)
   if [ -n "$current" ] && [ "$current" != "$last" ]; then
-    echo "Schema changed, regenerating the documentation..."
-    generate && last=$current
+    if generate; then
+      echo "Schema changed, documentation regenerated"
+      last=$current
+    fi
   fi
   sleep "$INTERVAL"
 done
