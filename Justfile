@@ -18,6 +18,23 @@ build-env:
 
     docker compose build
 
+# Remove everything the dev environment created (containers, built images,
+# volumes, both databases, generated files and dependencies), to start again
+# as from a fresh clone. Keeps the certificates, the screenshots and the cargo
+# caches, which would otherwise mean recompiling the whole backend.
+[confirm("This deletes the dev databases and everything generated. Continue (y)?")]
+wipe:
+    docker compose -f docker-compose.yaml -f dev/authentik/docker-compose.yaml --profile tools \
+        down --remove-orphans --rmi local
+    docker volume rm -f services_schemaspy_output services_authentik_data
+    # Owned by the database containers' users: removed from a container.
+    docker run --rm -v "$PWD:/services" --entrypoint rm \
+        "$(docker compose config --images postgres)" -rf /services/docker-data
+    rm -rf .env openapi/*.json openapi/*.md5 \
+        dev/fake-auth/current-user.json dev/fake-auth/users.json
+    cd portal && rm -rf client node_modules .nuxt .output .data .nitro .cache
+    cd showcase-website && rm -rf client node_modules .nuxt .output .data .nitro .cache
+
 diesel *diesel_cmd:
     docker compose run --rm backend diesel {{ diesel_cmd }}
 
