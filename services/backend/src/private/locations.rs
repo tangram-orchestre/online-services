@@ -1,9 +1,7 @@
 use std::collections::HashMap;
 
 use diesel::{ExpressionMethods, QueryDsl, SelectableHelper};
-use diesel_async::{
-    AsyncConnection, AsyncPgConnection, RunQueryDsl, scoped_futures::ScopedFutureExt,
-};
+use diesel_async::{AsyncConnection, AsyncPgConnection, RunQueryDsl};
 use poem::web::Data;
 use poem_openapi::{OpenApi, param::Path, payload::Json};
 use uuid::Uuid;
@@ -194,7 +192,7 @@ impl Api {
             .build_transaction()
             .read_only()
             .repeatable_read()
-            .run(|conn| load_locations(conn, None).scope_boxed())
+            .run(async |conn| load_locations(conn, None).await)
             .await?;
         Ok(Json(locations))
     }
@@ -210,24 +208,21 @@ impl Api {
         RequireRole(Role::Bureau).check(principal)?;
         let mut conn = state.db_connection_pool.get().await.unwrap();
         let created = conn
-            .transaction::<_, ApiError, _>(|conn| {
-                async move {
-                    let location_id = diesel::insert_into(locations::table)
-                        .values(&new_location.location)
-                        .returning(locations::id)
-                        .get_result(conn)
-                        .await?;
-                    // A new location has no rooms yet: ids are meaningless.
-                    let rooms = new_location
-                        .rooms
-                        .into_iter()
-                        .map(|room| RoomInput { id: None, ..room })
-                        .collect();
-                    set_rooms(conn, location_id, rooms).await?;
-                    set_contacts(conn, location_id, new_location.contacts).await?;
-                    load_location(conn, location_id).await
-                }
-                .scope_boxed()
+            .transaction::<_, ApiError, _>(async move |conn| {
+                let location_id = diesel::insert_into(locations::table)
+                    .values(&new_location.location)
+                    .returning(locations::id)
+                    .get_result(conn)
+                    .await?;
+                // A new location has no rooms yet: ids are meaningless.
+                let rooms = new_location
+                    .rooms
+                    .into_iter()
+                    .map(|room| RoomInput { id: None, ..room })
+                    .collect();
+                set_rooms(conn, location_id, rooms).await?;
+                set_contacts(conn, location_id, new_location.contacts).await?;
+                load_location(conn, location_id).await
             })
             .await?;
         Ok(Json(created))
@@ -244,24 +239,21 @@ impl Api {
         RequireRole(Role::Bureau).check(&principal)?;
         let mut conn = state.db_connection_pool.get().await.unwrap();
         let updated = conn
-            .transaction::<_, ApiError, _>(|conn| {
-                async move {
-                    let location_id = update.location.id;
-                    let old_images = location_images(conn, location_id).await?;
-                    let found = diesel::update(locations::table.find(location_id))
-                        .set(&update.location)
-                        .execute(conn)
-                        .await?;
-                    if found == 0 {
-                        return Err(ApiError::NotFound);
-                    }
-                    set_rooms(conn, location_id, update.rooms).await?;
-                    set_contacts(conn, location_id, update.contacts).await?;
-                    // Images replaced or of deleted rooms, if not used elsewhere.
-                    delete_unused_images(conn, &old_images).await?;
-                    load_location(conn, location_id).await
+            .transaction::<_, ApiError, _>(async move |conn| {
+                let location_id = update.location.id;
+                let old_images = location_images(conn, location_id).await?;
+                let found = diesel::update(locations::table.find(location_id))
+                    .set(&update.location)
+                    .execute(conn)
+                    .await?;
+                if found == 0 {
+                    return Err(ApiError::NotFound);
                 }
-                .scope_boxed()
+                set_rooms(conn, location_id, update.rooms).await?;
+                set_contacts(conn, location_id, update.contacts).await?;
+                // Images replaced or of deleted rooms, if not used elsewhere.
+                delete_unused_images(conn, &old_images).await?;
+                load_location(conn, location_id).await
             })
             .await?;
         Ok(Json(updated))
@@ -279,20 +271,17 @@ impl Api {
     ) -> Result<()> {
         RequireRole(Role::Bureau).check(&principal)?;
         let mut conn = state.db_connection_pool.get().await.unwrap();
-        conn.transaction::<_, ApiError, _>(|conn| {
-            async move {
-                let images = location_images(conn, location_id).await?;
-                // Rooms and contacts are deleted by cascade.
-                let deleted = diesel::delete(locations::table.find(location_id))
-                    .execute(conn)
-                    .await?;
-                if deleted == 0 {
-                    return Err(ApiError::NotFound);
-                }
-                delete_unused_images(conn, &images).await?;
-                Ok(())
+        conn.transaction::<_, ApiError, _>(async move |conn| {
+            let images = location_images(conn, location_id).await?;
+            // Rooms and contacts are deleted by cascade.
+            let deleted = diesel::delete(locations::table.find(location_id))
+                .execute(conn)
+                .await?;
+            if deleted == 0 {
+                return Err(ApiError::NotFound);
             }
-            .scope_boxed()
+            delete_unused_images(conn, &images).await?;
+            Ok(())
         })
         .await
     }

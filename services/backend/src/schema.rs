@@ -3,7 +3,19 @@
 pub mod sql_types {
     #[derive(diesel::query_builder::QueryId, diesel::sql_types::SqlType)]
     #[diesel(postgres_type(name = "piece_role"))]
+    #[diesel(enum_type)]
     pub struct PieceRole;
+}
+
+pub mod rust_types {
+    #[derive(Clone, Copy, Debug, Eq, PartialEq, diesel::types::Enum)]
+    #[diesel(sql_type = super::sql_types::PieceRole)]
+    pub enum PieceRole {
+        #[diesel(rename = "arranger")]
+        Arranger,
+        #[diesel(rename = "conductor")]
+        Conductor,
+    }
 }
 
 diesel::table! {

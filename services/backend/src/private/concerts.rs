@@ -1,7 +1,7 @@
 use std::collections::HashMap;
 
 use diesel::{ExpressionMethods, OptionalExtension, QueryDsl, SelectableHelper};
-use diesel_async::{AsyncConnection, RunQueryDsl, scoped_futures::ScopedFutureExt};
+use diesel_async::{AsyncConnection, RunQueryDsl};
 use poem::web::Data;
 use poem_openapi::{OpenApi, param::Path, payload::Json};
 
@@ -34,20 +34,17 @@ impl Api {
             .build_transaction()
             .read_only()
             .repeatable_read()
-            .run::<_, ApiError, _>(|conn| {
-                async move {
-                    let concerts = concerts::table
-                        .select(models::Concert::as_select())
-                        .load(conn)
-                        .await?;
-                    let links = concert_pieces::table
-                        .order((concert_pieces::concert_id, concert_pieces::position))
-                        .select(ConcertPiece::as_select())
-                        .load(conn)
-                        .await?;
-                    Ok((concerts, links))
-                }
-                .scope_boxed()
+            .run::<_, ApiError, _>(async move |conn| {
+                let concerts = concerts::table
+                    .select(models::Concert::as_select())
+                    .load(conn)
+                    .await?;
+                let links = concert_pieces::table
+                    .order((concert_pieces::concert_id, concert_pieces::position))
+                    .select(ConcertPiece::as_select())
+                    .load(conn)
+                    .await?;
+                Ok((concerts, links))
             })
             .await?;
 
@@ -101,26 +98,23 @@ impl Api {
     ) -> Result<()> {
         RequireRole(Role::Bureau).check(&principal)?;
         let mut conn = state.db_connection_pool.get().await.unwrap();
-        conn.transaction::<_, ApiError, _>(|conn| {
-            async move {
-                let old_image_id = concerts::table
-                    .find(concert.id)
-                    .select(concerts::image_id)
-                    .first::<Option<uuid::Uuid>>(conn)
-                    .await
-                    .optional()?
-                    .ok_or(ApiError::NotFound)?;
-                diesel::update(concerts::table.find(concert.id))
-                    .set(&concert)
-                    .execute(conn)
-                    .await?;
-                // A replaced image is not used anymore.
-                if old_image_id != concert.image_id {
-                    delete_unused_images(conn, old_image_id.as_slice()).await?;
-                }
-                Ok(())
+        conn.transaction::<_, ApiError, _>(async move |conn| {
+            let old_image_id = concerts::table
+                .find(concert.id)
+                .select(concerts::image_id)
+                .first::<Option<uuid::Uuid>>(conn)
+                .await
+                .optional()?
+                .ok_or(ApiError::NotFound)?;
+            diesel::update(concerts::table.find(concert.id))
+                .set(&concert)
+                .execute(conn)
+                .await?;
+            // A replaced image is not used anymore.
+            if old_image_id != concert.image_id {
+                delete_unused_images(conn, old_image_id.as_slice()).await?;
             }
-            .scope_boxed()
+            Ok(())
         })
         .await
     }
@@ -135,19 +129,16 @@ impl Api {
     ) -> Result<()> {
         RequireRole(Role::Bureau).check(&principal)?;
         let mut conn = state.db_connection_pool.get().await.unwrap();
-        conn.transaction::<_, ApiError, _>(|conn| {
-            async move {
-                // The programme is deleted by cascade.
-                let image_id = diesel::delete(concerts::table.find(concert_id))
-                    .returning(concerts::image_id)
-                    .get_result::<Option<uuid::Uuid>>(conn)
-                    .await
-                    .optional()?
-                    .ok_or(ApiError::NotFound)?;
-                delete_unused_images(conn, image_id.as_slice()).await?;
-                Ok(())
-            }
-            .scope_boxed()
+        conn.transaction::<_, ApiError, _>(async move |conn| {
+            // The programme is deleted by cascade.
+            let image_id = diesel::delete(concerts::table.find(concert_id))
+                .returning(concerts::image_id)
+                .get_result::<Option<uuid::Uuid>>(conn)
+                .await
+                .optional()?
+                .ok_or(ApiError::NotFound)?;
+            delete_unused_images(conn, image_id.as_slice()).await?;
+            Ok(())
         })
         .await
     }
@@ -165,40 +156,35 @@ impl Api {
     ) -> Result<()> {
         RequireRole(Role::Bureau).check(&principal)?;
         let mut conn = state.db_connection_pool.get().await.unwrap();
-        conn.transaction::<_, ApiError, _>(|conn| {
-            async move {
-                concerts::table
-                    .find(concert_id)
-                    .select(concerts::id)
-                    .first::<i32>(conn)
-                    .await
-                    .optional()?
-                    .ok_or(ApiError::NotFound)?;
+        conn.transaction::<_, ApiError, _>(async move |conn| {
+            concerts::table
+                .find(concert_id)
+                .select(concerts::id)
+                .first::<i32>(conn)
+                .await
+                .optional()?
+                .ok_or(ApiError::NotFound)?;
 
-                diesel::delete(
-                    concert_pieces::table.filter(concert_pieces::concert_id.eq(concert_id)),
-                )
+            diesel::delete(concert_pieces::table.filter(concert_pieces::concert_id.eq(concert_id)))
                 .execute(conn)
                 .await?;
 
-                let links: Vec<ConcertPiece> = piece_ids
-                    .iter()
-                    .enumerate()
-                    .map(|(position, &piece_id)| ConcertPiece {
-                        concert_id,
-                        piece_id,
-                        position: position as i32,
-                    })
-                    .collect();
-                if !links.is_empty() {
-                    diesel::insert_into(concert_pieces::table)
-                        .values(&links)
-                        .execute(conn)
-                        .await?;
-                }
-                Ok(())
+            let links: Vec<ConcertPiece> = piece_ids
+                .iter()
+                .enumerate()
+                .map(|(position, &piece_id)| ConcertPiece {
+                    concert_id,
+                    piece_id,
+                    position: position as i32,
+                })
+                .collect();
+            if !links.is_empty() {
+                diesel::insert_into(concert_pieces::table)
+                    .values(&links)
+                    .execute(conn)
+                    .await?;
             }
-            .scope_boxed()
+            Ok(())
         })
         .await
     }

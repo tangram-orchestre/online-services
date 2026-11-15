@@ -36,13 +36,7 @@ pub struct NewPerson {
     pub display_name: Option<String>,
 }
 
-/// What a person does on a piece.
-#[derive(diesel_derive_enum::DbEnum, Debug, Clone, Copy, PartialEq, Eq)]
-#[ExistingTypePath = "crate::schema::sql_types::PieceRole"]
-pub enum PieceRole {
-    Arranger,
-    Conductor,
-}
+pub use crate::schema::rust_types::PieceRole;
 
 #[derive(Queryable, Selectable, Insertable)]
 #[diesel(table_name = crate::schema::piece_people)]

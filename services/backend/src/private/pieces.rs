@@ -1,9 +1,7 @@
 use std::collections::HashMap;
 
 use diesel::{ExpressionMethods, OptionalExtension, QueryDsl, SelectableHelper};
-use diesel_async::{
-    AsyncConnection, AsyncPgConnection, RunQueryDsl, scoped_futures::ScopedFutureExt,
-};
+use diesel_async::{AsyncConnection, AsyncPgConnection, RunQueryDsl};
 use poem::web::Data;
 use poem_openapi::{OpenApi, param::Path, payload::Json};
 
@@ -74,20 +72,17 @@ impl Api {
             .build_transaction()
             .read_only()
             .repeatable_read()
-            .run::<_, ApiError, _>(|conn| {
-                async move {
-                    let pieces = pieces::table
-                        .select(models::Piece::as_select())
-                        .load(conn)
-                        .await?;
-                    let links = piece_people::table
-                        .order((piece_people::piece_id, piece_people::person_id))
-                        .select(PiecePerson::as_select())
-                        .load(conn)
-                        .await?;
-                    Ok((pieces, links))
-                }
-                .scope_boxed()
+            .run::<_, ApiError, _>(async move |conn| {
+                let pieces = pieces::table
+                    .select(models::Piece::as_select())
+                    .load(conn)
+                    .await?;
+                let links = piece_people::table
+                    .order((piece_people::piece_id, piece_people::person_id))
+                    .select(PiecePerson::as_select())
+                    .load(conn)
+                    .await?;
+                Ok((pieces, links))
             })
             .await?;
 
@@ -129,27 +124,24 @@ impl Api {
         RequireRole(Role::Bureau).check(principal)?;
         let mut conn = state.db_connection_pool.get().await.unwrap();
         let piece = conn
-            .transaction::<_, ApiError, _>(|conn| {
-                async move {
-                    let piece = diesel::insert_into(pieces::table)
-                        .values(&new_piece.piece)
-                        .returning(models::Piece::as_returning())
-                        .get_result(conn)
-                        .await?;
-                    set_piece_people(
-                        conn,
-                        piece.id,
-                        &new_piece.arranger_ids,
-                        &new_piece.conductor_ids,
-                    )
+            .transaction::<_, ApiError, _>(async move |conn| {
+                let piece = diesel::insert_into(pieces::table)
+                    .values(&new_piece.piece)
+                    .returning(models::Piece::as_returning())
+                    .get_result(conn)
                     .await?;
-                    Ok(PieceWithPeople {
-                        piece,
-                        arranger_ids: new_piece.arranger_ids,
-                        conductor_ids: new_piece.conductor_ids,
-                    })
-                }
-                .scope_boxed()
+                set_piece_people(
+                    conn,
+                    piece.id,
+                    &new_piece.arranger_ids,
+                    &new_piece.conductor_ids,
+                )
+                .await?;
+                Ok(PieceWithPeople {
+                    piece,
+                    arranger_ids: new_piece.arranger_ids,
+                    conductor_ids: new_piece.conductor_ids,
+                })
             })
             .await?;
         Ok(Json(piece))
@@ -167,24 +159,21 @@ impl Api {
     ) -> Result<()> {
         RequireRole(Role::Bureau).check(&principal)?;
         let mut conn = state.db_connection_pool.get().await.unwrap();
-        conn.transaction::<_, ApiError, _>(|conn| {
-            async move {
-                diesel::update(pieces::table.find(piece.piece.id))
-                    .set(&piece.piece)
-                    .returning(pieces::id)
-                    .get_result::<i32>(conn)
-                    .await
-                    .optional()?
-                    .ok_or(ApiError::NotFound)?;
-                set_piece_people(
-                    conn,
-                    piece.piece.id,
-                    &piece.arranger_ids,
-                    &piece.conductor_ids,
-                )
+        conn.transaction::<_, ApiError, _>(async move |conn| {
+            diesel::update(pieces::table.find(piece.piece.id))
+                .set(&piece.piece)
+                .returning(pieces::id)
+                .get_result::<i32>(conn)
                 .await
-            }
-            .scope_boxed()
+                .optional()?
+                .ok_or(ApiError::NotFound)?;
+            set_piece_people(
+                conn,
+                piece.piece.id,
+                &piece.arranger_ids,
+                &piece.conductor_ids,
+            )
+            .await
         })
         .await
     }

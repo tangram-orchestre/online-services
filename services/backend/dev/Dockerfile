@@ -13,7 +13,7 @@ RUN curl https://sh.rustup.rs -sSf | sh -s -- --default-toolchain=1.94.0 -y
 ENV PATH=/opt/cargo_home/bin:$PATH
 
 # Install tools
-RUN cargo install --locked diesel_cli@2.3.7 --no-default-features --features "postgres"
+RUN cargo install --locked diesel_cli@2.4.0 --no-default-features --features "postgres"
 RUN cargo install --locked watchexec-cli@2.5.0
 
 # Set env variables
