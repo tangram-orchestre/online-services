@@ -7,8 +7,10 @@ services:
         - UID=${UID-1000}
         - GID=${UID-1000}
     depends_on:
-      - postgres
-      - fake-auth
+      postgres:
+        condition: service_healthy
+      fake-auth:
+        condition: service_started
     volumes:
       - ./scripts:/opt/scripts:ro
       - ./backend:/opt/backend
@@ -99,6 +101,7 @@ services:
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -d $${POSTGRES_DB} -U $${POSTGRES_USER}"]
       start_period: 20s
+      start_interval: 1s
       interval: 30s
       retries: 5
       timeout: 5s
@@ -114,7 +117,8 @@ services:
   pgweb:
     image: sosedoff/pgweb:0.16.2
     depends_on:
-      - postgres
+      postgres:
+        condition: service_healthy
     environment:
       - PGWEB_DATABASE_URL=postgres://portal:portal@postgres:5432/portal?sslmode=disable
     labels:
@@ -128,7 +132,8 @@ services:
     build:
       context: ./dev/schemaspy
     depends_on:
-      - postgres
+      postgres:
+        condition: service_healthy
     volumes:
       - schemaspy_output:/output
     environment:
